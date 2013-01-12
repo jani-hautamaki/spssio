@@ -1,0 +1,7 @@
+# use glob syntax:
+syntax: glob
+
+build/*
+deploy/*
+javadoc/*
+testrun.bat

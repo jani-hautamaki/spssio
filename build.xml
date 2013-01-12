@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="ISO-8859-15"?>
+
+<!--*******************************{begin:header}******************************
+                  spssio - http://code.google.com/p/spssio/                    
+*******************************************************************************
+
+        Java classes for reading and writing 
+        SPSS/PSPP Portable and System files
+  
+        Copyright (C) 2013 Jani Hautamki <jani.hautamaki@hotmail.com>
+  
+        Licensed under the terms of GNU General Public License v3.
+  
+        You should have received a copy of the GNU General Public License v3
+        along with this program as the file LICENSE.txt; if not, please see
+        http://www.gnu.org/licenses/gpl-3.0.html
+  
+**********************************{end:header}******************************-->
+
+<project name="spssio" default="deploy" basedir=".">
+
+  <!-- Description; just point at the Google Code web page -->
+  <description>https://code.google.com/p/spssio/</description>
+    
+  <!-- =================================================================== -->
+  <!-- Configuration constants                                             -->
+  <!-- =================================================================== -->
+
+  <!-- Version number used in the distribution package name -->
+  <property name="version"                    value="0.0.1" />
+
+  <!-- File name for the class jar package -->
+  <property name="classes.jar"              value="spssio-${version}.jar" />
+    
+  <!-- Deployment directory name -->
+  <!-- <property name="spssio.dir"                 value="spssio" /> -->
+
+  <!-- Testrun script file name (Windows) -->
+  <property name="testrun.bat"                value="testrun.bat" />
+    
+  <!-- =================================================================== -->
+  <!-- Directory layout: root INPUT directories and files                  -->
+  <!-- =================================================================== -->
+
+  <!-- Directory for all Java source codes -->
+  <property name="sources.dir"                location="./src/java" />
+
+  <!-- Third-party .jar files automatically included in classpath -->
+  <property name="lib.dir"                    location="./lib" />
+    
+  <!-- Script templates directory -->
+  <property name="templ.dir"                  location="./src/templ" />
+
+  <!-- File name for the location independent testrun script (Windows) -->
+  <property name="testrun.bat.templ"          location="${templ.dir}/${testrun.bat}.templ" />
+  
+  <!-- =================================================================== -->
+  <!-- Directory layout: root OUTPUT directories and files                 -->
+  <!-- =================================================================== -->
+
+  <!-- Build root directory for compiled code -->
+  <property name="build.dir"                  location="./build" />
+    
+  <!-- Build directory for all compiled Java code -->
+  <property name="build.java.dir"             location="${build.dir}/java" />
+
+  <!-- File name for the built class jar package -->
+  <property name="build.classes.jar"          location="${build.dir}/${classes.jar}" />
+
+  <!-- Build directory for all generated javadocs -->
+  <property name="javadoc.dir"                location="./javadoc" />
+
+  <!-- Installation directory for the built classes jar -->
+  <property name="install.dir"                location="./deploy/spssio" />
+
+  <!-- Installation location for the location independent testrun script (Windows) -->
+  <property name="install.testrun.bat"        location="./${testrun.bat}" />
+
+  <!-- Redistributable package; package evolution -->
+  <property name="dist.dir"                   location="./dist" />
+
+  <!-- =================================================================== -->
+  <!-- Java compilation options                                            -->
+  <!-- =================================================================== -->
+    
+  <property name="compile.debug"       value="true" />
+  <property name="compile.optimize"    value="true" />
+  <property name="compile.target"      value="1.6" />
+  <property name="compile.source"      value="1.6" />
+  <property name="compile.deprecation" value="true" />
+
+  <!-- Directory for javadocs generated documentation -->
+  <property name="javadoc.dir"  location="javadoc" />
+
+  <!-- =================================================================== -->
+  <!-- Automatic inclusion of all .jar files in the lib.dir                -->
+  <!-- =================================================================== -->
+  
+  <!-- NOTE: These will have absolute paths -->
+  <path id="classpath.lib">
+    <fileset dir="${lib.dir}">
+      <include name="**/*.jar" />
+    </fileset>
+  </path>
+
+  <!-- =================================================================== -->
+  <!-- Prepares the build directory                                        -->
+  <!-- =================================================================== -->
+  <target name="prepare-build" depends=""
+          description="prepares the build directory">
+    <!-- Timestamp -->
+    <tstamp />
+    <!-- Create the build root -->
+    <mkdir dir="${build.dir}" />
+    <!-- Create sub-directory for compiled Java .class files -->
+    <mkdir dir="${build.java.dir}" />
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Prepares the deploy directory                                       -->
+  <!-- =================================================================== -->
+  
+  <target name="prepare-deploy" 
+          description="prepares the deploy directory"
+          depends="">
+    <!-- Timestamp -->
+    <tstamp />
+    <!-- Create the install directory if it doesn't exist already -->
+    <mkdir dir="${install.dir}" />
+  </target>
+
+  
+  <!-- =================================================================== -->
+  <!-- TODO: Propagate / redist                                            -->
+  <!-- =================================================================== -->
+  <target name="propagate" 
+          depends=""
+          description="propagate to a new distributable package">
+    
+    <!-- TODO: prepare dist -->
+    <!-- TODO: identity transform -->
+    <!-- TODO: propagate sources -->
+    
+    <!-- Example of propagating sources with identity transformation
+    <copy todir="${build.sources.dir}" filtering="true">
+        <fileset dir="${sources.dir}" />
+    </copy>
+    -->
+  </target>
+
+
+  <!-- =================================================================== -->
+  <!-- Compiles the snippets directory                                     -->
+  <!-- =================================================================== -->
+  <target name="compile" depends="prepare-build"
+          description="Compiles the java sources directory">
+        
+    <!-- Execute javac -->
+    <javac srcdir="${sources.dir}"
+           destdir="${build.java.dir}"
+           includeAntRuntime="no" 
+           fork="no" 
+           listfiles="yes"
+           debug="${compile.debug}"
+           optimize="${compile.optimize}"
+           target="${compile.target}"
+           source="${compile.source}"
+           deprecation="${compile.deprecation}">
+      <!-- The -classpath argument -->
+      <classpath refid="classpath.lib"/>
+    </javac>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Create a jar package of all class files                             -->
+  <!-- =================================================================== -->
+  <target name="jar"
+          depends="compile"
+          description="Creates a jar package">
+    <!-- Create distributable jar package of the program into the dist.dir -->
+    <jar jarfile="${build.classes.jar}" basedir="${build.java.dir}" />
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Xlint the source files                                              -->
+  <!-- =================================================================== -->
+  
+  <!-- Note: this is exactly the same as all javac commands in the other
+  targets compiling source files expect for the additional compilerarg
+  child element. -->
+  <target name="xlint" 
+          description="Xlint the source files"
+          depends="prepare-build">
+    <!-- Execute javac with -Xlint for snippets -->
+    <javac srcdir="${sources.dir}"
+           destdir="${build.java.dir}"
+           includeAntRuntime="no" 
+           fork="no" 
+           listfiles="yes"
+           debug="${compile.debug}"
+           optimize="${compile.optimize}"
+           target="${compile.target}"
+           source="${compile.source}"
+           deprecation="${compile.deprecation}">
+      <!-- Pass argument: -Xlint -->
+      <compilerarg value="-Xlint" />
+      <!-- Pass argument: -classpath -->
+      <classpath refid="classpath.lib"/>
+    </javac>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Clean all dynamically created directories                           -->
+  <!-- =================================================================== -->
+  <target name="clean"
+          description="clean all dynamically created directories"
+          depends="">
+    <!-- Remove the build directory -->
+    <delete dir="${build.dir}" />
+    <!-- Remoe the javadocs directory -->
+    <delete dir="${javadoc.dir}" />
+    <!-- Remove the deployment directory -->
+    <delete dir="${install.dir}" />
+  </target>
+    
+  <!-- =================================================================== -->
+  <!-- Create position-independent installation                            -->
+  <!-- =================================================================== -->
+  
+  <target name="deploy"
+          description="create position-independent installation direcotry"
+          depends="jar, prepare-deploy">
+          
+    <!-- Flatten 3rd party libs into the deployment dir -->
+    <copy todir="${install.dir}"
+          overwrite="true"
+          flatten="true">
+      <!-- All automatically include .jar packages -->
+      <fileset dir="${lib.dir}">
+        <include name="**/*.jar" />
+      </fileset>
+    </copy> 
+    
+    <!-- Flatten the built class jar file into the deployment dir also -->
+    <copy todir="${install.dir}"
+          file="${build.classes.jar}" />
+    
+    <!-- Create a file list out of all flattened jar files -->
+    <path id="installed_jars.list">
+      <fileset dir="${install.dir}">
+        <!-- Include automatically all .jar packages -->
+        <include name="**/*.jar" />
+      </fileset>
+    </path>
+    
+    <!-- Copy the runscript template for Windows, and rename it -->
+    <copy tofile="${install.testrun.bat}"
+          file="${testrun.bat.templ}" 
+          overwrite="true" />
+          
+    <!-- Instantiate the template for the deployment dir -->
+    <replace file="${install.testrun.bat}">
+      <!-- Replace classpath argument -->
+      <replacefilter>
+        <replacetoken>$deploy.jars$</replacetoken>
+        <replacevalue expandProperties="true">${ant.refid:installed_jars.list}</replacevalue>
+      </replacefilter>
+
+      <!-- Replace absolute paths to the deployment directory
+      with an environment variable called %DDIR% -->
+      <replacefilter>
+        <replacetoken expandProperties="true">${install.dir}</replacetoken>
+        <replacevalue expandProperties="true">%DDIR%</replacevalue>
+      </replacefilter>
+      <!-- NOTE: The order is important here; if this replacement is
+      performed before converting absolute paths an erraneous situation
+      will occur. -->
+      
+      <!-- Replace $deploy.dir$ with the absolute path 
+      of the xml-snippets deployment directory -->
+      <replacefilter>
+        <replacetoken>$deploy.dir$</replacetoken>
+        <replacevalue expandProperties="true">${install.dir}</replacevalue>
+      </replacefilter>
+    </replace>
+    
+    <!-- Make a copy of the instantiated runscript to project root -->
+    <copy tofile="${testrun.bat}"
+          file="${install.testrun.bat}"
+          overwrite="true" />
+    
+  </target>
+  
+  <!-- =================================================================== -->
+  <!-- Create Javadoc documentation                                        -->
+  <!-- =================================================================== -->
+  <target name="javadoc"
+          description="compile javadocs">
+    <mkdir dir="${javadoc.dir}" />
+        
+    <javadoc      sourcepath="${sources.dir}"
+                  defaultexcludes="yes"
+                  destdir="${javadoc.dir}"
+                  author="true"
+                  version="true"
+                  use="true"
+                  private="true">
+      <!-- Pass argument: -classpath -->
+      <classpath refid="classpath.lib"/>
+    </javadoc>
+  </target>
+
+</project>
