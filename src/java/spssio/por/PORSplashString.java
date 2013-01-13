@@ -57,6 +57,16 @@ public class PORSplashString
 {
     
     /**
+     * Literal <code>"SPSSPORT"</code>.
+     * The 8-byte tag string consists of the exact characters SPSSPORT in 
+     * the portable file's character set, which can be used to verify that 
+     * the file is indeed a portable file.<p>
+     */
+    public static final int[] SIGNATURE = {
+        0x53, 0x50, 0x53, 0x53, 0x50, 0x4f, 0x52, 0x54
+    }; // SIGNATURE
+    
+    /**
      * 1st section:
      * <code>"?????@????@????@????@@@@@@@@@@@@@@@@"</code> (EBCDIC)
      */

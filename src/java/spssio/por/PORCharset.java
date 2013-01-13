@@ -339,6 +339,14 @@ public class PORCharset
         return -1;
     } // getIndex()
     
+    /*
+    TODO:
+    input: byte from portable file.
+    output: java utf-8 char in the correct character set
+    
+    input: translation table from a portable file
+    
+    */
     
 } // class PORCharset
 
