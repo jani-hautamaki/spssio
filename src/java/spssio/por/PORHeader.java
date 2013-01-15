@@ -51,12 +51,12 @@ public class PORHeader {
     /** 
      * Five splash strings.
      */
-    public String[] splash;
+    public byte[] splash;
     
     /**
      * 256-byte character set translation table.
      */
-    public byte[] translation;
+    public byte[] charset;
     
     /**
      * 8-byte signature string, {@code "SPSSPORT"}.
@@ -125,6 +125,18 @@ public class PORHeader {
      * Translation is done by the parser after the variables have been read.
      */
     public int weight_var_index;
+    
+    // CONSTRUCTORS
+    //==============
+    
+    public PORHeader() {
+        splash = null;
+        charset = null;
+        signature = null;
+        version = 0;
+        date = null;
+        time = null;
+    } // ctor
     
 } // class PORHeader
 

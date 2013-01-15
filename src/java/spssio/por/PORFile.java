@@ -68,9 +68,14 @@ public class PORFile {
      */
     //public PORDataMatrix data;
     
-    
     // CONSTRUCTORS
     //==============
+    
+    public PORFile() {
+        header = new PORHeader();
+        variables = new Vector<PORVariable>();
+        labels = new Vector<PORValueLabels>();
+    } // ctor
     
     // OTHER METHODS
     //===============

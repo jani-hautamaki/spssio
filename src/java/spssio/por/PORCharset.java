@@ -293,6 +293,12 @@ public class PORCharset
     /** Slash ('/'), symbol 142. */
     public static final int SLASH                                = 142;
     
+    /** Asterisk ('*'), symbol 137. */
+    public static final int ASTERISK                             = 137;
+    
+    /** Space bar, symbol 126. */
+    public static final int SPACE                                = 126;
+    
     /** Digit zero ('0'), symbol 64. */
     public static final int DIGIT_0                              = 64;
     
@@ -309,6 +315,91 @@ public class PORCharset
     private PORCharset() {
     } // ctor
 
+    
+    private static int[] g_table = null;
+    
+    public static final int[] getDefaultTable() {
+        if (g_table == null) {
+            // TODO: initDefaultTable()
+            initialize();
+        }
+        return g_table;
+    } // getTable();
+    
+    public static void initDecoderTable(int[] dtable, byte[] intable) {
+        // get default table which is used as the codex
+        final int[] outtable = getDefaultTable();
+        
+        for (int i = 0; i < dtable.length; i++) {
+            dtable[i] = -1;
+        } // for
+        
+        // In portable files, unused entries are marked with the zero
+        int inzero = intable[DIGIT_0];
+        
+        // This gets skipped in the following loop, so it must be set
+        // manually here
+        dtable[inzero] = '0';
+        
+        for (int i = 0; i < intable.length; i++) {
+            // when a character intable[i] is read from a portable file,
+            // it should be interpreted as character outtable[i]
+            int inc = ((int) intable[i]) & 0xff;
+            int outc = outtable[i];
+            
+            if (inc == inzero) {
+                // the input table entry has been marked with zero,
+                // so skip this entry
+                continue;
+            }
+            
+            // Otherwise, set the corresponding output char
+            dtable[inc] = outc;
+            
+        } // for
+        
+    } // initDecodeTable()
+    
+    private static void initialize() {
+        g_table = new int[256];
+        
+        // Clear the table to an invalid value
+        for (int i = 0; i < g_table.length; i++) {
+            g_table[i] = -1;
+        } // for
+        
+        // Calc the length of TRANS table
+        int len = TRANS.length / 2;
+        
+        for (int i = 0; i < len; i++) {
+            // Calculate offset
+            int offset = i*2;
+            // Get the index
+            int index = TRANS[offset+0];
+            // Get the value
+            int value = TRANS[offset+1];
+            
+            // if the value is -1, then skip this
+            if (value == -1) {
+                continue;
+            } // if: skip
+            
+            // Otherwise, see if there is already uninvalid value
+            if (g_table[index] >= 0) {
+                // Error, already specified
+                throw new RuntimeException(String.format(
+                    "PORCharset.initialize() failed: index=%d. This is a programming error",
+                    index));
+            }
+            
+            // If no previous value, then initialize the value
+            g_table[index] = value;
+        } // for
+        
+    } // initialize()
+    
+    
+    
     /*
     public static final int[] getFullTable() {
         if (FULL_TABLE == null) {
