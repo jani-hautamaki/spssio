@@ -22,6 +22,19 @@ package spssio.util;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+/**
+ *
+ * Just to make clear the terminology regarding underflow
+ * <code><pre>
+ *  
+ *          -MAX_VALUE   -MIN_VALUE     ZERO      MIN_VALUE   +MAX_VALUE
+ *                 |        |             |             |        |                 
+ *       Negative  |        |  Negative   |  Positive   |        |  Positive       
+ *       Overflow  |        |  Underflow  |  Underflow  |        |  Overflow       
+ *                 |        |             |             |        |                 
+ * </code></pre>
+ *
+ */
 public class NumberSystemHelper
 {
 
@@ -70,6 +83,43 @@ public class NumberSystemHelper
      */
     private int base;
     
+    /**
+     * Maximum positive double value which can be multiplied by  the base 
+     * without overflow.
+     */
+    private double max_double;
+    
+    /**
+     * Smallest POSITIVE double value which can be divided by the base without 
+     * underflow.
+     */
+    private double min_double;
+    
+    /**
+     * Maximum long value which can be multiplied by the base without overflow.
+     */
+    private long max_long;
+
+    /**
+     * The highest exponent in the current base within the numeric limits
+     * of {@code Double} data type.
+     */
+    private int max_exponent;
+
+    /**
+     * The smallest exponent in the current base within the numeric limits
+     * of {@code Double} data type.
+     */
+    private int min_exponent;
+
+    /**
+     * Powers of the base up to the numeric limit of double, 
+     * and {@code pow.length-1} is the maximum exponent a number may 
+     * have in the current base.
+     */
+    private double[] pow;
+    
+    
     // CONSTRUCTORS
     //==============
     
@@ -84,13 +134,15 @@ public class NumberSystemHelper
     //=======================
     
     public void setNumberSystem(int base, String digits) {
-        int len = digits.length();
         
         if (base < 2) {
             throw new IllegalArgumentException(String.format(
                 "Invalid base; base=%d, but it must be greather than or equal to 2",
                 base));
         } // if: invalid base
+        
+        // Get the length of digits string
+        int len = digits.length();
         
         if (len != base) {
             throw new IllegalArgumentException(String.format(
@@ -132,17 +184,47 @@ public class NumberSystemHelper
             
             // and possibly the lowercase letter's cval too?
         } // for: each digit
+        
+        // Calculate maximum and minimum double values feasible for multiplication
+        // and division by the base.
+        
+        max_double = Double.MAX_VALUE / (double) base;
+        min_double = Double.MIN_VALUE * (double) base;
+        
+        // This needs to be rounded down in order to work.
+        max_long = Long.MAX_VALUE / base;
+        
+        // Type cast rounds this towards zero.
+        max_exponent = (int) (Math.log(Double.MAX_VALUE) / Math.log(base));
+        // (when base=30, this results npow = 208 = 0xD0)
+        
+        // Type cast rounds this towards zero.
+        min_exponent = (int) (Math.log(Double.MIN_VALUE) / Math.log(base));
+
+        // Allocate new array for powers, garbaging the old.
+        // The +1 is there so that max_exponent will be the last valid position.
+        pow = new double[max_exponent+1];
+        
+        // Precalc the powers.
+        for (int cexp = 0; cexp < pow.length; cexp++) {
+            pow[cexp] = Math.pow(base, (double) cexp);
+        } // for
+        
     } // setNumberSystem()
     
     //          1         2
     // 12345678901234567890123456
     // ABCDEFGHIJKLMNOPQRSTUVWXYZ
     
+    /**
+     * Convenience method for setting the number system. The method will
+     * automatically calculate the digits up to base-64.
+     */
     public void setBase(int base) {
         // Create digits automatically
         if (base > 64) {
             throw new RuntimeException(String.format(
-                "Invalid base; cannot automatically generate digits for bases greather than 64"));
+                "Invalid base; cannot automatically generate digits for bases greater than 64"));
         } // if: base too big
         
         StringBuilder sb = new StringBuilder(base);
@@ -194,6 +276,14 @@ public class NumberSystemHelper
         return base;
     } // getBase()
     
+    public double getMinDouble() {
+        return min_double;
+    } // getMinDouble()
+    
+    public double getMaxDouble() {
+        return max_double;
+    } // getMaxDouble()
+    
     public char getMinusChar() {
         return minus_char;
     } // getMinusChar()
@@ -241,7 +331,8 @@ public class NumberSystemHelper
         int[] etab = new int[len];
         int epos =  0;
         
-        int exp = 0;
+        int digits_frac = 0;   // digits in the fraction part (no trailing zeros)
+        int digits_int = 0;    // digits in the integer part (no leading zeros)
         
         do {
             // If not a null-transition
@@ -314,9 +405,11 @@ public class NumberSystemHelper
                 // Input "  -|1234-123"
                 // Input "|.1234"
                 case S_EMPTY_INTEGER:
-                    if (digit != -1) {
+                    if (digit == 0) {
+                        // Skip leading zeros
+                    }
+                    else if (digit != -1) {
                         // It is a base-N digit.
-                        // TODO: Record to array
                         state = S_UNEMPTY_INTEGER;
                         eps = true;
                     }
@@ -334,8 +427,10 @@ public class NumberSystemHelper
                 case S_UNEMPTY_INTEGER:
                     if (digit != -1) {
                         // It is a base-N digit.
-                        // TODO: Record to array
+                        // Record to array
                         itab[ipos++] = digit;
+                        // Increase the number of digits in the integer part.
+                        digits_int++;
                     }
                     else if (c == point_char) {
                         state = S_EMPTY_FRACTION_UNEMPTY_INTEGER;
@@ -395,7 +490,9 @@ public class NumberSystemHelper
                     if (digit != -1) {
                         // Record digits of the fractional part
                         itab[ipos++] = digit;
-                        exp--;
+                        
+                        // Increase the number of digits in the fraction part
+                        digits_frac++;
                     }
                     else if ((c == minus_char) || (c == plus_char)) {
                         state = S_EXPONENT_SIGN;
@@ -430,7 +527,10 @@ public class NumberSystemHelper
                     break;
                     
                 case S_EMPTY_EXPONENT:
-                    if (digit != -1) {
+                    if (digit == 0) {
+                        // Skip leading zeros
+                    }
+                    else if (digit != -1) {
                         // an exponent value
                         state = S_UNEMPTY_EXPONENT;
                         eps = true;
@@ -464,9 +564,51 @@ public class NumberSystemHelper
             } // switch
         } while ((state != S_ACCEPT) && (state != S_ERROR));
         
+        
+        // Remove trailing zeros from the fraction part, if any
+        while ((ipos > 0) && (digits_frac > 0) && (itab[ipos-1] == 0)) {
+            ipos--;
+            digits_frac--;
+        } // while
+        
+        // the exponent of a double fits to a long.
+        long exp = 0;
+        for (int i = 0; i < epos; i++) {
+            if (exp > max_long) {
+                // TODO:
+                // exponent magnitude overflow.
+            }
+            
+            exp *= base;
+            exp += etab[i];
+        }
+        
+        // Set exponent's sign.
+        if (exp_negative == true) {
+            exp = -exp;
+        }
+        
+        long expfull = exp + digits_int - 1;
+        if (expfull > max_exponent) {
+            throw new RuntimeException(String.format(
+                "number overflow, normalized exponent = %d", expfull));
+        }
+        if (expfull < min_exponent) {
+            throw new RuntimeException(String.format(
+                "number underflow, normalized exponent = %d", expfull));
+        }
+        
+        // Consider, for instance, 1.4ACBDFHGA0+6S
+        // This is "1.4ACBDFHGA0+e208"
+        // The parser reads it as
+        // 14ACBDFHGA0+e(208-10)
+        
+        
+        
         StringBuilder sb = new StringBuilder(100);
+        
         for (int i = 0; i < ipos; i++) {
-            if (i == ipos+exp) {
+            if (i == digits_int) {
                 sb.append(" . ");
             }
             sb.append(String.format("%d ", itab[i]));
@@ -482,7 +624,7 @@ public class NumberSystemHelper
         }
         
         System.out.printf("parseDouble():\n   %s\n", sb.toString());
-        System.out.printf("exp = %d\n", exp);
+        System.out.printf("digits %d.%d\n", digits_int, digits_frac);
         
         return 0.;
     } // parseDouble()
@@ -504,7 +646,38 @@ public class NumberSystemHelper
     // TESTING
     //=========
     
+    public static void dump_double_info(double d) {
+        long bits = Double.doubleToLongBits(d);
+        
+        long neg =      bits & 0x8000000000000000L;
+        long exponent = bits & 0x7ff0000000000000L;
+        long mantissa = (bits & 0x000fffffffffffffL) | 0x0010000000000000L; // normalized
+
+        exponent = (exponent >> 52) - 1023; // shift and unbiasing
+        double frac = ((double) mantissa) * Math.pow(2.0, -52);
+
+        System.out.printf("   double:     %.18g\n", d);
+        System.out.printf("   toLongBits: %s\n", Long.toHexString(bits));
+        System.out.printf("   toLongBits: %s\n", Long.toHexString(Double.doubleToLongBits(d)));
+        System.out.printf("   sign:       %s\n", neg != 0 ? "-" : "+");
+        System.out.printf("   exponent:   2**%d\n", exponent);
+        System.out.printf("   mantissa:   %s\n", Long.toHexString(mantissa));
+        System.out.printf("   frac:       %.16g\n", frac);
+    }
+    
+    private static void modeDecimal(String line) {
+        double d = Double.valueOf(line);
+        dump_double_info(d);
+    }
+    
+    private static void modeTrigesimal(String line, NumberSystemHelper nsh) {
+        nsh.parseDouble(line);
+    }
+    
     public static void main(String[] args) {
+        final int MODE_TRIGESIMAL = 0;
+        final int MODE_DECIMAL    = 1;
+        
         NumberSystemHelper nsh = new NumberSystemHelper();
         nsh.setBase(30);
         
@@ -513,24 +686,54 @@ public class NumberSystemHelper
         System.out.printf("Plus char:  \'%c\'\n", nsh.getPlusChar());
         System.out.printf("Minus char: \'%c\'\n", nsh.getMinusChar());
         System.out.printf("Point char: \'%c\'\n", nsh.getPointChar());
+        System.out.printf("Max double: %.18g\n", nsh.getMaxDouble());
+        System.out.printf("Min double: %.18g\n", nsh.getMinDouble());
         try {
             BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
             
             String line;
+            int mode = MODE_TRIGESIMAL;
             
             while (true) {
-                System.out.printf("tri>> ");
+                if (mode == MODE_TRIGESIMAL) {
+                    System.out.printf("tri>> ");
+                } 
+                else if (mode == MODE_DECIMAL) {
+                    System.out.printf("dec>> ");
+                } 
+                else {
+                    System.out.printf("?>> ");
+                }
+                
+                
                 line = br.readLine();
                 if ((line == null) 
                     || line.equals("\\q"))
                 {
                     break;
                 }
-                    
+                else if (line.equals("\\dec")) {
+                    mode = MODE_DECIMAL;
+                    continue;
+                }
+                else if (line.equals("\\tri")) {
+                    mode = MODE_TRIGESIMAL;
+                    continue;
+                }
+
                 System.out.printf("Read <%s>\n", line);
+                
                 try {
-                    nsh.parseDouble(line);
+                    if (mode == MODE_TRIGESIMAL) {
+                        modeTrigesimal(line, nsh);
+                    } 
+                    else if (mode == MODE_DECIMAL) {
+                        modeDecimal(line);
+                    }
+                    else {
+                        System.out.printf("Error: in an unknown mode\n");
+                    }
                 } catch(Exception ex) {
                     ex.printStackTrace();
                 }
