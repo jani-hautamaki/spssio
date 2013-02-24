@@ -186,6 +186,9 @@ public class PORReader
         // Reads the 8-byte creation date, and the 6-byte creation time.
         parse_creation_datetime();
         
+        // from this point on, read "tag" and switch until tag='F' is met.
+        
+        
         
         
     } // parse()
@@ -273,6 +276,8 @@ public class PORReader
         // Read an integer field into "ccount".
         // The integer could, in theory, be expressed in a scientific notation,
         // eg. "0.008+3" for 8 chars.
+        
+        
         
         
         // Read "ccount" chars.
