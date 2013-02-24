@@ -22,6 +22,10 @@ package spssio.util;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+// for accuracy
+import java.math.BigDecimal;
+import java.math.MathContext;
+
 /**
  *
  * Just to make clear the terminology regarding underflow
@@ -40,6 +44,11 @@ public class NumberSystemHelper
 
     // DEFAULT CONFIGURATION
     //=======================
+    
+    /**
+     * Default value for maximum input string length acceped for parsing.
+     */
+    private static final int DEFAULT_MAX_INPUT_LENGTH = 128;
     
     // MEMBER VARIABLES
     //==================
@@ -62,7 +71,7 @@ public class NumberSystemHelper
     /**
      * Quick conversion table from ASCII char to integer.
      * The length of the array is expected to be 256. Invalid entries are
-     * marked with TODO.
+     * marked with -1.
      */
     private int[] toint = null;
     
@@ -79,7 +88,8 @@ public class NumberSystemHelper
     private int[] tochar = null;
 
     /**
-     *  The radix, also known as the base, of the number system (default 10).
+     *  The radix, also known as the base, of the number system.
+     *  If unset, the base is set to -1.
      */
     private int base;
     
@@ -99,18 +109,37 @@ public class NumberSystemHelper
      * Maximum long value which can be multiplied by the base without overflow.
      */
     private long max_long;
+    
+    /**
+     * Maximum int value which can be multiplied by the base without overflow.
+     */
+    private int max_int;
 
     /**
      * The highest exponent in the current base within the numeric limits
-     * of {@code Double} data type.
+     * of {@code Double} data type. Otherwise the data type overflows.
      */
     private int max_exponent;
 
     /**
      * The smallest exponent in the current base within the numeric limits
-     * of {@code Double} data type.
+     * of {@code Double} data type. Otherwise the data type underflows.
      */
     private int min_exponent;
+    
+    /**
+     * The highest possible mantissa value when exponent==max_exponent within
+     * the numeric limits of {@code Double} data type. 
+     * Otherwise the data type overflows.
+     */
+    private double max_mantissa;
+    
+    /**
+     * The smallest possible mantissa value when exponent==min_exponent within
+     * the numeric limits of {@code Double} data type.
+     * Otherwise the data type underflows.
+     */
+    private double min_mantissa;
 
     /**
      * Powers of the base up to the numeric limit of double, 
@@ -120,19 +149,56 @@ public class NumberSystemHelper
     private double[] pow;
     
     
+    // VARIABLES FOR METHOD: parseDouble()
+    //=====================================
+    
+    /**
+     * Buffer for individual digits that are extracted from the input string 
+     * during parsing. It is better to have this as a member variable rather
+     * than as a local variable, because otherwise the method would need to
+     * allocate the array from the heap every time the function is called.
+     */
+    private int dtab[];
+    
+    /**
+     * If not null, the intermediate results are calculated by using the BigDecimal
+     * data type. Otherwise, Java's "double" primitive is used.
+     */
+    private MathContext mctx;
+    
     // CONSTRUCTORS
     //==============
     
+    /** 
+     * Default constructor; leaves the base (and digits) unset. 
+     * The base (and digits) must be set before usage.
+     */
     public NumberSystemHelper() {
-        // Allocated only once unlike tochar[] table.
+        // toint[] array is allocated only once,
+        // (whereas tochar[] table is reallocated when the radix changes)
         toint = new int[256];
         
-        setBase(10);
+        // Allocate the dtab with default maximum input string length
+        dtab = new int[DEFAULT_MAX_INPUT_LENGTH];
+        
+        // Keep the base unset. The number system is not initialized 
+        // until user explicitly requests so.
+        base = -1;
+        
+        // Use "double" for intermediate results by default
+        mctx = null;
     } // ctor
     
     // CONFIGURATION METHODS
     //=======================
     
+    /**
+     * Sets the base and digits of the number system.
+     *
+     * @param base The base, or radix, of the number system
+     * @param digits The digits for the number system. String's length
+     *      must be equal to the base.
+     */
     public void setNumberSystem(int base, String digits) {
         
         if (base < 2) {
@@ -191,8 +257,9 @@ public class NumberSystemHelper
         max_double = Double.MAX_VALUE / (double) base;
         min_double = Double.MIN_VALUE * (double) base;
         
-        // This needs to be rounded down in order to work.
+        // These need to be rounded down in order to work.
         max_long = Long.MAX_VALUE / base;
+        max_int = Integer.MAX_VALUE / base;
         
         // Type cast rounds this towards zero.
         max_exponent = (int) (Math.log(Double.MAX_VALUE) / Math.log(base));
@@ -200,6 +267,18 @@ public class NumberSystemHelper
         
         // Type cast rounds this towards zero.
         min_exponent = (int) (Math.log(Double.MIN_VALUE) / Math.log(base));
+
+        // Calcualte maximum and minimum allowed mantissa values when
+        // exponent is set to maximum/minimum value
+        
+        max_mantissa = Double.MAX_VALUE / Math.pow(base, max_exponent);
+        
+        min_mantissa = Double.MIN_VALUE / Math.pow(base, min_exponent);
+
+        // Minimum mantissa has to be corrected in this way, because Math.pow()
+        // cant take min_exponent-1 in without breaking.
+        //min_mantissa *= base;
+        //min_exponent -= 1;
 
         // Allocate new array for powers, garbaging the old.
         // The +1 is there so that max_exponent will be the last valid position.
@@ -209,6 +288,17 @@ public class NumberSystemHelper
         for (int cexp = 0; cexp < pow.length; cexp++) {
             pow[cexp] = Math.pow(base, (double) cexp);
         } // for
+
+        
+        System.out.printf("max_mantissa: %.18g\n", max_mantissa);
+        System.out.printf("min_mantissa: %.18g\n", min_mantissa);
+        System.out.printf("max_exponent = %d\n", max_exponent);
+        System.out.printf("min_exponent = %d\n", min_exponent);
+        System.out.printf("base**max_exponent: %.18g\n", Math.pow(base, max_exponent));
+        System.out.printf("adjusting min mantissa, log_base: %.18g\n",
+            Math.log(min_mantissa) / Math.log(base));
+
+        // adjust
         
     } // setNumberSystem()
     
@@ -219,6 +309,8 @@ public class NumberSystemHelper
     /**
      * Convenience method for setting the number system. The method will
      * automatically calculate the digits up to base-64.
+     *
+     * @param base the base, or radix, of the number system
      */
     public void setBase(int base) {
         // Create digits automatically
@@ -257,6 +349,34 @@ public class NumberSystemHelper
         setNumberSystem(base, sb.toString());
     } // setBase()
     
+    /**
+     * Sets the maximum input string length allowed. 
+     *
+     * @param len new value for maximum input string length.
+     */
+    public void setMaxInputLength(int len) {
+        // Less than one is unreasonable length
+        if (len < 1) throw new IllegalArgumentException();
+        
+        // No upper limit.
+        
+        
+    }
+    
+    /**
+     * Enable or disable the use of {@code BigDecimal}s in the intermediate
+     * calculations. If the parameter is not null, then that math context
+     * is used for instantiating the {@code BigDecimal}s. If null,
+     * then Java's primitive type {@code double} is used instead.
+     * 
+     * @param mctx the accuracy settings to be used for {@code BigDecimal}s,
+     *      or null if {@code double}s are to be used.
+     * 
+     */
+    public void setMathContext(MathContext mctx) {
+        this.mctx = mctx;
+    } // setMathContext()
+    
     // OTHER METHODS
     //===============
     
@@ -290,11 +410,11 @@ public class NumberSystemHelper
     
     public char getPlusChar() {
         return plus_char;
-    }
+    } // getPlusChar()
     
     public char getPointChar() {
         return point_char;
-    }
+    } // getPointChar()
     
     // PARSE FUNCTIONS
     //=================
@@ -304,56 +424,79 @@ public class NumberSystemHelper
     private static final int S_START                            = 0;
     private static final int S_OPTIONAL_SIGN                    = 1;
     private static final int S_EMPTY_INTEGER                    = 2;
-    private static final int S_UNEMPTY_INTEGER                  = 3;
-    private static final int S_EMPTY_FRACTION_UNEMPTY_INTEGER   = 4;
-    private static final int S_EMPTY_FRACTION                   = 5;
-    private static final int S_UNEMPTY_FRACTION                 = 6;
-    private static final int S_EXPONENT_SIGN                    = 7;
-    private static final int S_EMPTY_EXPONENT                   = 8;
-    private static final int S_UNEMPTY_EXPONENT                 = 9;
-    private static final int S_ACCEPT                           = 10;
+    private static final int S_UNEMPTY_INTEGER_ZERO             = 3;
+    private static final int S_UNEMPTY_INTEGER                  = 4;
+    private static final int S_EMPTY_FRACTION_EMPTY_INTEGER     = 5;
+    private static final int S_EMPTY_FRACTION_UNEMPTY_INTEGER   = 6;
+    private static final int S_EMPTY_FRACTION                   = 7;
+    private static final int S_UNEMPTY_FRACTION                 = 8;
+    private static final int S_EXPONENT_SIGN                    = 9;
+    private static final int S_EMPTY_EXPONENT                   = 10;
+    private static final int S_UNEMPTY_EXPONENT                 = 11;
+    private static final int S_ACCEPT                           = 99;
     
     public double parseDouble(String s) {
         
-        boolean num_negative = false;
-        boolean exp_negative = false;
+        int index = 0;          // current read offset
+        int len = s.length();   // length of the string
+        boolean eps = false;    // null-transition flag
+        int state = S_START;    // current state, initialized to starting state
+        int c = -1;             // current input char
+        int digit = -1;         // c translated to a digit, or -1 if non-digit.
+
+        boolean ineg = false;   // true if significand/mantissa is negative
+        boolean eneg = false;   // true if exponent is negatives
         
-        int index = 0;
-        int len = s.length();
-        boolean eps = false;
-        int state = S_START;
-        int c = -1;
-        int digit = -1;
-        String errmsg = null;
+        int dlen = 0;           // write index for significand/mantissa digits
+        int exp = 0;            // exponent value
         
-        int[] itab = new int[len];
-        int ipos = 0;
-        int[] etab = new int[len];
-        int epos =  0;
+        int digits_int = 0;     // digits in the integer part (no leading zeros)
+      //int digits_frac = 0;    // digits in the fraction part (no trailing zeros)
         
-        int digits_frac = 0;   // digits in the fraction part (no trailing zeros)
-        int digits_int = 0;    // digits in the integer part (no leading zeros)
-        
+        int rshift = 0;         // how many digits the point is shifted RIGHT
+                                // used only if input has form "0.000abcd"
+
+        // Verify the input string's length. 
+        // Do not process further, if the strng's too long.
+        if (len >= dtab.length) {
+            throw new RuntimeException(String.format(
+                "The input is too long. Maximum allowed length is %d, the input has length %d",
+                dtab.length, len));
+        } // if: too long
+
         do {
-            // If not a null-transition
+            // Read the next character,
+            // unless this is a null-transition (eps==true).
             if (eps == false) {
                 // Check that there are characters left to consume
                 if (index < len) {
+                    // Read the next character
                     c = s.charAt(index);
-                    digit = toint[c];
+                    // Increase the reading offset
                     index++;
+                    
+                    // Convert the character into a digit, if possible
+                    if (c < toint.length) {
+                        digit = toint[c];
+                    } else {
+                        // Unexpected high code point.
+                        // Explicit translation unavailable; assume non-digit.
+                        digit = -1;
+                    } // if-else
                 } else {
-                    // index==len
+                    // No characters left in the input string, this is "eof".
                     if (c != -1) {
+                        // First time in eof branch
                         c = -1;
                         digit = -1;
                     } else {
+                        // Second time in eof branch
                         // unexpected eof
                     } // if-else
-                }
+                } // if-else: chars left in the input?
             } // if: consume
             
-            // Set null-transition to false
+            // Null-transition defaults to false
             eps = false;
             
             switch(state) {
@@ -386,11 +529,11 @@ public class NumberSystemHelper
                     state = S_EMPTY_INTEGER;
                     
                     if (c == plus_char) {
-                        // Plus sign, no action required
+                        // Significand/mantissa is positive
                     }
                     else if (c == minus_char) {
-                        // Negative sign
-                        num_negative = true;
+                        // Significand/mantissa is negative
+                        ineg = true;
                     }
                     else {
                         // Not a sign, then it must be either digit or dot.
@@ -405,17 +548,17 @@ public class NumberSystemHelper
                 // Input "  -|1234-123"
                 // Input "|.1234"
                 case S_EMPTY_INTEGER:
-                    if (digit == 0) {
-                        // Skip leading zeros
-                    }
-                    else if (digit != -1) {
-                        // It is a base-N digit.
+                    if (digit != -1) {
+                        // It is a base-N digit. 
+                        // This has become an unempty integer.
                         state = S_UNEMPTY_INTEGER;
                         eps = true;
                     }
                     else if (c == point_char) {
-                        // Must still have at least a single base-30 digit.
-                        state = S_EMPTY_FRACTION;
+                        // No digits in the integer part, even though there might
+                        // have been a sign. The input must have a digit in
+                        // fractional part. Otherwise, the input is rejected.
+                        state = S_EMPTY_FRACTION_EMPTY_INTEGER;
                     }
                     else {
                         // ERROR: unexpected character
@@ -425,10 +568,13 @@ public class NumberSystemHelper
                     break;
                     
                 case S_UNEMPTY_INTEGER:
-                    if (digit != -1) {
+                    if ((digit == 0) & (dlen == 0)) {
+                        // Eat leading zeros
+                    }
+                    else if (digit != -1) {
                         // It is a base-N digit.
-                        // Record to array
-                        itab[ipos++] = digit;
+                        // Record to array, the array is guaranteed to have space.
+                        dtab[dlen++] = digit;
                         // Increase the number of digits in the integer part.
                         digits_int++;
                     }
@@ -436,6 +582,8 @@ public class NumberSystemHelper
                         state = S_EMPTY_FRACTION_UNEMPTY_INTEGER;
                     }
                     else if ((c == minus_char) || (c == plus_char)) {
+                        // This char begins the exponent; there is no "decimal
+                        // "point" and consequently no fraction part.
                         state = S_EXPONENT_SIGN;
                         eps = true;
                     }
@@ -451,15 +599,41 @@ public class NumberSystemHelper
 
                 // FRACTIONAL PART
                 //=================
-                
-                // The special case "+123." - should this be accepted?
+
+                // Possible inputs:
+                //      "+."
+                //      "."
+                case S_EMPTY_FRACTION_EMPTY_INTEGER:
+                    // Unallowed here: eof, exponent
+                    if (c == -1) {
+                        // unallowed
+                        throw new RuntimeException();
+                    }
+                    else if (digit != -1) {
+                        // The required digit. Now the flow can continue normally.
+                        state = S_EMPTY_FRACTION;
+                        eps = true;
+                    }
+                    else {
+                        // Unexpected char or unexpected exponent
+                        throw new RuntimeException(String.format(
+                            "At least one digit expected in either integer or fractional part"));
+                    }
+                    break;
+                    
+                // The special case "+123." or "+000." - should this be accepted?
                 // The current choice is to accept it. The behaviour
                 // can be changed by skippin this state.
                 case S_EMPTY_FRACTION_UNEMPTY_INTEGER:
+                    // allowed here: eof (the number ends to a point), 
+                    // allowed here: exponent "+123.+" ???
                     if (c == -1) {
                         // eof, accept
                         state = S_ACCEPT;
                     } else {
+                        // TODO:
+                        // Exponent allowed after the point char.
+                        // Allows "+1.", but unallows: "+1.+3". TODO?
                         state = S_EMPTY_FRACTION;
                         eps = true;
                     }
@@ -467,7 +641,7 @@ public class NumberSystemHelper
                 
                 case S_EMPTY_FRACTION:
                     // Possible input so far: "+."
-                    // Possible input so far: "+123.?", where ? is c!=-1.
+                    // Possible input so far: "+123.?", where ? is non-eof.
                     // Don't accept exponent sign before a digit.
                     if (digit != -1) {
                         state = S_UNEMPTY_FRACTION;
@@ -482,17 +656,24 @@ public class NumberSystemHelper
                     break;
 
                 case S_UNEMPTY_FRACTION:
+                    // Allow: eof, digit, exponent sign
                     // Possible input so far: 
                     // 1) "1.5"
                     // 2) "+2.5"
                     // 3) "-3.5"
                     // 4) "-.5"
-                    if (digit != -1) {
-                        // Record digits of the fractional part
-                        itab[ipos++] = digit;
+                    if ((digit == 0) && (dlen == 0)) {
+                        // Eat leading zeros.
                         
-                        // Increase the number of digits in the fraction part
-                        digits_frac++;
+                        // However, the number of digits in the fraction part
+                        // must be recorded in order to know the exponent of
+                        // the divider.
+                        rshift++;
+                        //digits_frac++;
+                    }
+                    else if (digit != -1) {
+                        // Record digits of the fractional part
+                        dtab[dlen++] = digit;
                     }
                     else if ((c == minus_char) || (c == plus_char)) {
                         state = S_EXPONENT_SIGN;
@@ -514,11 +695,12 @@ public class NumberSystemHelper
 
                 case S_EXPONENT_SIGN:
                     state = S_EMPTY_EXPONENT;
-                    if (c == minus_char) {
-                        exp_negative = true;
+                    if (c == plus_char) {
+                        // exponent is positive
                     }
-                    else if (c == plus_char) {
-                        // ok
+                    else if (c == minus_char) {
+                        // exponent is negative
+                        eneg = true;
                     }
                     else {
                         // unexpected, unrecognized or eof.
@@ -527,11 +709,8 @@ public class NumberSystemHelper
                     break;
                     
                 case S_EMPTY_EXPONENT:
-                    if (digit == 0) {
-                        // Skip leading zeros
-                    }
-                    else if (digit != -1) {
-                        // an exponent value
+                    if (digit != -1) {
+                        // the required digit, switch to a new state.
                         state = S_UNEMPTY_EXPONENT;
                         eps = true;
                     }
@@ -543,8 +722,14 @@ public class NumberSystemHelper
                     
                 case S_UNEMPTY_EXPONENT:
                     if (digit != -1) {
-                        // keep accepting digits to exponent
-                        etab[epos++] = digit;
+                        // Otherise, keep accepting digits to the exponent.
+                        if (exp > max_int) {
+                            throw new RuntimeException(String.format(
+                                "number overflow; exponent too big"));
+                        } // if: overflow of "int"
+            
+                        exp *= base;
+                        exp += digit;
                     }
                     else if (c == -1) {
                         // eof, accept
@@ -556,78 +741,326 @@ public class NumberSystemHelper
                     }
                     break;
 
-
-                    
                 default:
                     throw new RuntimeException(String.format(
                         "Unrecognized state=%d (programming error)", state));
             } // switch
         } while ((state != S_ACCEPT) && (state != S_ERROR));
         
+        // At this point asserted:
+        //      1) digits_frac <= ipos 
+        //      2) digits_int <= ipos
+        //      3) digits_int+digits_frac == ipos
+        // 
         
-        // Remove trailing zeros from the fraction part, if any
-        while ((ipos > 0) && (digits_frac > 0) && (itab[ipos-1] == 0)) {
-            ipos--;
-            digits_frac--;
-        } // while
-        
-        // the exponent of a double fits to a long.
-        long exp = 0;
-        for (int i = 0; i < epos; i++) {
-            if (exp > max_long) {
-                // TODO:
-                // exponent magnitude overflow.
-            }
-            
-            exp *= base;
-            exp += etab[i];
-        }
-        
-        // Set exponent's sign.
-        if (exp_negative == true) {
+        // Manage exponent's sign
+        if (eneg == true) {
             exp = -exp;
-        }
+        } // if: signed exp
         
-        long expfull = exp + digits_int - 1;
-        if (expfull > max_exponent) {
+        // Remove trailing zeros from the fraction part, if any.
+        // This does affect the exponent's value.
+        while ((digits_int < dlen) && (dtab[dlen-1] == 0)) {
+            dlen--;
+        } // while
+
+        // Note: it is possible, if so desired, to continue removing trailing 
+        // zeros from the integer part too; that would just have to be 
+        // accounted for in the exponent's value. 
+        
+        // THE FOLLOWING VARIABLES ARE THE INPUT FOR THE NEXT PART:
+        //    Member variables:
+        //          -base
+        //          -dtab
+        //          -max_double
+        //          -max_int
+        //          -max_mantissa, min_mantissa
+        //          -max_exponent, min_exponent
+        //    Local variables:
+        //          -ipos, ineg
+        //          -epos, ebase, eneg
+        //          -digits_int, digits_frac
+        //
+        //    There are some redundant variables there...
+        //    For instance, 
+        //
+        //          digits_int+digits_frac = ipos
+        //
+        //    is just the initial place of decimal point, which will be then
+        //    shifted by the routined according to its preferences. In fact,
+        //    digits_int IS the index position of the point, and 
+        //
+        //          digits_frac = ipos - digits_int
+        //  
+        //    also, the exponent can be multiplied IN PLACE, and then
+        //    there will not be any need for variables related to the exponent,
+        //    expect the value of the exponent itself.
+        //
+        //    Thus, final set of requierd variables looks probably like
+        //      
+        //          -ipos, ineg,
+        //          -digits_int,
+        //          -exp
+        //
+        
+        // Convert the significand/mantissa to an integer.
+        
+        BigDecimal bvalue = null; 
+        BigDecimal bbase = null;
+        
+        double dvalue = 0.0;       // if mctx == null
+        
+        if (mctx == null) {
+            // Use "double"
+            for (int i = 0; i < dlen; i++) {
+                if (dvalue > max_double) {
+                    throw new RuntimeException(String.format(
+                        "number overflow; the significand/mantissa is too big"));
+                } // if: overflow
+                dvalue *= base;
+                dvalue += dtab[i];
+            } // for
+        } else {
+            // Use "BigDecimal"
+            
+            // Initialize the variables
+            bvalue = BigDecimal.ZERO;
+            bbase = new BigDecimal(base, mctx);
+            
+            // Introduce a helper variable
+            BigDecimal bdigit = null;
+            
+            for (int i = 0; i < dlen; i++) {
+                if (bvalue.doubleValue() > max_double) {
+                    throw new RuntimeException(String.format(
+                        "number overflow; the significand/mantissa is too big"));
+                } // if: overflow
+                bdigit = new BigDecimal(dtab[i], mctx);
+                bvalue = bvalue.multiply(bbase);
+                bvalue = bvalue.add(bdigit); // uses mctx for rounding
+            } // for
+        } // if-else
+        
+
+        // Introduce an auxiliary variable
+        int digits_frac = dlen - digits_int;
+        
+        // If the number does not have fractional part nor exponent,
+        // execute a quick exit here.
+        // the fractional part nor the exponent
+        if ((exp == 0) && (digits_frac == 0)) {
+            double rval;
+            
+            if (mctx == null) {
+                rval = dvalue;
+            } else {
+                rval = bvalue.doubleValue();
+            } // if-else
+            
+            if (ineg == true) {
+                rval = -rval;
+            } // if: signed
+            
+            return rval;
+            //return rval;
+        } // if: no fractional part nor exponent
+        
+        // Now:
+        //      result = value * base^(-digits_frac) * base^(exp)
+        
+        
+        // The length of the significand is "ipos". The significand needs to be
+        // normalized to the form "a.bcdef" if not already in that form. 
+        //
+        // If significand's length, "ipos" is 0 or 1, it is already in
+        // the required form. However, if the length >= 2 then there might 
+        // be need for normalization depending on how many integer digits
+        // there are (there might be 0, 1 or more).
+        
+        int pshift = 0; // how many digits the point is shifted to the left
+        
+        if (digits_int > 1) {
+            // Integer part of significand/mantissa has two or more digits.
+            
+            // Shift the position of the "decimal" point to left 
+            // by the amount of (digits_int-1)
+            
+            // Example:
+            // The mantissa could be, "abc.def"; three digits in the integer part.
+            // then the point needs to be shifted to left by 2 digits.
+            
+            // Calcualte the amount to shift
+            pshift = digits_int-1;
+        }
+        else if (digits_int == 0) {
+            // This time the point is shifted RIGHT by one
+            // to extract the first non-zero digit into the integer part.
+            pshift = -1;
+            
+        } // if-else
+        
+        // Account for the shifts in the exponent's value.
+        // rshift is visible ONLY here.
+        exp -= rshift;
+        exp += pshift;
+        
+        // Adjust the number of digits in integer and fraction parts
+        digits_int -= pshift;
+        digits_frac += pshift;
+        
+        // The following asserts hold:      digits_int == 1
+        //                                  digits_int+digits_frac == dlen
+        
+        // Check for overflow
+        if (exp > max_exponent) {
             throw new RuntimeException(String.format(
-                "number overflow, normalized exponent = %d", expfull));
-        }
-        if (expfull < min_exponent) {
+                "number overflow; exponent too big"));
+        } else if (exp == max_exponent) {
+            
+            // Implement "digits_frac"
+            
+            if (mctx == null) {
+                dvalue = dvalue * Math.pow(base, -digits_frac);
+                
+            } else {
+                bvalue = bvalue.divide(bbase.pow(digits_frac));
+                // Use dvalue as a temporarily variable
+                dvalue = bvalue.doubleValue();
+            } // if-else
+            
+            if (dvalue > max_mantissa) {
+                throw new RuntimeException(String.format(
+                    "number overflow; mantissa too big"));
+            } // if: overflow
+        } // if: overflow checking
+        else if (exp+digits_int < min_exponent) {
             throw new RuntimeException(String.format(
-                "number underflow, normalized exponent = %d", expfull));
-        }
+                "number underflow; exponent too small"));
+        } else if (exp-digits_frac <= min_exponent) {
+            // Implied: min_exponent <= exp+digits_int
+            
+            // Implement "digits_frac+digits_int" (=dlen)
+            
+            // Normalize mantissa for limit checking
+            if (mctx == null) {
+                // Normalize
+                dvalue = dvalue * Math.pow(base, -dlen);
+                // Check overflow with the normalized mantissa
+            } else {
+                // Normalize
+                bvalue = bvalue.divide(bbase.pow(dlen));
+                // Use dvalue as a temporarily variable
+                dvalue = bvalue.doubleValue();
+            } // if-else
+
+            // The effect of these variables has now been accounted for
+            exp += digits_int;
+            
+            if ((exp == min_exponent) && (dvalue < min_mantissa)) {
+                throw new RuntimeException(String.format(
+                    "number underflow; mantissa too small"));
+            } // if: underflow
+        } // if: underflow checking
+        else {
+            // The value is just fine. Incorporate the fraction divider
+            // into the exponent right away
+            exp = exp - digits_frac;
+        } // if-else
         
-        // Consider, for instance, 1.4ACBDFHGA0+6S
-        // This is "1.4ACBDFHGA0+e208"
-        // The parser reads it as
-        // 14ACBDFHGA0+e(208-10)
+        /*
+        debug_parse_double(
+            digits_int, digits_frac, exp, eneg, pshift, 
+            ipos, ebase, epos, dtab, 
+            mant_dvalue, bbase, mant_bvalue
+        ); 
+        */
         
+        if (mctx == null) {
+            dvalue = dvalue * Math.pow(base, exp);
+        } else {
+            // mctx != null
+            if (exp < 0) {
+                // This type has no problems with very negative exponents
+                bvalue = bvalue.divide(bbase.pow(-exp));
+            } else if (exp > 0) {
+                bvalue = bvalue.multiply(bbase.pow(exp));
+            } else {
+                // exp == 0; no actions required
+            }
+            // Round the BigDecimal to a double
+            dvalue = bvalue.doubleValue();
+        } // if-else
+
+        // Account for the significand's sign
+        if (ineg == true) {
+            dvalue = -dvalue;
+        } // if
         
-        
+        return dvalue;
+    } // parseDouble()
+    
+    /*
+    private void debug_parse_double(
+        int digits_int, 
+        int digits_frac,
+        int exp,
+        boolean eneg,
+        int pshift,
+        int ipos,
+        int ebase,
+        int epos,
+        int[] dtab,
+        double dvalue,
+        BigDecimal bbase,
+        BigDecimal bvalue
+    ) {
         StringBuilder sb = new StringBuilder(100);
         
         for (int i = 0; i < ipos; i++) {
             if (i == digits_int) {
                 sb.append(" . ");
             }
-            sb.append(String.format("%d ", itab[i]));
+            sb.append(String.format("%d ", dtab[i]));
         }
         
-        if (exp_negative) {
+        if (eneg) {
             sb.append(" - ");
         } else {
             sb.append(" + ");
         }
         for (int i = 0; i < epos; i++) {
-            sb.append(String.format("%d ", etab[i]));
+            sb.append(String.format("%d ", dtab[ebase+i]));
         }
+
+        System.out.printf("Input string:            <%s>\n", sb.toString());
+        System.out.printf("Digit arrangement:       %d.%d\n", digits_int+pshift, digits_frac-pshift);
+        System.out.printf("Digit arrangement ADJ:   %d.%d\n", digits_int, digits_frac);
+        System.out.printf("Exponent value:          %d\n", exp-pshift);
+        System.out.printf("Exponent value ADJ:      %d\n", exp);
+        System.out.printf("Exponent value EFF:      %d\n", exp-digits_frac);
         
-        System.out.printf("parseDouble():\n   %s\n", sb.toString());
-        System.out.printf("digits %d.%d\n", digits_int, digits_frac);
-        
-        return 0.;
-    } // parseDouble()
+        if (mctx == null) {
+        System.out.printf("Mant raw value (double): %.18g\n", dvalue);
+        System.out.printf("Mant ADJ value (double): %.18g\n", dvalue * Math.pow(base, -digits_frac));
+        System.out.printf("Value (double):          %.18g\n", dvalue * Math.pow(base, exp-digits_frac));
+        } else {
+        System.out.printf("Mant raw value (BigStr): %s\n", bvalue.toString());
+        System.out.printf("Mant raw value (BigDbl): %.18g\n", bvalue.doubleValue());
+        exp = exp - digits_frac; // finalize exp
+        if (exp < 0) {
+            bvalue = bvalue.divide(bbase.pow(-exp));
+        } else if (exp > 0) {
+            bvalue = bvalue.multiply(bbase.pow(exp));
+        } else {
+            // do nothing to bvalue.
+        } // if-else: exp<0?
+        System.out.printf("Mant ADJ value (BigStr): (not implemented)\n");
+        System.out.printf("Mant ADJ value (BigDbl): (not implemented)\n");
+        System.out.printf("value2 (BigStr):         %s\n", bvalue.toString());
+        System.out.printf("value2 (BigDbl):         %.18g\n", bvalue.doubleValue());
+        } // if-else: mctx == null?
+    } // debug_parse_double()
+    */
     
     /*
     public int parseInt() {
@@ -645,7 +1078,49 @@ public class NumberSystemHelper
     
     // TESTING
     //=========
+
+    // Very close to the Double.MAX_VALUE
+    //      "A.9E17IR6IFL+6S"
+    // Should result in the same as the values
+    //      ".0A9E17IR6IFL+70"
+    //      ".000A9E17IR6IFL+72"
     
+    // These should overflow:
+    //      ".000A9E17IR6IFL+80"        (exponent too big)
+    //      ".000A9E17IR6JFL+72"        (mantissa too big)
+    
+    // Double.MAX_VALUE         = 1.79769313486231570e+308
+    // Double.MIN_VALUE         = 4.90000000000000000e-324
+    
+    // max_mantissa = 10.3156020126482610
+    // max_exponent = 208                 == 6S
+    // compare to     10.3156020126482600 == A.9E17IR6IFL+6S
+    
+    // min_mantissa = 1.5
+    // min_exponent = -219                == 79
+    // compare to   = 
+    
+    // Very close to the Double.MIN_VALUE
+    //      "1.F-79"                      == 1.0e-323 (double)
+    
+    // These should underflow:
+    //      "1.F-7A"                    (exponent too small)
+    //      "1.E-79"                    (mantissa too small)
+    
+    // Also look at
+    //      http://steve.hollasch.net/cgindex/coding/ieeefloat.html
+    // Approx decimal:
+    //  double limits: ~10**(-323.3) to ~10**(308.3)
+    
+    // N-7A gives with BigDecimal:
+    // 4.90000000000000000e-324 which seems to be the smallest non-zero
+    // Minimum exponent is 218 (dec), ie. 78 (trig)
+    // Minimum mantissa is then 0.05
+    
+    // Numeric limits in base-10:
+    // Max double: 5.99231044954105300e+306
+    // Min double: 1.50000000000000000e-322
+
     public static void dump_double_info(double d) {
         long bits = Double.doubleToLongBits(d);
         
@@ -671,7 +1146,9 @@ public class NumberSystemHelper
     }
     
     private static void modeTrigesimal(String line, NumberSystemHelper nsh) {
-        nsh.parseDouble(line);
+        double rval;
+        rval = nsh.parseDouble(line);
+        System.out.printf("Result: %.18g\n", rval);
     }
     
     public static void main(String[] args) {
@@ -679,15 +1156,19 @@ public class NumberSystemHelper
         final int MODE_DECIMAL    = 1;
         
         NumberSystemHelper nsh = new NumberSystemHelper();
-        nsh.setBase(30);
+        //nsh.setBase(30);
+        nsh.setBase(10);
+        //nsh.setMathContext(MathContext.DECIMAL128);
         
         System.out.printf("Base: %d\n", nsh.getBase());
         System.out.printf("Digits: \"%s\"\n", nsh.getDigits());
         System.out.printf("Plus char:  \'%c\'\n", nsh.getPlusChar());
         System.out.printf("Minus char: \'%c\'\n", nsh.getMinusChar());
         System.out.printf("Point char: \'%c\'\n", nsh.getPointChar());
-        System.out.printf("Max double: %.18g\n", nsh.getMaxDouble());
-        System.out.printf("Min double: %.18g\n", nsh.getMinDouble());
+        System.out.printf("Max double / base: %.18g\n", nsh.getMaxDouble());
+        System.out.printf("Min double * base: %.18g\n", nsh.getMinDouble());
+        System.out.printf("Double.MAX:        %.18g\n", Double.MAX_VALUE);
+        System.out.printf("Double.MIN:        %.18g\n", Double.MIN_VALUE);
         try {
             BufferedReader br = new BufferedReader(
                 new InputStreamReader(System.in));
@@ -741,19 +1222,7 @@ public class NumberSystemHelper
             
         } catch(Exception ex) {
             ex.printStackTrace();
-        }
-    }
+        } // try-catch
+    } // main()
     
 } // class NumberSystemHelper
-
-
-
-/*
-NRadixHelper base30
-
-base30.parse_double()
-base30.format_double()
-
-
-CustomRadix.parse_double()
-*/
