@@ -38,6 +38,12 @@ import java.math.MathContext;
  *                 |        |             |             |        |                 
  * </code></pre>
  *
+ * TODO: 
+ *   - Separate parser and formatter into their own classes.
+ *   - Consequently, an accessing method for the NumberSystem class' variables
+ *     is needed. Two sensible options: either make the member variables public, 
+ *     or use "packege private" access modifier.
+ *   
  */
 public class NumberSystemHelper
 {
@@ -60,14 +66,24 @@ public class NumberSystemHelper
     /** Number underflow, either positive or negative. */
     public static final int E_UNDERFLOW                 = 0x0003;
     
-    /** Exponent overflow due length, either positive, or negative. */
+    /** 
+     * Exponent overflow due its length, either positive or negative. 
+     * Indicates that the exponent value exceeds numeric limits of {@code int}.
+     * NOTE: There is no way of knowing accurately whether this indicates
+     * an overflow or underflow.
+     */
     public static final int E_EXPONENT_SIZE             = 0x0004;
-    
-    /** Mantissa overflow due length, either positive or negative. */
-    public static final int E_MANTISSA_SIZE             = 0x0005;
+
+    /** 
+     * Mantissa overflow due its length.
+     * Indicates that the mantissa value exceeds numeric limits of {@code double}.
+     * NOTE: There is no way of knowing whether this indicates 
+     * an overflow or underflow.
+     */
+    public static final int E_MANTISSA_SIZE             = 0x0006;
     
     /** An internal error, a strong indication of a bug. */
-    public static final int E_INTERNAL                  = 0x0006;
+    public static final int E_INTERNAL                  = 0x0007;
     
 
     // DEFAULT CONFIGURATION
@@ -189,24 +205,22 @@ public class NumberSystemHelper
     private int dtab[];
     
     /**
-     * Error number code for the previous operation. If the value is non-zero,
-     * then an error has occurred. Otherwise, the previous operation finished
-     * normally.
+     * Error number code for the last operation.
      */
     private int errno;
     
     /**
-     * Indicates the sign of the value related to an error. If the value is
-     * negative, this is set to -1. Otherwise, this is set to 1 (signed positive,
-     * or unsigned).
+     * Indicates the sign of the value related to the last operation.
+     * If the value had a negative sign, this is set to -1. 
+     * Otherwise, this is set to 1 (had positive sign or no sign).
      */
-    //private int errsign;
+    private int lastsign;
     
     /**
-     * A human-redable error message. If no errror, this is set to null..
+     * A human-redable error message related to the error code.
+     * If no errror, this is set to null.
      */
     private String strerror;
-    
     
     /**
      * If not null, the intermediate results are calculated by using the BigDecimal
@@ -337,17 +351,6 @@ public class NumberSystemHelper
             pow[cexp] = Math.pow(base, (double) cexp);
         } // for
 
-        
-        System.out.printf("max_mantissa: %.18g\n", max_mantissa);
-        System.out.printf("min_mantissa: %.18g\n", min_mantissa);
-        System.out.printf("max_exponent = %d\n", max_exponent);
-        System.out.printf("min_exponent = %d\n", min_exponent);
-        System.out.printf("base**max_exponent: %.18g\n", Math.pow(base, max_exponent));
-        System.out.printf("adjusting min mantissa, log_base: %.18g\n",
-            Math.log(min_mantissa) / Math.log(base));
-
-        // adjust
-        
     } // setNumberSystem()
     
     //          1         2
@@ -405,10 +408,10 @@ public class NumberSystemHelper
     public void setMaxInputLength(int len) {
         // Less than one is unreasonable length
         if (len < 1) throw new IllegalArgumentException();
+        // Upper limit is not restricted.
         
-        // No upper limit.
-        
-        
+        // reallocate dtab[] array for the given size.
+        dtab = new int[len];
     }
     
     /**
@@ -493,11 +496,21 @@ public class NumberSystemHelper
     
     /**
      * Returns a human-redable error message of the last operation.
-     * The message is valid only, if {link #errno()} indicates an error.
+     * The message is valid only, if {@link #errno()} indicates an error.
      * Otherwise, when the last operation was successful, {@code null} is returned.
      */
     public String strerror() {
         return strerror;
+    }
+    
+    /**
+     * Returns the value's sign related to the last operation.
+     * The sign can be used to detect whether a positive or negative overflow
+     * occurred. The returned value should be considered to be valid only if 
+     * the last operation's error is not a syntax error.
+     */
+    public int lastsign() {
+        return lastsign;
     }
     
     /**
@@ -598,13 +611,16 @@ public class NumberSystemHelper
                     
                     if (c == plus_char) {
                         // Significand/mantissa is positive
+                        lastsign = 1;
                     }
                     else if (c == minus_char) {
                         // Significand/mantissa is negative
+                        lastsign = -1;
                         ineg = true;
                     }
                     else {
                         // Not a sign, then it must be either digit or dot.
+                        lastsign = 1;
                         eps = true;
                     }
                     break;
@@ -816,7 +832,7 @@ public class NumberSystemHelper
                         if (exp > max_int) {
                             errno = E_EXPONENT_SIZE;
                             strerror = String.format(
-                                "exponent overflow;s exponent too big");
+                                "exponent overflow; exponent too big");
                             return DBL_ERRVALUE;
                         } // if: overflow of "int"
             
@@ -1109,69 +1125,6 @@ public class NumberSystemHelper
     } // parseDouble()
     
     /*
-    private void debug_parse_double(
-        int digits_int, 
-        int digits_frac,
-        int exp,
-        boolean eneg,
-        int pshift,
-        int ipos,
-        int ebase,
-        int epos,
-        int[] dtab,
-        double dvalue,
-        BigDecimal bbase,
-        BigDecimal bvalue
-    ) {
-        StringBuilder sb = new StringBuilder(100);
-        
-        for (int i = 0; i < ipos; i++) {
-            if (i == digits_int) {
-                sb.append(" . ");
-            }
-            sb.append(String.format("%d ", dtab[i]));
-        }
-        
-        if (eneg) {
-            sb.append(" - ");
-        } else {
-            sb.append(" + ");
-        }
-        for (int i = 0; i < epos; i++) {
-            sb.append(String.format("%d ", dtab[ebase+i]));
-        }
-
-        System.out.printf("Input string:            <%s>\n", sb.toString());
-        System.out.printf("Digit arrangement:       %d.%d\n", digits_int+pshift, digits_frac-pshift);
-        System.out.printf("Digit arrangement ADJ:   %d.%d\n", digits_int, digits_frac);
-        System.out.printf("Exponent value:          %d\n", exp-pshift);
-        System.out.printf("Exponent value ADJ:      %d\n", exp);
-        System.out.printf("Exponent value EFF:      %d\n", exp-digits_frac);
-        
-        if (mctx == null) {
-        System.out.printf("Mant raw value (double): %.18g\n", dvalue);
-        System.out.printf("Mant ADJ value (double): %.18g\n", dvalue * Math.pow(base, -digits_frac));
-        System.out.printf("Value (double):          %.18g\n", dvalue * Math.pow(base, exp-digits_frac));
-        } else {
-        System.out.printf("Mant raw value (BigStr): %s\n", bvalue.toString());
-        System.out.printf("Mant raw value (BigDbl): %.18g\n", bvalue.doubleValue());
-        exp = exp - digits_frac; // finalize exp
-        if (exp < 0) {
-            bvalue = bvalue.divide(bbase.pow(-exp));
-        } else if (exp > 0) {
-            bvalue = bvalue.multiply(bbase.pow(exp));
-        } else {
-            // do nothing to bvalue.
-        } // if-else: exp<0?
-        System.out.printf("Mant ADJ value (BigStr): (not implemented)\n");
-        System.out.printf("Mant ADJ value (BigDbl): (not implemented)\n");
-        System.out.printf("value2 (BigStr):         %s\n", bvalue.toString());
-        System.out.printf("value2 (BigDbl):         %.18g\n", bvalue.doubleValue());
-        } // if-else: mctx == null?
-    } // debug_parse_double()
-    */
-    
-    /*
     public int parseInt() {
     }
     
@@ -1259,6 +1212,18 @@ public class NumberSystemHelper
         rval = nsh.parseDouble(line);
         if (nsh.errno() != NumberSystemHelper.E_OK) {
             System.out.printf("ERROR: %s\n", nsh.strerror());
+            
+            if (nsh.errno() == NumberSystemHelper.E_OVERFLOW) {
+                if (nsh.lastsign() > 0) {
+                    System.out.printf("The overflown value was positive; +DBL_MAX should be used instead\n");
+                } else {
+                    System.out.printf("The overflown value was negative; -DBL_MAX should be used instead\n");
+                }
+            } else if (nsh.errno() == NumberSystemHelper.E_UNDERFLOW) {
+                System.out.printf("Zero should be used instead\n");
+            } else {
+                System.out.printf("The value should be marked missing\n");
+            }
         } else {
             System.out.printf("Result: %.18g\n", rval);
         }
@@ -1337,6 +1302,4 @@ public class NumberSystemHelper
             ex.printStackTrace();
         } // try-catch
     } // main()
-    
-    
 } // class NumberSystemHelper
