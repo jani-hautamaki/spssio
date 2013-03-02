@@ -41,6 +41,34 @@ import java.math.MathContext;
  */
 public class NumberSystemHelper
 {
+    
+    // CONSTANTS
+    //===========
+    
+    /** Value returned when an error occurred. */
+    public static final double DBL_ERRVALUE             = 0.0;
+    
+    /** No error; the operation succeeded. */
+    public static final int E_OK                        = 0x0000;
+    
+    /** Syntax error. */
+    public static final int E_SYNTAX                    = 0x0001;
+    
+    /** Number overflow, either positive or negative. */
+    public static final int E_OVERFLOW                  = 0x0002;
+    
+    /** Number underflow, either positive or negative. */
+    public static final int E_UNDERFLOW                 = 0x0003;
+    
+    /** Exponent overflow due length, either positive, or negative. */
+    public static final int E_EXPONENT_SIZE             = 0x0004;
+    
+    /** Mantissa overflow due length, either positive or negative. */
+    public static final int E_MANTISSA_SIZE             = 0x0005;
+    
+    /** An internal error, a strong indication of a bug. */
+    public static final int E_INTERNAL                  = 0x0006;
+    
 
     // DEFAULT CONFIGURATION
     //=======================
@@ -159,6 +187,26 @@ public class NumberSystemHelper
      * allocate the array from the heap every time the function is called.
      */
     private int dtab[];
+    
+    /**
+     * Error number code for the previous operation. If the value is non-zero,
+     * then an error has occurred. Otherwise, the previous operation finished
+     * normally.
+     */
+    private int errno;
+    
+    /**
+     * Indicates the sign of the value related to an error. If the value is
+     * negative, this is set to -1. Otherwise, this is set to 1 (signed positive,
+     * or unsigned).
+     */
+    //private int errsign;
+    
+    /**
+     * A human-redable error message. If no errror, this is set to null..
+     */
+    private String strerror;
+    
     
     /**
      * If not null, the intermediate results are calculated by using the BigDecimal
@@ -435,6 +483,26 @@ public class NumberSystemHelper
     private static final int S_UNEMPTY_EXPONENT                 = 11;
     private static final int S_ACCEPT                           = 99;
     
+    /**
+     * Returns the error code of the last operation.
+     * If no error occurred, {@link #E_OK} is returned.
+     */
+    public int errno() {
+        return errno;
+    }
+    
+    /**
+     * Returns a human-redable error message of the last operation.
+     * The message is valid only, if {link #errno()} indicates an error.
+     * Otherwise, when the last operation was successful, {@code null} is returned.
+     */
+    public String strerror() {
+        return strerror;
+    }
+    
+    /**
+     * Should the method return Double.NaN on error?
+     */
     public double parseDouble(String s) {
         
         int index = 0;          // current read offset
@@ -459,9 +527,9 @@ public class NumberSystemHelper
         // Verify the input string's length. 
         // Do not process further, if the strng's too long.
         if (len >= dtab.length) {
-            throw new RuntimeException(String.format(
-                "The input is too long. Maximum allowed length is %d, the input has length %d",
-                dtab.length, len));
+            errno = E_SYNTAX;
+            strerror = String.format("syntax error; input string too long");
+            return DBL_ERRVALUE;
         } // if: too long
 
         do {
@@ -562,8 +630,10 @@ public class NumberSystemHelper
                     }
                     else {
                         // ERROR: unexpected character
-                        throw new RuntimeException(String.format(
-                            "Invalid base-30 number; unexpected integer part"));
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected character: %c", c);
+                        return DBL_ERRVALUE;
                     } // if-else
                     break;
                     
@@ -593,7 +663,10 @@ public class NumberSystemHelper
                     }
                     else {
                         // Error: unrecognized character (can't be eof)
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unrecognized character: %c", c);
+                        return DBL_ERRVALUE;
                     }
                     break;
 
@@ -607,7 +680,10 @@ public class NumberSystemHelper
                     // Unallowed here: eof, exponent
                     if (c == -1) {
                         // unallowed
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected end-of-data");
+                        return DBL_ERRVALUE;
                     }
                     else if (digit != -1) {
                         // The required digit. Now the flow can continue normally.
@@ -616,8 +692,10 @@ public class NumberSystemHelper
                     }
                     else {
                         // Unexpected char or unexpected exponent
-                        throw new RuntimeException(String.format(
-                            "At least one digit expected in either integer or fractional part"));
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; no digits before the exponent");
+                        return DBL_ERRVALUE;
                     }
                     break;
                     
@@ -651,7 +729,10 @@ public class NumberSystemHelper
                         // Either unaccepted character,
                         // or unrecognized character,
                         // or unexpected eof.
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected character or end-of-data");
+                        return DBL_ERRVALUE;
                     }
                     break;
 
@@ -686,7 +767,10 @@ public class NumberSystemHelper
                     }
                     else {
                         // Unexpected or unrecognized char (can't be eof)
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected character: %c", c);
+                        return DBL_ERRVALUE;
                     }
                     break;
                     
@@ -704,7 +788,10 @@ public class NumberSystemHelper
                     }
                     else {
                         // unexpected, unrecognized or eof.
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected character or end-of-data");
+                        return DBL_ERRVALUE;
                     }
                     break;
                     
@@ -716,7 +803,10 @@ public class NumberSystemHelper
                     }
                     else {
                         // either unexpected, unrecognized or eof
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected character or end-of-data");
+                        return DBL_ERRVALUE;
                     }
                     break;
                     
@@ -724,8 +814,10 @@ public class NumberSystemHelper
                     if (digit != -1) {
                         // Otherise, keep accepting digits to the exponent.
                         if (exp > max_int) {
-                            throw new RuntimeException(String.format(
-                                "number overflow; exponent too big"));
+                            errno = E_EXPONENT_SIZE;
+                            strerror = String.format(
+                                "exponent overflow;s exponent too big");
+                            return DBL_ERRVALUE;
                         } // if: overflow of "int"
             
                         exp *= base;
@@ -737,13 +829,19 @@ public class NumberSystemHelper
                     }
                     else {
                         // unrecognized or unexpected.
-                        throw new RuntimeException();
+                        errno = E_SYNTAX;
+                        strerror = String.format(
+                            "syntax error; unexpected characer: %c", c);
+                        return DBL_ERRVALUE;
                     }
                     break;
 
                 default:
-                    throw new RuntimeException(String.format(
-                        "Unrecognized state=%d (programming error)", state));
+                    errno = E_INTERNAL;
+                    strerror =String.format(
+                        "internal error; unhandled state: state=%d", state);
+                    return DBL_ERRVALUE;
+                    
             } // switch
         } while ((state != S_ACCEPT) && (state != S_ERROR));
         
@@ -814,8 +912,10 @@ public class NumberSystemHelper
             // Use "double"
             for (int i = 0; i < dlen; i++) {
                 if (dvalue > max_double) {
-                    throw new RuntimeException(String.format(
-                        "number overflow; the significand/mantissa is too big"));
+                    errno = E_MANTISSA_SIZE;
+                    strerror = String.format(
+                        "mantissa overflow; mantissa too big");
+                    return DBL_ERRVALUE;
                 } // if: overflow
                 dvalue *= base;
                 dvalue += dtab[i];
@@ -832,8 +932,10 @@ public class NumberSystemHelper
             
             for (int i = 0; i < dlen; i++) {
                 if (bvalue.doubleValue() > max_double) {
-                    throw new RuntimeException(String.format(
-                        "number overflow; the significand/mantissa is too big"));
+                    errno = E_MANTISSA_SIZE;
+                    strerror = String.format(
+                        "mantissa overflow; mantissa too big");
+                    return DBL_ERRVALUE;
                 } // if: overflow
                 bdigit = new BigDecimal(dtab[i], mctx);
                 bvalue = bvalue.multiply(bbase);
@@ -913,8 +1015,9 @@ public class NumberSystemHelper
         
         // Check for overflow
         if (exp > max_exponent) {
-            throw new RuntimeException(String.format(
-                "number overflow; exponent too big"));
+            errno = E_OVERFLOW;
+            strerror = String.format("number overflow; exponent out of range");
+            return DBL_ERRVALUE;
         } else if (exp == max_exponent) {
             
             // Implement "digits_frac"
@@ -929,13 +1032,15 @@ public class NumberSystemHelper
             } // if-else
             
             if (dvalue > max_mantissa) {
-                throw new RuntimeException(String.format(
-                    "number overflow; mantissa too big"));
+                errno = E_OVERFLOW;
+                strerror = String.format("Number overflow; mantissa out of range");
+                return DBL_ERRVALUE;
             } // if: overflow
         } // if: overflow checking
         else if (exp+digits_int < min_exponent) {
-            throw new RuntimeException(String.format(
-                "number underflow; exponent too small"));
+            errno = NumberSystemHelper.E_UNDERFLOW;
+            strerror = String.format("number underflow; exponent out of range");
+            return DBL_ERRVALUE;
         } else if (exp-digits_frac <= min_exponent) {
             // Implied: min_exponent <= exp+digits_int
             
@@ -957,8 +1062,9 @@ public class NumberSystemHelper
             exp += digits_int;
             
             if ((exp == min_exponent) && (dvalue < min_mantissa)) {
-                throw new RuntimeException(String.format(
-                    "number underflow; mantissa too small"));
+                errno = E_UNDERFLOW;
+                strerror = String.format("number underflow; mantissa out of range");
+                return DBL_ERRVALUE;
             } // if: underflow
         } // if: underflow checking
         else {
@@ -995,6 +1101,9 @@ public class NumberSystemHelper
         if (ineg == true) {
             dvalue = -dvalue;
         } // if
+        
+        errno = E_OK;
+        strerror = null;
         
         return dvalue;
     } // parseDouble()
@@ -1148,7 +1257,11 @@ public class NumberSystemHelper
     private static void modeTrigesimal(String line, NumberSystemHelper nsh) {
         double rval;
         rval = nsh.parseDouble(line);
-        System.out.printf("Result: %.18g\n", rval);
+        if (nsh.errno() != NumberSystemHelper.E_OK) {
+            System.out.printf("ERROR: %s\n", nsh.strerror());
+        } else {
+            System.out.printf("Result: %.18g\n", rval);
+        }
     }
     
     public static void main(String[] args) {
@@ -1224,5 +1337,6 @@ public class NumberSystemHelper
             ex.printStackTrace();
         } // try-catch
     } // main()
+    
     
 } // class NumberSystemHelper
