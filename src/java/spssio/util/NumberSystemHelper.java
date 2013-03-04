@@ -1,4 +1,3 @@
-
 //*******************************{begin:header}******************************//
 //                 spssio - http://code.google.com/p/spssio/                 //
 //***************************************************************************//
@@ -92,7 +91,7 @@ public class NumberSystemHelper
     /**
      * Default value for maximum input string length acceped for parsing.
      */
-    private static final int DEFAULT_MAX_INPUT_LENGTH = 128;
+    static final int DEFAULT_MAX_INPUT_LENGTH = 128;
     
     // MEMBER VARIABLES
     //==================
@@ -100,24 +99,24 @@ public class NumberSystemHelper
     /**
      * The character used for plus sign (default '+').
      */
-    private char plus_char = '+';
+    char plus_char = '+';
     
     /**
      * The character used for minus sign (default '-').
      */
-    private char minus_char = '-';
+    char minus_char = '-';
     
     /**
      * The character used for dot/point (default '.').
      */
-    private char point_char = '.';
+    char point_char = '.';
     
     /**
      * Quick conversion table from ASCII char to integer.
      * The length of the array is expected to be 256. Invalid entries are
      * marked with -1.
      */
-    private int[] toint = null;
+    int[] toint = null;
     
     // TODO:
     // if lowercase letters are equated with the uppercase letters,
@@ -129,68 +128,68 @@ public class NumberSystemHelper
      * 
      * These are the digits of the number system from zero to {@code opt_base-1}.
      */
-    private int[] tochar = null;
+    int[] tochar = null;
 
     /**
      *  The radix, also known as the base, of the number system.
      *  If unset, the base is set to -1.
      */
-    private int base;
+    int base;
     
     /**
      * Maximum positive double value which can be multiplied by  the base 
      * without overflow.
      */
-    private double max_double;
+    double max_double;
     
     /**
      * Smallest POSITIVE double value which can be divided by the base without 
      * underflow.
      */
-    private double min_double;
+    double min_double;
     
     /**
      * Maximum long value which can be multiplied by the base without overflow.
      */
-    private long max_long;
+    long max_long;
     
     /**
      * Maximum int value which can be multiplied by the base without overflow.
      */
-    private int max_int;
+    int max_int;
 
     /**
      * The highest exponent in the current base within the numeric limits
      * of {@code Double} data type. Otherwise the data type overflows.
      */
-    private int max_exponent;
+    int max_exponent;
 
     /**
      * The smallest exponent in the current base within the numeric limits
      * of {@code Double} data type. Otherwise the data type underflows.
      */
-    private int min_exponent;
+    int min_exponent;
     
     /**
      * The highest possible mantissa value when exponent==max_exponent within
      * the numeric limits of {@code Double} data type. 
      * Otherwise the data type overflows.
      */
-    private double max_mantissa;
+    double max_mantissa;
     
     /**
      * The smallest possible mantissa value when exponent==min_exponent within
      * the numeric limits of {@code Double} data type.
      * Otherwise the data type underflows.
      */
-    private double min_mantissa;
+    double min_mantissa;
 
     /**
      * Powers of the base up to the numeric limit of double, 
      * and {@code pow.length-1} is the maximum exponent a number may 
      * have in the current base.
      */
-    private double[] pow;
+    double[] pow;
     
     
     // VARIABLES FOR METHOD: parseDouble()
@@ -202,31 +201,31 @@ public class NumberSystemHelper
      * than as a local variable, because otherwise the method would need to
      * allocate the array from the heap every time the function is called.
      */
-    private int dtab[];
+    int dtab[];
     
     /**
      * Error number code for the last operation.
      */
-    private int errno;
+    int errno;
     
     /**
      * Indicates the sign of the value related to the last operation.
      * If the value had a negative sign, this is set to -1. 
      * Otherwise, this is set to 1 (had positive sign or no sign).
      */
-    private int lastsign;
+    int lastsign;
     
     /**
      * A human-redable error message related to the error code.
      * If no errror, this is set to null.
      */
-    private String strerror;
+    String strerror;
     
     /**
      * If not null, the intermediate results are calculated by using the BigDecimal
      * data type. Otherwise, Java's "double" primitive is used.
      */
-    private MathContext mctx;
+    MathContext mctx;
     
     // CONSTRUCTORS
     //==============
@@ -512,6 +511,7 @@ public class NumberSystemHelper
     public int lastsign() {
         return lastsign;
     }
+    
     
     /**
      * Should the method return Double.NaN on error?
@@ -1207,7 +1207,10 @@ public class NumberSystemHelper
         dump_double_info(d);
     }
     
-    private static void modeTrigesimal(String line, NumberSystemHelper nsh) {
+    private static void modeTrigesimal(
+        String line, 
+        NumberSystemHelper nsh
+    ) {
         double rval;
         rval = nsh.parseDouble(line);
         if (nsh.errno() != NumberSystemHelper.E_OK) {
@@ -1215,9 +1218,9 @@ public class NumberSystemHelper
             
             if (nsh.errno() == NumberSystemHelper.E_OVERFLOW) {
                 if (nsh.lastsign() > 0) {
-                    System.out.printf("The overflown value was positive; +DBL_MAX should be used instead\n");
+                    System.out.printf("The overflown value was positive; +DBL_MAX could be used instead\n");
                 } else {
-                    System.out.printf("The overflown value was negative; -DBL_MAX should be used instead\n");
+                    System.out.printf("The overflown value was negative; -DBL_MAX could be used instead\n");
                 }
             } else if (nsh.errno() == NumberSystemHelper.E_UNDERFLOW) {
                 System.out.printf("Zero should be used instead\n");
@@ -1227,15 +1230,45 @@ public class NumberSystemHelper
         } else {
             System.out.printf("Result: %.18g\n", rval);
         }
-    }
+    } // modeTrigesimal()
+
+    private static void modeTrigesimal2(
+        String line, 
+        NumberParser nsh
+    ) {
+        double rval;
+        rval = nsh.parseDouble(line);
+        if (nsh.errno() != NumberSystemHelper.E_OK) {
+            System.out.printf("ERROR: %s\n", nsh.strerror());
+            
+            if (nsh.errno() == NumberSystemHelper.E_OVERFLOW) {
+                if (nsh.lastsign() > 0) {
+                    System.out.printf("The overflown value was positive; +DBL_MAX could be used instead\n");
+                } else {
+                    System.out.printf("The overflown value was negative; -DBL_MAX could be used instead\n");
+                }
+            } else if (nsh.errno() == NumberSystemHelper.E_UNDERFLOW) {
+                System.out.printf("Zero should be used instead\n");
+            } else {
+                System.out.printf("The value should be marked missing\n");
+            }
+        } else {
+            System.out.printf("Result: %.18g\n", rval);
+        }
+    } // modeTrigesimal()
+    
     
     public static void main(String[] args) {
         final int MODE_TRIGESIMAL = 0;
         final int MODE_DECIMAL    = 1;
         
         NumberSystemHelper nsh = new NumberSystemHelper();
+        NumberParser parser = new NumberParser();
+        
         //nsh.setBase(30);
         nsh.setBase(10);
+        parser.setNumberSystem(nsh);
+        
         //nsh.setMathContext(MathContext.DECIMAL128);
         
         System.out.printf("Base: %d\n", nsh.getBase());
@@ -1285,7 +1318,8 @@ public class NumberSystemHelper
                 
                 try {
                     if (mode == MODE_TRIGESIMAL) {
-                        modeTrigesimal(line, nsh);
+                        //modeTrigesimal(line, nsh);
+                        modeTrigesimal2(line, parser);
                     } 
                     else if (mode == MODE_DECIMAL) {
                         modeDecimal(line);
