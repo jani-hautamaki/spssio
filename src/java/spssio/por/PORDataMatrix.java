@@ -20,8 +20,9 @@ package spssio.por;
 /**
  * The data matrix of a Portable file in compact format. The data of a portable
  * file cannot be converted into a {@code Vector} of {@code Double} and 
- * {@code String} objects. This is because the overhead of Java for any {@Object}
- * is very high in terms of both the space (vtable) and time (gc).<p>
+ * {@code String} objects. This is because the overhead of Java for any 
+ * {@code Object} is very high in terms of both the space (vtable) 
+ * and time (gc).<p>
  * 
  * For instance, a portable file of 20 MBs would need much more than 1024 MBs
  * of memory before Java would be able to convert it into {@code Double}s
