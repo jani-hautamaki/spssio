@@ -21,17 +21,15 @@ import java.math.MathContext;
 import java.math.BigDecimal;
 
 /**
- * Parser for scientifically notated numbers expressed in an arbitrary base.
+ * Parser for numbers expressed in an arbitrary base.
+ * The numbers may be fractional and have an exponent.
  *
  */
 public class NumberParser
 {
 
-    // CONSTANTS
-    //===========
-    
-    /** Value returned when an error occurred. */
-    public static final double DBL_ERRVALUE             = 0.0;
+    // ERROR CODES
+    //=============
     
     /** No error; the operation succeeded. */
     public static final int E_OK                        = 0x0000;
@@ -39,30 +37,26 @@ public class NumberParser
     /** Syntax error. */
     public static final int E_SYNTAX                    = 0x0001;
     
-    /** Number overflow, either positive or negative. */
+    /** Number overflow, consult {link #lastsign()} for the sign. */
     public static final int E_OVERFLOW                  = 0x0002;
     
-    /** Number underflow, either positive or negative. */
+    /** Number underflow, consult {link #lastsign()} for the sign. */
     public static final int E_UNDERFLOW                 = 0x0003;
     
-    /** 
-     * Exponent overflow due its length, either positive or negative. 
-     * Indicates that the exponent value exceeds numeric limits of {@code int}.
-     * NOTE: There is no way of knowing accurately whether this indicates
-     * an overflow or underflow.
-     */
+    /** Exponent overflow, not necessarily number overflow or underflow. */
     public static final int E_EXPONENT_SIZE             = 0x0004;
 
-    /** 
-     * Mantissa overflow due its length.
-     * Indicates that the mantissa value exceeds numeric limits of {@code double}.
-     * NOTE: There is no way of knowing whether this indicates 
-     * an overflow or underflow.
-     */
+    /** Mantissa overflow, not necessarily number overflow or underflow. */
     public static final int E_MANTISSA_SIZE             = 0x0006;
     
     /** An internal error, a strong indication of a bug. */
     public static final int E_INTERNAL                  = 0x0007;
+
+    // RETURN VALUE IN CASE OF AN ERROR
+    //==================================
+
+    /** In case of an error, {link #parseDouble(String)} returns this. */
+    public static final double DBL_ERRVALUE             = 0.0;
 
     // DEFAULT CONFIGURATION
     //=======================
@@ -72,8 +66,9 @@ public class NumberParser
      */
     static final int DEFAULT_MAX_INPUT_LENGTH = 128;
 
-    // MEMBER VARIABLES
-    //==================
+
+    // MEMBER VARIABLES BEGIN
+    //========================
     
     /**
      * A reference to the number system that is used.
@@ -81,8 +76,8 @@ public class NumberParser
     private NumberSystem sys;
 
     /**
-     * If not null, the intermediate results are calculated by using the BigDecimal
-     * data type. Otherwise, Java's "double" primitive is used.
+     * If not null, the intermediate results are calculated by using 
+     * the BigDecimal data type. Otherwise, Java's "double" primitive is used.
      */
     private MathContext mctx;
     
@@ -90,10 +85,10 @@ public class NumberParser
     //================
     
     /**
-     * Buffer for individual digits that are extracted from the input string 
-     * during parsing. It is better to have this as a member variable rather
-     * than as a local variable, because otherwise the method would need to
-     * allocate the array from the heap every time the function is called.
+     * Buffer for individual digits extracted from the input string.
+     * It is better to have this as a member variable rather than as a local 
+     * variable, because otherwise the method would need to allocate the array 
+     * from the heap every time the function is called.
      */
     private int dtab[];
 
@@ -109,7 +104,7 @@ public class NumberParser
     private int dbi;
 
     /**
-     * Mantissa's sign as parsed in the last operation.
+     * Mantissa's sign as parsed in the last operation. 
      * Set to -1 if negative sign, and 1 if positive sign.
      * Otherwise, set to 0 (eg. unsigned or unparsed).
      */
@@ -136,14 +131,13 @@ public class NumberParser
     private int state;
     
     /**
+     * Null-transition flag. 
      * If true, the next transition is a null-transition (non-consuming).
      */
     private boolean eps;
     
-    // (c and digit are unecessary)
-    
     /**
-     * Current input character, or -1 if <eof>.
+     * Current input character, or -1 if <end-of-input>.
      */
     private int c;
     
@@ -161,12 +155,12 @@ public class NumberParser
     private String string;
     
     /**
-     * Input string length as a local variable for convenience
+     * Length of the input string.
      */
     private int stringlen;
     
     /**
-     * Input string next read offset
+     * Read offset for the next character in the input string.
      */
     private int index;
     
@@ -205,6 +199,10 @@ public class NumberParser
     // CONSTRUCTORS
     //==============
     
+    /**
+     * Constructs an uninitialized parser. A {@code NumberSystem} must
+     * be associated to the parser before use.
+     */
     public NumberParser() {
         sys = null;
         mctx = null;
@@ -215,15 +213,36 @@ public class NumberParser
     // CONFIGURATION
     //===============
     
+    /**
+     * Associates the parser with a {@code NumberSystem}.
+     *
+     * @param numsys The number system to associate this parser with.
+     */
     public void setNumberSystem(NumberSystem numsys) {
         sys = numsys;
     } // setNumberSystem()
     
+    /**
+     * Sets the maximum input string length.
+     *
+     * @param len The maximum input string length.
+     */
     public void setMaxInputLength(int len) {
         // Reallocate dtab
         dtab = new int[len];
     }
     
+    /**
+     * Controls whether {@code BigDecimal}s or {@code double}s are used
+     * for intermediate results during parsing. This is a decision between
+     * accuracy and speed. Using {@code BigDecimal}s give accuracy while
+     * sacrificing speed.<p>
+    
+     * To use {@code BigDecimal}s, pass non-{@code null} context with desired 
+     * precision and rounding mode. To use {@code double}s, pass {@code null}.
+    
+     * @param context the context to use, or {@code null}.
+     */
     public void setMathContext(MathContext context) {
         mctx = context;
     }
@@ -233,10 +252,10 @@ public class NumberParser
     
     /**
      * Returns the error code associated with the last operation.
-     * If the last operation was succesful, the value {@link #E_OK} is returned.
+     * If the last operation was succesful, the value {@link #E_OK} 
+     * is returned.
      * 
-     * @return
-     *      The error code, or [@code E_OK} if the last operation succeeded.
+     * @return The error code, or [@code E_OK} if the last operation succeeded.
      */
     public int errno() {
         return errno;
@@ -247,8 +266,7 @@ public class NumberParser
      * If the error code is {@code E_OK}, the error message is undefined
      * and should not be used.
      *
-     * @return
-     *      The error message.
+     * @return The human-readable error message.
      */
     public String strerror() {
         return strerror;
@@ -269,23 +287,26 @@ public class NumberParser
         return msign;
     }
     
-    // PUBLIC METHODS
-    //===============
+    // PARSE DOUBLE - THE MAIN METHOD
+    //================================
     
     /**
-     * Parses a number (mantissa+exponent) into a double.
-     * If an error occurs during parsing, the member variables 
-     * {link #errno} and {link #strerror} are set accordingly.
-     *
-     * @param text
-     *      The string to parse
+     * Parses a number into a double.<p>
      * 
-     * @return
-     *      The parsed value, if {@link #errno} is set to {@code E_OK}.
-     *      Otherwise, the return value is {@link #DBL_ERRVALUE}.
+     * After the call, use {@link #errno()} to determine whether the operation 
+     * succeeded or not. If there's an error, it is possible to get 
+     * a human-readable error message with {@link #strerror()}. 
+     *
+     * @param text The string to parse
+     * 
+     * @return The number's value as a double. Return value is valid
+     *      only if {@code errno()} returns {@code E_OK}. Otherwise,
+     *      the return value is {@link #DBL_ERRVALUE} which can be 
+     *      considered to be undefined.
      */
     public double parseDouble(String text) {
         
+        // Check that there's a non-null number system reference.
         if (sys == null) {
             state = S_ERROR;
             errno = E_INTERNAL;
@@ -321,11 +342,11 @@ public class NumberParser
         } // if: too long
 
         do {
-            // Read the next character,
-            // unless this is a null-transition (eps==true).
+            // Read the next character, unless this is a null-transition.
             if (eps == false) {
                 c = readc();
                 
+                // Translate into a digit
                 if ((c >= 0) && (c < sys.toint.length)) {
                     digit = sys.toint[c];
                 } else {
@@ -333,10 +354,10 @@ public class NumberParser
                 }
             } // if: consume
             
-            // Null-transition defaults to false
+            // reset null-transition flag.
             eps = false;
             
-            // take action / make transition
+            // State transition
             action(c, digit);
             
         } while ((state != S_ACCEPT) && (state != S_ERROR));
@@ -346,9 +367,10 @@ public class NumberParser
             return DBL_ERRVALUE;
         }
         
+        // Variable for exponent's value.
         int exp = 0;
         
-        // If there were digits for an exponent, convert those frist.
+        // If there was an exponent, convert it.
         if (dbi != -1) {
             // esign != 0 implies "dbi" is valid
             
@@ -360,7 +382,7 @@ public class NumberParser
                 return DBL_ERRVALUE;
             }
 
-            // Take care of the exponent's sign.
+            // Set the exponent's sign
             if (esign < 0) {
                 exp = -exp;
             }
@@ -370,30 +392,22 @@ public class NumberParser
         } // if: has an exponent
         
         // Remove trailing zeros from the fraction part, if any.
-        // (Doesn't affect the exponent's value).
         while ((digits_int < dlen) && (dtab[dlen-1] == 0)) {
             dlen--;
-        } // while
+        }
 
-        // Reset base index; It is next used to 
-        // find the beginning of the non-zero digits in mantissa.
+        // Reset base index; It is next used to find 
+        // the starting point of non-zero digits in mantissa.
         dbi = 0;
         
-        // Leading zeros in the integer part are stripped by the state machine.
-        // Consequently, if there are any leading zeros in dtab[], 
-        // they all must belong to the fractional part.
-        //System.out.printf("exp (original): %d\n", exp);
+        // Leading zeros in the integer part were stripped by 
+        // the state machine. Consequently, if there are any leading 
+        // zeros in dtab[], they all must belong to the fractional part.
         
-        // Remove leading zeros of the fractional part.
+        // Remove leading zeros of the fractional part, if any.
         while ((dbi < dlen) && (dtab[dbi] == 0)) {
             dbi++;
         }
-        
-        // The removal of leading zeros after the "decimal point" has to be
-        // accounted for in the exponent's value.
-        //exp -= dbi;
-
-        //System.out.printf("exp (trimmed): %d\n", exp);
 
         // Convert the mantissa to a double or BigDecimal.
         
@@ -413,21 +427,23 @@ public class NumberParser
             return DBL_ERRVALUE;
         }
         
-        // If the number does not have fractional part nor exponent,
-        // execute a quick exit here. 
+        // If the number does not have a fractional part nor exponent,
+        // do not bother to examine the numeric limits. 
         
         if ((exp == 0) && (digits_int == dlen-dbi)) {
+            // No fractional part nor exponent. Faster exit.
             
             if (mctx != null) {
                 dvalue = bvalue.doubleValue();
             } // if-else
             
         } else {
+            // Final value can now be calculated as:
+            //     dvalue*base^(-digits_frac) * base(exp)
+            // However, it is possible that this expression yields 
+            // a number which exceeds the numeric limits of double.
+            // Therefore, a more detailed calculation is required.
             
-            // Now:
-            //      result = value * base^(-digits_frac) * base^(exp)
-            
-            // calculateValue()
             dvalue = calculateDouble(
                 dvalue, bvalue,
                 digits_int,
@@ -442,7 +458,7 @@ public class NumberParser
             
         } // if-else
 
-        // Account for the mantissa's sign
+        // Set mantissa's sign
         if (msign < 0) {
             dvalue = -dvalue;
         } // if
@@ -452,8 +468,7 @@ public class NumberParser
         strerror = null;
         
         return dvalue;
-    } // parsedouble()
-    
+    } // parseDouble()
     
     private int toInteger(int[] tab, int from, int to) {
         int rval = 0;
@@ -514,20 +529,21 @@ public class NumberParser
      * The method checks the numerical limits, and sets {@link #errno}
      * correspondingly if an error occurs.
      *
-     * @param dvalue
+     * @param dvalue 
      *      Mantissa's integer value as a double.
-     * @param bvalue
+     * @param bvalue 
      *      Mantissa's integer value as a BigDecimal.
      *      The parameter is used only if {@link #mctx} is not {@code null}.
-     * @param digits_int
+     * @param digits_int 
      *      Number of digits in the mantissa's integer part.
-     * @param digits_frac
+     * @param digits_frac 
      *      Number of digits in the mantissa's fractional part.
-     * @param exp
+     * @param exp 
      *      Exponent's value.
     
      * @return
-     *      Calculated value as a double, if {@link #errno()} returns {@code E_OK}.
+     *      Calculated value as a double. The return value is valid
+     *      only if {@link #errno()} returns {@code E_OK}.
      */
     private double calculateDouble(
         double dvalue,
@@ -539,53 +555,45 @@ public class NumberParser
         
         state = S_ACCEPT;
         
-        // The length of the significand is "ipos". The significand needs to be
-        // normalized to the form "a.bcdef" if not already in that form. 
+        // Mantissa is normalized into form "a.bcdef", 
+        // if not already in that form.
         //
-        // If significand's length, "ipos" is 0 or 1, it is already in
-        // the required form. However, if the length >= 2 then there might 
-        // be need for normalization depending on how many integer digits
-        // there are (there might be 0, 1 or more).
+        // If there's only 1 integer digit in the mantissa, 
+        // then it is already in the required form. 
+        //
+        // If there are >1 integer digits in the mantissa (abcd.ef),
+        // then the "decimal point" is shifted RIGHT by digits_int-1.
+        //
+        // If there are no integer digits in the mantissa (.abcdef),
+        // then the "decimal point" is shifted LEFT by 1.
         
         int pshift = 0; // how many digits the point is shifted to the left
         
         if (digits_int > 1) {
-            // Integer part of significand/mantissa has two or more digits.
-            
-            // Shift the position of the "decimal point" to left 
-            // by the amount of (digits_int-1)
-            
-            // Example:
-            // The mantissa could be, "abc.def"; three digits in the integer part.
-            // then the point needs to be shifted to left by 2 digits.
-            
-            // Calcualte the amount to shift
+            // Mantissa has two or more digits in the integer part.
+            // Shift the "decimal point" LEFT by (digits_int-1).
             pshift = digits_int-1;
         }
         else if (digits_int == 0) {
-            // This time the point is shifted RIGHT by one
-            // to extract the first non-zero digit into the integer part.
+            // Mantissa has no digits in the integer part.
+            // Shift the "decimal point" RIGHT by 1
             pshift = -1;
-            
         } // if-else
-        
-        //System.out.printf("%d.%d   shifting by %d\n", digits_int, digits_frac, pshift);
         
         // Adjust the number of digits in integer and fraction parts
         digits_int -= pshift;
         digits_frac += pshift;
 
-        // Account for the shifts in the exponent's value.
+        // Account for the shifts in the exponent's value too.
         exp += pshift;
         
-        // The following asserts hold:      digits_int == 1
-        //                                  digits_int+digits_frac == dlen
+        // Now the following holds: digits_int == 1
 
+        // If BigDecimals are used, convert the NumberSystem's base.
         BigDecimal base_bigdecimal = null;
         if (mctx != null) {
             base_bigdecimal = new BigDecimal(sys.base, mctx);
         }
-
         
         // Check for overflow
         if (exp > sys.max_exponent) {
@@ -593,13 +601,11 @@ public class NumberParser
             strerror = String.format("number overflow; exponent out of range");
             state = S_ERROR;
         } else if (exp == sys.max_exponent) {
-            // Implement "digits_frac"
+            // Get normalized mantissa value into dvalue for limit checking.
             if (mctx == null) {
                 dvalue = dvalue * Math.pow(sys.base, -digits_frac);
-                
             } else {
                 bvalue = bvalue.divide(base_bigdecimal.pow(digits_frac));
-                // Use dvalue as a temporarily variable
                 dvalue = bvalue.doubleValue();
             } // if-else
             
@@ -608,8 +614,7 @@ public class NumberParser
                 strerror = String.format("Number overflow; mantissa out of range");
                 state = S_ERROR;
             } // if: overflow
-        } // if: overflow checking
-        else if (exp+digits_int < sys.min_exponent) {
+        } else if (exp+digits_int < sys.min_exponent) {
             errno = E_UNDERFLOW;
             strerror = String.format("number underflow; exponent out of range");
             state = S_ERROR;
@@ -618,14 +623,11 @@ public class NumberParser
             // Implement "digits_frac+digits_int" (=dlen)
             int digits = digits_int+digits_frac;
             
-            // Normalize mantissa for limit checking
+            // Get normalized mantissa value into dvalue for limit checking.
             if (mctx == null) {
-                // Normalize
                 dvalue = dvalue * Math.pow(sys.base, -digits);
             } else {
-                // Normalize
                 bvalue = bvalue.divide(base_bigdecimal.pow(digits));
-                // Use dvalue as a temporarily variable
                 dvalue = bvalue.doubleValue();
             } // if-else
 
@@ -638,10 +640,9 @@ public class NumberParser
                 strerror = String.format("number underflow; mantissa out of range");
                 state = S_ERROR;
             } // if: underflow
-        } // if: underflow checking
-        else {
-            // The value is just fine. Incorporate the fraction divider
-            // into the exponent right away
+        } else {
+            // The value is within numeric limits.
+            // Incorporate mantissa's divider into the exponent.
             exp = exp - digits_frac;
         } // if-else
         
@@ -649,20 +650,12 @@ public class NumberParser
             return DBL_ERRVALUE;
         }
         
-        /*
-        debug_parse_double(
-            digits_int, digits_frac, exp, eneg, pshift, 
-            ipos, ebase, epos, dtab, 
-            mant_dvalue, bbase, mant_bvalue
-        ); 
-        */
-        
         if (mctx == null) {
             dvalue = dvalue * Math.pow(sys.base, exp);
         } else {
-            // mctx != null
+            // mctx != null. BigDecimals don't have problems
+            // with negative exponents less than Double.MIN_EXPNENT
             if (exp < 0) {
-                // This type has no problems with very negative exponents
                 bvalue = bvalue.divide(base_bigdecimal.pow(-exp));
             } else if (exp > 0) {
                 bvalue = bvalue.multiply(base_bigdecimal.pow(exp));
@@ -708,15 +701,13 @@ public class NumberParser
      * </ul>
      * <p>
      *
-     * And the following as a result of parsing:
+     * Following member variables are being populated:
      * <li>
      *   <li>{@code msign} - determines the mantissa's sign
      *   <li>{@code esign} - determines the exponent's sign
      *   <li>{@code dtab[dlen]} - current char as a digit at the position
      *   <li>{@code dlen} - writing index of the digit
-     *   <li>{@code rshift} - how many digits to shift right afterwards
      *   <li>{@code digits_int} - how many digits before the "decimal point".
-     *   <li>{@code exp} - exponent's value
      * </ul>
      * <p>
      *
@@ -793,7 +784,8 @@ public class NumberParser
                     // ERROR: unexpeced or eof
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected character: %s", c > 0 ? c : "<eof>");
+                        "syntax error; unexpected character: %s", 
+                        c > 0 ? c : "<eof>");
                     state = S_ERROR;
                 } // if-else
                 break;
@@ -994,6 +986,5 @@ public class NumberParser
                 break;
         } // switch
     } // action()
-    
 } // class NumberParser
 

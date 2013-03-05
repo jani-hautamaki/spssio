@@ -433,18 +433,3 @@ public class NumberSystemTool {
     // Max double: 5.99231044954105300e+306
     // Min double: 1.50000000000000000e-322
 } // class NumberSystemTool
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
