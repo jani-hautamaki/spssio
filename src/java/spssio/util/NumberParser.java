@@ -306,6 +306,7 @@ public class NumberParser
         eps = false;
         
         //reset(text);
+        
         string = text;
         stringlen = text.length();
         index = 0;
@@ -503,7 +504,7 @@ public class NumberParser
             } // if: overflow
             rval = rval.multiply(base_bigdecimal);
             // The following add() uses mctx for rounding
-            rval = rval.add(new BigDecimal(tab[i], sys.mctx));
+            rval = rval.add(new BigDecimal(tab[i], mctx));
         } // for
         
         return rval;
