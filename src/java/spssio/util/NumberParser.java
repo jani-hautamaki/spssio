@@ -78,7 +78,7 @@ public class NumberParser
     /**
      * A reference to the number system that is used.
      */
-    private NumberSystemHelper sys;
+    private NumberSystem sys;
 
     /**
      * If not null, the intermediate results are calculated by using the BigDecimal
@@ -215,7 +215,7 @@ public class NumberParser
     // CONFIGURATION
     //===============
     
-    public void setNumberSystem(NumberSystemHelper numsys) {
+    public void setNumberSystem(NumberSystem numsys) {
         sys = numsys;
     } // setNumberSystem()
     
@@ -382,7 +382,7 @@ public class NumberParser
         // Leading zeros in the integer part are stripped by the state machine.
         // Consequently, if there are any leading zeros in dtab[], 
         // they all must belong to the fractional part.
-        System.out.printf("exp (original): %d\n", exp);
+        //System.out.printf("exp (original): %d\n", exp);
         
         // Remove leading zeros of the fractional part.
         while ((dbi < dlen) && (dtab[dbi] == 0)) {
@@ -391,9 +391,9 @@ public class NumberParser
         
         // The removal of leading zeros after the "decimal point" has to be
         // accounted for in the exponent's value.
-        exp -= dbi;
+        //exp -= dbi;
 
-        System.out.printf("exp (trimmed): %d\n", exp);
+        //System.out.printf("exp (trimmed): %d\n", exp);
 
         // Convert the mantissa to a double or BigDecimal.
         
@@ -401,12 +401,9 @@ public class NumberParser
         double dvalue = 0.0;
         
         if (mctx == null) {
-            dvalue = toDouble(dtab, 0, dlen);
+            dvalue = toDouble(dtab, dbi, dlen);
         } else {
-            // Use "BigDecimal"; initialize bbase
-            // base_bigdecimal = new BigDecimal(base, mctx);
-            
-            bvalue = toBigDecimal(dtab, 0, dlen);
+            bvalue = toBigDecimal(dtab, dbi, dlen);
         } // if-else
         
         // If an error occurred during conversion, exit here.
@@ -434,7 +431,7 @@ public class NumberParser
             dvalue = calculateDouble(
                 dvalue, bvalue,
                 digits_int,
-                dlen -dbi -digits_int,
+                dlen-digits_int,
                 exp
             );
             
@@ -572,7 +569,7 @@ public class NumberParser
             
         } // if-else
         
-        System.out.printf("%d.%d   shifting by %d\n", digits_int, digits_frac, pshift);
+        //System.out.printf("%d.%d   shifting by %d\n", digits_int, digits_frac, pshift);
         
         // Adjust the number of digits in integer and fraction parts
         digits_int -= pshift;
@@ -613,7 +610,7 @@ public class NumberParser
             } // if: overflow
         } // if: overflow checking
         else if (exp+digits_int < sys.min_exponent) {
-            errno = NumberSystemHelper.E_UNDERFLOW;
+            errno = E_UNDERFLOW;
             strerror = String.format("number underflow; exponent out of range");
             state = S_ERROR;
         } else if (exp-digits_frac <= sys.min_exponent) {

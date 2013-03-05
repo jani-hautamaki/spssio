@@ -17,14 +17,6 @@
 
 package spssio.util;
 
-// for testing
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
-// for accuracy
-import java.math.BigDecimal;
-import java.math.MathContext;
-
 /**
  *
  * Just to make clear the terminology regarding underflow
@@ -44,7 +36,7 @@ import java.math.MathContext;
  *     or use "packege private" access modifier.
  *   
  */
-public class NumberSystemHelper
+public class NumberSystem
 {
     
     // MEMBER VARIABLES
@@ -152,7 +144,7 @@ public class NumberSystemHelper
      * Default constructor; leaves the base (and digits) unset. 
      * The base (and digits) must be set before usage.
      */
-    public NumberSystemHelper() {
+    public NumberSystem() {
         // toint[] array is allocated only once,
         // (whereas tochar[] table is reallocated when the radix changes)
         toint = new int[256];
@@ -306,7 +298,6 @@ public class NumberSystemHelper
                 c = '/';
             }
             sb.append( (char) c);
-            System.out.printf("i=%d, Appending %c\n", i, (char) c);
         } // for
         
         setNumberSystem(base, sb.toString());
@@ -352,176 +343,4 @@ public class NumberSystemHelper
     } // getPointChar()
     
     
-    // TESTING
-    //=========
-
-    // Very close to the Double.MAX_VALUE
-    //      "A.9E17IR6IFL+6S"
-    // Should result in the same as the values
-    //      ".0A9E17IR6IFL+70"
-    //      ".000A9E17IR6IFL+72"
-    
-    // These should overflow:
-    //      ".000A9E17IR6IFL+80"        (exponent too big)
-    //      ".000A9E17IR6JFL+72"        (mantissa too big)
-    
-    // Double.MAX_VALUE         = 1.79769313486231570e+308
-    // Double.MIN_VALUE         = 4.90000000000000000e-324
-    
-    // max_mantissa = 10.3156020126482610
-    // max_exponent = 208                 == 6S
-    // compare to     10.3156020126482600 == A.9E17IR6IFL+6S
-    
-    // min_mantissa = 1.5
-    // min_exponent = -219                == 79
-    // compare to   = 
-    
-    // Very close to the Double.MIN_VALUE
-    //      "1.F-79"                      == 1.0e-323 (double)
-    
-    // These should underflow:
-    //      "1.F-7A"                    (exponent too small)
-    //      "1.E-79"                    (mantissa too small)
-    
-    // Also look at
-    //      http://steve.hollasch.net/cgindex/coding/ieeefloat.html
-    // Approx decimal:
-    //  double limits: ~10**(-323.3) to ~10**(308.3)
-    
-    // N-7A gives with BigDecimal:
-    // 4.90000000000000000e-324 which seems to be the smallest non-zero
-    // Minimum exponent is 218 (dec), ie. 78 (trig)
-    // Minimum mantissa is then 0.05
-    
-    // Numeric limits in base-10:
-    // Max double: 5.99231044954105300e+306
-    // Min double: 1.50000000000000000e-322
-
-    public static void dump_double_info(double d) {
-        long bits = Double.doubleToLongBits(d);
-        
-        long neg =      bits & 0x8000000000000000L;
-        long exponent = bits & 0x7ff0000000000000L;
-        long mantissa = (bits & 0x000fffffffffffffL) | 0x0010000000000000L; // normalized
-
-        exponent = (exponent >> 52) - 1023; // shift and unbiasing
-        double frac = ((double) mantissa) * Math.pow(2.0, -52);
-
-        System.out.printf("   double:     %.18g\n", d);
-        System.out.printf("   toLongBits: %s\n", Long.toHexString(bits));
-        System.out.printf("   toLongBits: %s\n", Long.toHexString(Double.doubleToLongBits(d)));
-        System.out.printf("   sign:       %s\n", neg != 0 ? "-" : "+");
-        System.out.printf("   exponent:   2**%d\n", exponent);
-        System.out.printf("   mantissa:   %s\n", Long.toHexString(mantissa));
-        System.out.printf("   frac:       %.16g\n", frac);
-    }
-    
-    private static void modeDecimal(String line) {
-        double d = Double.valueOf(line);
-        dump_double_info(d);
-    }
-
-    private static void modeTrigesimal(
-        String line, 
-        NumberParser nsh
-    ) {
-        double rval;
-        rval = nsh.parseDouble(line);
-        if (nsh.errno() != NumberParser.E_OK) {
-            System.out.printf("ERROR: %s\n", nsh.strerror());
-            
-            if (nsh.errno() == NumberParser.E_OVERFLOW) {
-                if (nsh.lastsign() > 0) {
-                    System.out.printf("The overflown value was positive; +DBL_MAX could be used instead\n");
-                } else {
-                    System.out.printf("The overflown value was negative; -DBL_MAX could be used instead\n");
-                }
-            } else if (nsh.errno() == NumberParser.E_UNDERFLOW) {
-                System.out.printf("Zero should be used instead\n");
-            } else {
-                System.out.printf("The value should be marked missing\n");
-            }
-        } else {
-            System.out.printf("Result: %.18g\n", rval);
-        }
-    } // modeTrigesimal()
-    
-    
-    public static void main(String[] args) {
-        final int MODE_TRIGESIMAL = 0;
-        final int MODE_DECIMAL    = 1;
-        
-        NumberSystemHelper nsh = new NumberSystemHelper();
-        NumberParser parser = new NumberParser();
-        
-        //nsh.setBase(30);
-        nsh.setBase(10);
-        parser.setNumberSystem(nsh);
-        
-        //nsh.setMathContext(MathContext.DECIMAL128);
-        
-        System.out.printf("Base: %d\n", nsh.getBase());
-        System.out.printf("Digits: \"%s\"\n", nsh.getDigits());
-        System.out.printf("Plus char:  \'%c\'\n", nsh.getPlusChar());
-        System.out.printf("Minus char: \'%c\'\n", nsh.getMinusChar());
-        System.out.printf("Point char: \'%c\'\n", nsh.getPointChar());
-        System.out.printf("Max double / base: %.18g\n", nsh.getMaxDouble());
-        System.out.printf("Min double * base: %.18g\n", nsh.getMinDouble());
-        System.out.printf("Double.MAX:        %.18g\n", Double.MAX_VALUE);
-        System.out.printf("Double.MIN:        %.18g\n", Double.MIN_VALUE);
-        try {
-            BufferedReader br = new BufferedReader(
-                new InputStreamReader(System.in));
-            
-            String line;
-            int mode = MODE_TRIGESIMAL;
-            
-            while (true) {
-                if (mode == MODE_TRIGESIMAL) {
-                    System.out.printf("tri>> ");
-                } 
-                else if (mode == MODE_DECIMAL) {
-                    System.out.printf("dec>> ");
-                } 
-                else {
-                    System.out.printf("?>> ");
-                }
-                
-                
-                line = br.readLine();
-                if ((line == null) 
-                    || line.equals("\\q"))
-                {
-                    break;
-                }
-                else if (line.equals("\\dec")) {
-                    mode = MODE_DECIMAL;
-                    continue;
-                }
-                else if (line.equals("\\tri")) {
-                    mode = MODE_TRIGESIMAL;
-                    continue;
-                }
-
-                System.out.printf("Read <%s>\n", line);
-                
-                try {
-                    if (mode == MODE_TRIGESIMAL) {
-                        modeTrigesimal(line, parser);
-                    } 
-                    else if (mode == MODE_DECIMAL) {
-                        modeDecimal(line);
-                    }
-                    else {
-                        System.out.printf("Error: in an unknown mode\n");
-                    }
-                } catch(Exception ex) {
-                    ex.printStackTrace();
-                }
-            } // while
-            
-        } catch(Exception ex) {
-            ex.printStackTrace();
-        } // try-catch
-    } // main()
 } // class NumberSystemHelper
