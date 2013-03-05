@@ -47,52 +47,6 @@ import java.math.MathContext;
 public class NumberSystemHelper
 {
     
-    // CONSTANTS
-    //===========
-    
-    /** Value returned when an error occurred. */
-    public static final double DBL_ERRVALUE             = 0.0;
-    
-    /** No error; the operation succeeded. */
-    public static final int E_OK                        = 0x0000;
-    
-    /** Syntax error. */
-    public static final int E_SYNTAX                    = 0x0001;
-    
-    /** Number overflow, either positive or negative. */
-    public static final int E_OVERFLOW                  = 0x0002;
-    
-    /** Number underflow, either positive or negative. */
-    public static final int E_UNDERFLOW                 = 0x0003;
-    
-    /** 
-     * Exponent overflow due its length, either positive or negative. 
-     * Indicates that the exponent value exceeds numeric limits of {@code int}.
-     * NOTE: There is no way of knowing accurately whether this indicates
-     * an overflow or underflow.
-     */
-    public static final int E_EXPONENT_SIZE             = 0x0004;
-
-    /** 
-     * Mantissa overflow due its length.
-     * Indicates that the mantissa value exceeds numeric limits of {@code double}.
-     * NOTE: There is no way of knowing whether this indicates 
-     * an overflow or underflow.
-     */
-    public static final int E_MANTISSA_SIZE             = 0x0006;
-    
-    /** An internal error, a strong indication of a bug. */
-    public static final int E_INTERNAL                  = 0x0007;
-    
-
-    // DEFAULT CONFIGURATION
-    //=======================
-    
-    /**
-     * Default value for maximum input string length acceped for parsing.
-     */
-    static final int DEFAULT_MAX_INPUT_LENGTH = 128;
-    
     // MEMBER VARIABLES
     //==================
     
@@ -473,16 +427,16 @@ public class NumberSystemHelper
     ) {
         double rval;
         rval = nsh.parseDouble(line);
-        if (nsh.errno() != NumberSystemHelper.E_OK) {
+        if (nsh.errno() != NumberParser.E_OK) {
             System.out.printf("ERROR: %s\n", nsh.strerror());
             
-            if (nsh.errno() == NumberSystemHelper.E_OVERFLOW) {
+            if (nsh.errno() == NumberParser.E_OVERFLOW) {
                 if (nsh.lastsign() > 0) {
                     System.out.printf("The overflown value was positive; +DBL_MAX could be used instead\n");
                 } else {
                     System.out.printf("The overflown value was negative; -DBL_MAX could be used instead\n");
                 }
-            } else if (nsh.errno() == NumberSystemHelper.E_UNDERFLOW) {
+            } else if (nsh.errno() == NumberParser.E_UNDERFLOW) {
                 System.out.printf("Zero should be used instead\n");
             } else {
                 System.out.printf("The value should be marked missing\n");
