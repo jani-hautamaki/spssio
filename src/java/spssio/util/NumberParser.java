@@ -31,6 +31,9 @@ public class NumberParser
     // ERROR CODES
     //=============
     
+    /** Parsing is unfinished, more input is expected. */
+    public static final int E_UNFINISHED                = 0xffff;
+    
     /** No error; the operation succeeded. */
     public static final int E_OK                        = 0x0000;
     
@@ -49,8 +52,11 @@ public class NumberParser
     /** Mantissa overflow, not necessarily number overflow or underflow. */
     public static final int E_MANTISSA_SIZE             = 0x0006;
     
+    /** Internal input buffer overflow; input data is too long. */
+    public static final int E_BUFFER                    = 0x0007;
+    
     /** An internal error, a strong indication of a bug. */
-    public static final int E_INTERNAL                  = 0x0007;
+    public static final int E_INTERNAL                  = 0x0008;
 
     // RETURN VALUE IN CASE OF AN ERROR
     //==================================
@@ -121,6 +127,11 @@ public class NumberParser
      * Number of digits in the integer part (before the "decimal point").
      */
     private int digits_int;
+    
+    /**
+     * The parsed number as double; the product of the parse.
+     */
+    private double thedouble;
 
     // STATE MACHINE
     //===============
@@ -135,34 +146,6 @@ public class NumberParser
      * If true, the next transition is a null-transition (non-consuming).
      */
     private boolean eps;
-    
-    /**
-     * Current input character, or -1 if <end-of-input>.
-     */
-    private int c;
-    
-    /**
-     * Current input {@code c} translated into a digit, or -1 if not a digit.
-     */
-    private int digit;
-    
-    // INPUT STREAM
-    //==============
-    
-    /**
-     * Input string
-     */
-    private String string;
-    
-    /**
-     * Length of the input string.
-     */
-    private int stringlen;
-    
-    /**
-     * Read offset for the next character in the input string.
-     */
-    private int index;
     
     // ERROR MANAGEMENT
     //==================
@@ -208,6 +191,16 @@ public class NumberParser
         mctx = null;
         dtab = null;
         setMaxInputLength(DEFAULT_MAX_INPUT_LENGTH);
+    } // ctor
+    
+    /**
+     * Constructs an initialized parser by associating a {@code NumberSystem}.
+     *
+     * @param numsys The number system (radix, digits and limits) to use.
+     */
+    public NumberParser(NumberSystem numsys) {
+        this();
+        setNumberSystem(numsys);
     } // ctor
     
     // CONFIGURATION
@@ -287,6 +280,16 @@ public class NumberParser
         return msign;
     }
     
+    /**
+     * Returns the result of parsing as a double.
+     *
+     * @return
+     *      The double value of the parsed number.
+     */
+    public double lastvalue() {
+        return thedouble;
+    }
+    
     // PARSE DOUBLE - THE MAIN METHOD
     //================================
     
@@ -306,53 +309,118 @@ public class NumberParser
      */
     public double parseDouble(String text) {
         
-        // Check that there's a non-null number system reference.
-        if (sys == null) {
-            state = S_ERROR;
-            errno = E_INTERNAL;
-            strerror = String.format("Set a NumberSystem object first");
-            return DBL_ERRVALUE;
-        }
+        String string = text;
+        int stringlen = text.length();
+        int index = 0;
+
+        reset();
         
-        int c = -1;             // current input char
-        int digit = -1;         // c as a digit, or -1 if non-digit
+        // Verify the input string's length. 
+        // Do not process further, if the strng's too long.
+        do {
+            int c;
+
+            if (index < stringlen) {
+                c = string.charAt(index);
+                index++;
+            } else {
+                c = -1;
+            }
+            
+            consume(c);
+            
+        } while (errno == E_UNFINISHED);
+        
+        return thedouble;
+    } // parseDouble()
+
+    // PARSER DRIVER
+    //===============
+    
+    /**
+     * Reset the parser to initial state.
+     * This method needs to be called always before starting to 
+     * parse a new input. 
+     */
+    public void reset() {
         
         dlen = 0;
         dbi = -1;
         digits_int = 0;
+        
         esign = 0;
         msign = 0;
         
         state = S_START;
         eps = false;
         
-        //reset(text);
+        errno = E_UNFINISHED;
+        strerror = "Parsing is unfinished; more input is expected";
         
-        string = text;
-        stringlen = text.length();
-        index = 0;
         
-        // Verify the input string's length. 
-        // Do not process further, if the strng's too long.
-        if (stringlen >= dtab.length) {
-            errno = E_SYNTAX;
-            strerror = String.format("syntax error; input string too long");
+        // Check that there's a non-null number system reference.
+        
+        if (sys == null) {
             state = S_ERROR;
-            return DBL_ERRVALUE;
-        } // if: too long
-
+            errno = E_INTERNAL;
+            strerror = String.format("Set a NumberSystem object first");
+        }
+    } // reset()
+    
+    /**
+     * Consumes the input character.
+     * This method can be used to drive the parser one character at a time.
+     * <p>
+     *
+     * The return values of interest are:
+     * <ul>
+     *    <li>{@code E_UNFINISHED} - The parsing hasn't finished yet. 
+     *        More input is expected
+     *    <li>{@code E_OK} - The parsing has finished succesfully, 
+     *        The result is available with {@link #lastvalue()}.
+     *    <li>Other - The parsing has finished unsuccesfully.
+     *        Error code and details are available with {@link #errno()}
+     *        and {@link #strerror()}.
+     * </ul>
+     * <p>
+     *
+     * Once the parser has reached an ending state and the return value
+     * is different than {@code E_UNFINISHED}, the parser has to be reset
+     * before it can be used again. The resetting is done with {@link reset()}.
+     * <p>
+     * 
+     * Emitting {@code -1} will always cause the parser to finish with 
+     * either accepting or rejecting the input.<p>
+     *
+     * @return
+     *      The current {@code errno()} value. See the description.
+     */
+    public int consume(int c) {
+        
+        // Fast exit, if already finished
+        if ((state == S_ACCEPT) || (state == S_ERROR)) {
+            return errno;
+        }
+        
+        // Translate input char into a digit
+        int digit;
+        
+        if ((c >= 0) && (c < sys.toint.length)) {
+            digit = sys.toint[c];
+        } else {
+            digit = -1;
+        }
+        
+        // Check for buffer overflow
+        if ((digit != -1) && (dlen == dtab.length)) {
+            state = S_ERROR;
+            errno = E_BUFFER;
+            strerror = String.format("Internal buffer overflow; input too big");
+        }
+        
+        // Do all transitions up to the next consuming one.
+        
         do {
-            // Read the next character, unless this is a null-transition.
-            if (eps == false) {
-                c = readc();
-                
-                // Translate into a digit
-                if ((c >= 0) && (c < sys.toint.length)) {
-                    digit = sys.toint[c];
-                } else {
-                    digit = -1;
-                }
-            } // if: consume
             
             // reset null-transition flag.
             eps = false;
@@ -360,13 +428,17 @@ public class NumberParser
             // State transition
             action(c, digit);
             
-        } while ((state != S_ACCEPT) && (state != S_ERROR));
+        } while ((eps == true) && (state != S_ACCEPT) && (state != S_ERROR));
         
-        // If the parse ended to an error, exit now
-        if (state == S_ERROR) {
-            return DBL_ERRVALUE;
+        // Inspect the exit state; if accept, do postprocessing
+        if (state == S_ACCEPT) {
+            postprocess();
         }
         
+        return errno;
+    } // consume()
+    
+    private void postprocess() {
         // Variable for exponent's value.
         int exp = 0;
         
@@ -379,7 +451,7 @@ public class NumberParser
             if (state == S_ERROR) {
                 errno = E_EXPONENT_SIZE;
                 strerror = String.format("exponent overflow; number too long");
-                return DBL_ERRVALUE;
+                return;
             }
 
             // Set the exponent's sign
@@ -424,7 +496,7 @@ public class NumberParser
         if (state == S_ERROR) {
             errno = E_MANTISSA_SIZE;
             strerror = String.format("mantissa overflow; number too long");
-            return DBL_ERRVALUE;
+            return;
         }
         
         // If the number does not have a fractional part nor exponent,
@@ -453,7 +525,7 @@ public class NumberParser
             
             // Check for errors
             if (state == S_ERROR) {
-                return DBL_ERRVALUE;
+                return;
             }
             
         } // if-else
@@ -463,12 +535,17 @@ public class NumberParser
             dvalue = -dvalue;
         } // if
         
-        // Clear error indicators
+        // Clear error indicators;
+        // This signals the succesful completion of parsing.
         errno = E_OK;
         strerror = null;
         
-        return dvalue;
-    } // parseDouble()
+        // Assign result
+        thedouble = dvalue;
+        
+    } // postprocess()
+    
+    
     
     private int toInteger(int[] tab, int from, int to) {
         int rval = 0;
@@ -671,26 +748,6 @@ public class NumberParser
     
     // INTERNAL METHODS
     //==================
-    
-    /**
-     * Reads the next character from the input string.
-     * Increases {@link #index} by one, if it is below {@link #stringlen}. 
-     *
-     * @return
-     *      The next character, or -1 if no more characters left.
-     */
-    private int readc() {
-        int c;
-        
-        if (index < stringlen) {
-            c = string.charAt(index);
-            index++;
-        } else {
-            c = -1;
-        }
-        
-        return c;
-    } // readc()
     
     /**
      *
@@ -976,6 +1033,10 @@ public class NumberParser
                 
             case S_ERROR:
                 // Already in the error state; will quit on the next round.
+                break;
+            
+            case S_ACCEPT:
+                // Already in the accept state; will quit on the next round.
                 break;
 
             default:

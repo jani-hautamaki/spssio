@@ -152,7 +152,26 @@ public class NumberSystem
         // Keep the base unset. The number system is not initialized 
         // until user explicitly requests so.
         base = -1;
+    } // ctor
+    
+    /**
+     * Construct with the given radix and digits.
+     *
+     * @param base 
+     *      The radix to use
+     * @param digits 
+     *      The digits to use, or {@code null} if automatically 
+     *      generated digits shall be used instead.
+     *
+     */
+    public NumberSystem(int base, String digits) {
+        this();
         
+        if (digits != null) {
+            setNumberSystem(base, digits);
+        } else {
+            setBase(base);
+        }
     } // ctor
     
     // CONFIGURATION METHODS
