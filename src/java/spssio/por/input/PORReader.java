@@ -29,10 +29,21 @@ import java.io.FileNotFoundException;
 // spssio portable
 import spssio.por.PORFile;
 import spssio.por.PORCharset;
+import spssio.por.PORValue;
+import spssio.por.PORVariable;
+import spssio.por.PORMissingValue;
+import spssio.por.PORValueLabels;
+
+// spssio common
+import spssio.common.SPSSFormat;
+
+// spssio utils
+import spssio.util.NumberSystem;
+import spssio.util.NumberParser;
 
 /*
-
-*/
+ *
+ */
 public class PORReader
 {
     
@@ -40,14 +51,13 @@ public class PORReader
     //===========
     
     /** 
-     * The default row length used (TODO, this value should be shared
-     * with the writer too).
+     * The default row length used 
+     * (TODO: This value should be shared with the writer too).
      */
     public static final int SPSS_PORTABLE_ROW_LENGTH = 80;
     
     /**
-     * Buffer size used for creating BufferedInputStream, unless
-     * specified
+     * Buffer size used for creating BufferedInputStream, unless specified.
      */
     public static final int DEFAULT_BUFFER_SIZE = 16384;
     
@@ -72,17 +82,30 @@ public class PORReader
      */
     private BufferedInputStream istream;
 
-    /** Current row */
+    /** Number of the current row. */
     private int row;
 
-    /** Current column, may be virtual if the row is internally widened */
+    /** 
+     * Number of the current column.
+     * Can be virtual if the row is internally widened 
+     */
     private int col;
     
-    /** current input byte, before translation */
+    /** Current input byte, before translation */
     private int lastc;
     
     /** Decoding table */
-    private int[] dtable;
+    private int[] dectab;
+    
+    /**
+     * NumberSystem object for base-30 numbers
+     */
+    private NumberSystem numsys;
+    
+    /**
+     * Parser for the base-30 numbers
+     */
+    private NumberParser numparser;
     
     // TRANSIENT/AUXILIARY
     //=====================
@@ -92,6 +115,11 @@ public class PORReader
      */
     private PORFile por;
     
+    /**
+     * PORVariable currently under construction.
+     */
+    private PORVariable lastvar;
+    
     // CONSTRUCTORS
     //==============
     
@@ -99,13 +127,18 @@ public class PORReader
         opt_buffer_size = DEFAULT_BUFFER_SIZE;
         opt_row_length = SPSS_PORTABLE_ROW_LENGTH;
 
-        // Allocated once
-        dtable = new int[256];
+        // Allocated decoding table only once.
+        dectab = new int[256];
         
         istream = null;
         row = 0;
         col = 0;
         lastc = -1;
+        
+        // Initialize number system
+        numsys = new NumberSystem(30, null);
+        numparser = new NumberParser(numsys);
+        
     } // ctor
     
     // OTHER METHODS
@@ -128,6 +161,7 @@ public class PORReader
         // May throw FileNotFound
         FileInputStream fis = new FileInputStream(fname);
         
+        // Parse the input stream
         PORFile rval = parse(fis);
         
         // May throw IOException, close quietly.
@@ -140,13 +174,19 @@ public class PORReader
         return rval;
     } // parse()
     
+    
     public PORFile parse(InputStream is) {
+        
         // Initialize
         istream = new BufferedInputStream(is, opt_buffer_size);
+        
         // Reset location
         col = 0;
         row = 1;
         lastc = -1;
+        
+        // Clear auxiliary variables
+        lastvar = null;
         
         // TODO: clear dtable?
         
@@ -159,8 +199,6 @@ public class PORReader
         
         return por;
     } // parse()
-    
-    
     
     // RECURSIVE DESCENT PARSER FUNCTIONS
     //====================================
@@ -187,16 +225,83 @@ public class PORReader
         parse_creation_datetime();
         
         // from this point on, read "tag" and switch until tag='F' is met.
-        
-        
-        
-        
+        int tag;
+        do {
+            tag = readc();
+            System.out.printf("tag: %c\n", tag);
+            switch(tag) {
+                case '1':
+                    parse_software();
+                    break;
+                
+                case '2':
+                    parse_author();
+                    break;
+                
+                case '3':
+                    parse_title();
+                    break;
+                
+                case '4':
+                    parse_varcount();
+                    break;
+                
+                case '5':
+                    parse_precision();
+                    break;
+                
+                case '6':
+                    parse_weight_variable();
+                    break;
+                    
+                case '7':
+                    parse_variable_record();
+                    break;
+                
+                case '8':
+                    parse_missing_discrete();
+                    break;
+            
+                case '9':
+                    parse_missing_open_lo();
+                    break;
+                
+                case 'A':
+                    parse_missing_open_hi();
+                    break;
+                
+                case 'B':
+                    parse_missing_closed();
+                    break;
+                
+                case 'C':
+                    parse_variable_label();
+                    break;
+                
+                case 'D':
+                    parse_value_labels();
+                    break;
+                
+                case 'E':
+                    parse_document_records();
+                    break;
+                
+                case 'F':
+                    // Will exit
+                    break;
+                
+                default:
+                    throw new RuntimeException(String.format(
+                        "Unexpected tag code \'%c\'", tag));
+            } // switch
+        } while (tag != 'F');
     } // parse()
     
     protected void parse_splash_strings() {
+        // Allocate a byte array for the splash strings.
         byte[] array = new byte[5*40];
         
-        // Read to array
+        // Populate the array
         read(array, 0, array.length);
         
         // Set the splash strings
@@ -208,20 +313,18 @@ public class PORReader
         // Avoid allocating a new one, and use the one that
         // has been allocated to the PORFile?
         
-        byte[] table = new byte[256];
+        byte[] array = new byte[256];
         
-        // Read the character map
-        read(table, 0, table.length);
+        // Read the next 256 bytes (=character map) into "table".
+        read(array, 0, array.length);
 
         // Record the charset table into the header. This is done prior
         // to any kind of validation in order for the table to be available
         // for inspection even if the validation fails.
-        por.header.charset = table;
+        por.header.charset = array;
         
-        
-        // Calculate a decoding table
-        PORCharset.initDecoderTable(dtable, table);
-        
+        // Compute a decoding table
+        PORCharset.computeDecodingTable(dectab, array);
     } // parse_charset_map()
     
     
@@ -251,7 +354,9 @@ public class PORReader
 
     protected void parse_file_version() {
         int c = readc();
-        // TODO: decode?
+        
+        // TODO: 
+        // Decode?
         
         // TODO:
         // Validate: expect 'A'.
@@ -260,218 +365,350 @@ public class PORReader
     } // parse_file_version();
 
     protected void parse_creation_datetime() {
+        // Parse creation date
+        por.header.date = parse_string();
         
-        String date = parse_string();
-        String time = parse_string();
-        
-    } // parse_creation_timestamp();
+        // Parse creation time of day
+        por.header.time = parse_string();
+    }
 
+    
+    protected void parse_software() {
+        por.header.software = parse_string();
+    }
+    
+    protected void parse_author() {
+        por.header.author = parse_string();
+    }
+    
+    protected void parse_title() {
+        por.header.title = parse_string();
+    }
+    
+    protected void parse_varcount() {
+        por.header.nvariables = parse_uint();
+    }
+    
+    protected void parse_precision() {
+        por.header.precision = parse_uint();
+    }
+    
+    protected void parse_weight_variable() {
+        por.header.weight_var_name = parse_string();
+    }
+    
+    protected void parse_variable_record() {
+        // Create a new PORVariable object
+        lastvar = new PORVariable();
+        
+        // Add it immediately to the PORFile object
+        por.variables.add(lastvar);
+        
+        lastvar.width = parse_uint();
+        // TODO: Validate value range: 0-255
+        
+        lastvar.name = parse_string();
+        // TODO: Validate name length; 1-8
+        
+        SPSSFormat fmt = null;
+        
+        fmt = new SPSSFormat();
+        fmt.type = parse_uint();
+        fmt.width = parse_uint();
+        fmt.decimals = parse_uint();
+        // TODO: Validate numeric values
+        lastvar.printfmt = fmt;
+        
+        fmt = new SPSSFormat();
+        fmt.type = parse_uint();
+        fmt.width = parse_uint();
+        fmt.decimals = parse_uint();
+        // TODO: Validate numeric values
+        lastvar.writefmt = fmt;
+        
+    } // parse_variable_record()
+                
+    protected void parse_missing_discrete() {
+        if (lastvar == null) {
+            error_syntax("Tag '7\' (variable record) should precede tag=\'8' (missing value)");
+        }
+        
+        // Create missing value record
+        PORMissingValue miss
+            = new PORMissingValue(PORMissingValue.TYPE_DISCRETE_VALUE);
+        
+        // Append to variable record
+        lastvar.missvalues.add(miss);
+        
+        // Parse the value
+        miss.values[0] = parse_value(lastvar);
+    } // parse_missing_discrete()
+    
+            
+    protected void parse_missing_open_lo() {
+        if (lastvar == null) {
+            error_syntax("Tag '7\' (variable record) should precede tag=\'9' (missing open lo)");
+        }
+        
+        // Create missing value record
+        PORMissingValue miss
+            = new PORMissingValue(PORMissingValue.TYPE_RANGE_OPEN_LO);
+        
+        // Append to variable record
+        lastvar.missvalues.add(miss);
+        
+        // Parse the value
+        miss.values[0] = parse_value(lastvar);
+    } // parse_missing_open_lo()
+    
+    protected void parse_missing_open_hi() {
+        if (lastvar == null) {
+            error_syntax("Tag '7\' (variable record) should precede tag=\'A' (missing open hi)");
+        }
+        
+        // Create missing value record
+        PORMissingValue miss
+            = new PORMissingValue(PORMissingValue.TYPE_RANGE_OPEN_HI);
+        
+        // Append to variable record
+        lastvar.missvalues.add(miss);
+        
+        // Parse the value
+        miss.values[0] = parse_value(lastvar);
+    } // parse_missing_open_hi()
+    
+    protected void parse_missing_closed() {
+        if (lastvar == null) {
+            error_syntax("Tag '7\' (variable record) should precede tag=\'A' (missing range)");
+        }
+        
+        // Create missing value record
+        PORMissingValue miss
+            = new PORMissingValue(PORMissingValue.TYPE_RANGE_CLOSED);
+        
+        // Append to variable record
+        lastvar.missvalues.add(miss);
+        
+        // Parse the values
+        miss.values[0] = parse_value(lastvar);
+        miss.values[1] = parse_value(lastvar);
+    } // parse_missing_closed()
+    
+    protected void parse_variable_label() {
+        if (lastvar == null) {
+            error_syntax("Tag '7\' (variable record) should precede tag=\'A' (variable label)");
+        }
+        
+        lastvar.label = parse_string();
+    } // parse_variable_label()
+    
+    /**
+     * The ability to parse (value, label) pairs requires knowledge whether
+     * the values are numerical or textual. This information is not contained
+     * within the value labels record itself, so it cannot be deduced.
+     * Therefore, the only way of knowing this is to assume and expect
+     * that variable records for the variables listed are already specified.
+     */
+    protected void parse_value_labels() {
+        PORValueLabels valuelabels = new PORValueLabels();
+        
+        int vartype = PORValue.TYPE_UNASSIGNED;
+
+        // Parse the number of variables
+        int count;
+        
+        // Variable names count
+        count = parse_uint();
+        
+        valuelabels.vars.ensureCapacity(count);
+        
+        for (int i = 0; i < count; i++) {
+            String varname = parse_string();
+            // Resolve variable
+            PORVariable cvar = por.getVariable(varname);
+            if (cvar == null) {
+                error_parse("Value labels list specify an unknown variable: \"%s\"", varname);
+            }
+            
+            if (vartype == PORValue.TYPE_UNASSIGNED) {
+                // Assign the type
+                vartype = cvar.width == 0 ? 
+                    PORValue.TYPE_NUMERIC : PORValue.TYPE_STRING;
+            } else {
+                // Verify the type
+                if (((vartype == PORValue.TYPE_NUMERIC) 
+                    && (cvar.width != 0)) 
+                    || ((vartype == PORValue.TYPE_STRING) 
+                    && (cvar.width == 0)))
+                {
+                    error_parse("Value labels list contain contradictory value types");
+                }
+            } // if-else
+            
+            // Append to the variables list
+            valuelabels.vars.add(cvar);
+        } // for: varnames list
+        
+        // Value labels count
+        count = parse_uint();
+        
+        for (int i = 0; i < count; i++) {
+            PORValue value;
+            String label;
+            
+            value = parse_value(vartype);
+            label = parse_string();
+            valuelabels.mappings.put(value, label);
+        } // for: value-label list
+    } // parse_value_labels()
+                
+    protected void parse_document_records() {
+        throw new RuntimeException(
+            "Document records parsing is unimplemented");
+    }
+    
     
     // PORTABLE PRIMITIES
     //====================
     
     protected String parse_string() {
-        String rval = null;
+        int len = parse_uint();
         
-        // Read an integer field into "ccount".
-        // The integer could, in theory, be expressed in a scientific notation,
-        // eg. "0.008+3" for 8 chars.
-        
-        
-        
-        
-        // Read "ccount" chars.
-        
-        return rval;
-    } // parse_string()
-    
-    // No sign allowed. May have an exponent?
-    // String length could be something like 0.008+3, or just 8, or 8000-3.
-    // TODO: Should try tweaking POR files manually to see how SPSS does it.
-    
-    // states
-    private static final int S_START                    = 0;
-    private static final int S_SIGN_OR_DIGIT_OR_DOT     = 1;
-    private static final int S_DIGIT_OR_DOT             = 2;
-    private static final int S_DIGIT_OR_DOT_OR_SLASH    = 3;
-    private static final int S_DIGIT_AFTER_DOT          = 4;
-    private static final int S_DIGIT_OR_SIGN_OR_SLASH   = 5;
-    private static final int S_DIGIT_OR_SLASH           = 6;
-    private static final int S_ACCEPT                   = 99;
-    
-    
-    protected String parse_double() {
-        StringBuilder sb = new StringBuilder();
-        
-        int c = -1;
-        int state = S_START;
-        boolean eps = false;
-        boolean num_negative = false;
-        boolean exp_negative = false;
-        
-        try {
-            do {
-                if (eps == false) {
-                    c = read();
-                    
-                    // If eof was reached, throw
-                    if (c == -1) {
-                        error_eof("parse_double()");
-                    }
-                } // if: consume
-                
-                // Set null-transition to false
-                eps = false;
-                
-                switch(state) {
-                    case S_START:
-                        // Leading spaces are accepted.
-                        if (c == ' ') {
-                            // ok
-                        } 
-                        else {
-                            // expect the first letter of the actual number
-                            state = S_SIGN_OR_DIGIT_OR_DOT;
-                            eps = true;
-                        }
-                        break;
-                    
-                    case S_SIGN_OR_DIGIT_OR_DOT:
-                        // No matter what, the next state is digit or dot.
-                        state = S_DIGIT_OR_DOT;
-                        if (c == '+') {
-                            // Plus sign, no action required
-                        }
-                        else if (c == '-') {
-                            // Negative sign
-                            num_negative = true;
-                        }
-                        else {
-                            // Not a sign, then it must be either digit or dot.
-                            eps = true;
-                        }
-                        break;
-                        
-                    case S_DIGIT_OR_DOT:
-                        if (isBase30(c)) {
-                            // It is a base-30 digit
-                            state = S_DIGIT_OR_DOT_OR_SLASH;
-                        }
-                        else if (c == '.') {
-                            // Must still have at least a single base-30 digit.
-                            state = S_DIGIT_AFTER_DOT;
-                        }
-                        else {
-                            // ERROR: unexpected character
-                            throw new RuntimeException(String.format(
-                                "Invalid base-30 number; unexpected integer part"));
-                        } // if-else
-                        break;
-
-                    case S_DIGIT_AFTER_DOT:
-                        if (isBase30(c)) {
-                            // ok, got the required digit.
-                            state = S_DIGIT_OR_SIGN_OR_SLASH;
-                        }
-                        else {
-                            throw new RuntimeException(String.format(
-                                "Invalid base-30 number; unexpected decimal part"));
-                        }
-                        break;
-                        
-                    case S_DIGIT_OR_DOT_OR_SLASH:
-                        if (isBase30(c)) {
-                            // ok
-                        }
-                        else if (c == '.') {
-                            // trigesimal point, expect digits_sign_slash
-                            state = S_DIGIT_OR_SIGN_OR_SLASH;
-                        }
-                        else if (c == '/') {
-                            // ACCEPT
-                            state = S_ACCEPT;
-                        }
-                        break;
-                        
-                    case S_DIGIT_OR_SIGN_OR_SLASH:
-                        if (isBase30(c)) {
-                            // ok
-                        }
-                        else if (c == '+') {
-                            // positive exponent, no action required
-                            state = S_DIGIT_OR_SLASH;
-                        }
-                        else if (c == '-') {
-                            // negative exponent
-                            exp_negative = true;
-                            state = S_DIGIT_OR_SLASH;
-                        }
-                        else if (c == '/') {
-                            // accept
-                            state = S_ACCEPT;
-                        }
-                        break;
-                        
-                    case S_DIGIT_OR_SLASH:
-                        if (isBase30(c)) {
-                            // ok
-                        }
-                        else if (c == '/') {
-                            // accept
-                            state = S_ACCEPT;
-                        }
-                        else {
-                            // ERROR
-                            throw new RuntimeException(String.format(
-                                "Invalid base-30 digit; unexpected exponent"));
-                        }
-                        break;
-                        
-                    default:
-                        throw new RuntimeException(String.format(
-                            "Unrecognized state=%d (programming error)", state));
-                } // switch
-            } while (state != S_ACCEPT);
-        } catch(IOException ex) {
-        } // try-catch
+        StringBuilder sb = new StringBuilder(len);
+        for (int i = 0; i < len; i++) {
+            int c = readc();
+            // TODO: decode
+            sb.append((char) c);
+        }
         
         return sb.toString();
-    } // parse_double()
+    } // parse_string()
     
-    protected static boolean isBase30(int c) {
-        return ((('0' <= c) && (c <= '9')) || (('A' <= c) && (c <= 'T')));
-    } // isBase30
+    protected PORValue parse_value(PORVariable variable) {
+        PORValue rval;
+        
+        if (variable.width == 0) {
+            // Numeric
+            rval = parse_numeric_value();
+        } else {
+            // String
+            rval = parse_string_value();
+            // TODO:
+            // Validate the string length
+        }
+        return rval;
+    } // parse_value();
+    
+    protected PORValue parse_value(int value_type) {
+        PORValue rval;
+        
+        if (value_type == PORValue.TYPE_NUMERIC) {
+            // Numeric
+            rval = parse_numeric_value();
+        } else if (value_type == PORValue.TYPE_STRING) {
+            // String
+            rval = parse_string_value();
+            // TODO:
+            // Validate the string length
+        } else {
+            throw new RuntimeException(String.format(
+                "Internal error. Invalid value type: %d", value_type));
+        }
+        
+        return rval;
+    } // parse_value();
+    
+
+    protected PORValue parse_string_value() {
+        return new PORValue(PORValue.TYPE_STRING, parse_string());
+    }
+    
+    protected PORValue parse_numeric_value() {
+        int c;
+        StringBuilder sb = new StringBuilder(128);
+        
+        // Reset the NumberParser
+        numparser.reset();
+        
+        // Eat up leading whitespaces
+        
+        c = readc();
+        // TODO: decode
+        while (c == ' ') {
+            sb.append((char) c);
+            
+            c = readc();
+            // TODO: decode
+        } // while
+        
+        if (c == '*') {
+            // This is a missing value.
+            
+            sb.append((char) c);
+            
+            c = readc(); // consume the succeeding dot.
+            // TODO: decode
+            
+            sb.append((char) c);
+        } else {
+            // Emit to parser until a slash is found.
+            while (c != '/') {
+                numparser.consume(c);
+                sb.append((char) c);
+                c = readc();
+                // TODO: decode
+            } // while
+            
+            // Signal end-of-data
+            int errno = numparser.consume(-1);
+
+            // Inspect result
+            if (errno != NumberParser.E_OK) {
+                error_numfmt(numparser.strerror());
+            } // if: error
+            
+        } // if-else
+        
+        return new PORValue(PORValue.TYPE_NUMERIC, sb.toString());
+    } // parse_numeric_value()
+    
     
     protected int parse_uint() {
-        StringBuilder sb = new StringBuilder();
         int c;
-        int rval = 0;
-        int len = 0;
         
-        do {
+        // Reset the NumberParser
+        numparser.reset();
+        
+        // Eat up leading whitespaces
+        while ((c = readc()) == ' ');
+        
+        if (c == '*') {
+            // This is a missing value.
+            readc(); // consume the succeeding dot.
+        }
+        // Emit to parser until a slash is found.
+        while (c != '/') {
+            numparser.consume(c);
             c = readc();
-            if (c == -1) {
-                // eof
-                throw new RuntimeException(String.format(
-                    "unexpected end-of-file"));
-            }
-            
-            // TODO:
-            // decode
-            
-            // TODO:
-            // validate? (no trigesimal point allowed!)
-            if ((len != 0) && ((c == '-') || (c == '+'))) {
-                // switch to reading an exponent
-            }
-            
-            sb.append(c);
-            len++;
-            
-        } while (c != '/');
+        }
         
-        // TODO
-        // atoi
+        // Signal end-of-data
+        int errno = numparser.consume(-1);
+        
+        // Inspect result
+        if (errno != NumberParser.E_OK) {
+            error_numfmt(numparser.strerror());
+        }
+        
+        if (numparser.lastsign() < 0) {
+            error_numfmt("Expected non-negative number");
+        }
+        
+        int rval = (int) numparser.lastvalue();
+        
+        if (((double) rval) != numparser.lastvalue()) {
+            error_numfmt("Expected an integer");
+        }
         
         return rval;
     } // parse_uint()
@@ -482,28 +719,38 @@ public class PORReader
 
     
     protected void decode(byte[] array) {
-        /*
         for (int i = 0; i < array.length; i++) {
-            int inc = ((int) array[i]) & 0xff;
-            int outc = dtable[inc];
+            int inbyte = ((int) array[i]) & 0xff;
+            int outchar = dectab[inbyte];
             
-            if (outc == -1) {
-                System.err.printf("No translation for character \'%c\' (%d)\n", 
-                    inc, inc);
+            if (outchar == -1) {
+                /*
+                throw new RuntimeException(String.format(
+                    "No decoding for input byte \'%c\' (%d dec)",
+                    inbyte, inbyte));
+                */
+                System.err.printf(
+                    "No decoding for input byte \'%c\' (%d dec)",
+                    inbyte, inbyte);
+                
+                // No decoding; use the byte as-is for the char.
+                // TODO: Possibly apply ISO-8859-1 to UTF-8 decoding
+                // or something similar.
                 continue;
             }
-            // Otherwise translate
-            array[i] = (byte) outc;
-        } // for: each item in the array
-        */
+            
+            // Replace the element with decoded content
+            array[i] = (byte) outchar;
+        } // for
     } // decode
     
-    protected void read(byte[] array, int offset, int len) {
-        int result = 0;
+    
+    protected void read(byte[] array, int from, int to) {
+        int offset = 0;
         int c = -1;
         
         try {
-            for (result = 0; result < len; result++) {
+            for (offset = from; offset < to; offset++) {
                 c = read();
                 
                 if (c == -1) {
@@ -511,21 +758,21 @@ public class PORReader
                     // eof
                     break;
                 }
-                array[result] = (byte) c;
+                array[offset] = (byte) c;
             } // for
-            System.out.printf("read %d bytes\n", result);
+            System.out.printf("read %d bytes\n", to-from);
         } catch(IOException ex) {
             error_io(String.format(
-                "BufferedInputStream.read(byte[], %d, %d)",
-                offset, len), ex);
+                "BufferedInputStream.read(byte[], from=%d, len=%d)",
+                from, to-from), ex);
         } // try-catch
         
         // If the read() didn't got as many bytes as required,
         // then the only explanation is that eof was reached.
-        if (result != len) {
+        if (offset != to) {
             error_eof(String.format(
-                "BufferedInputStream.read(byte[], %d, %d)",
-                offset, len));
+                "BufferedInputStream.read(byte[], from=%d, len=%d)",
+                from, to-from));
         } // if: 
     } // read()
     
@@ -563,6 +810,21 @@ public class PORReader
             "%s failed: unexpected end-of-file"));
     } // error_eof()
     
+    protected static void error_numfmt(String desc) {
+        throw new RuntimeException(String.format(
+            "Number format error: %s", desc));
+    }
+    
+    protected static void error_syntax(String desc) {
+        throw new RuntimeException(String.format(
+            "Syntax error: %s", desc));
+    }
+    
+    protected static void error_parse(String fmt, Object... args) {
+        throw new RuntimeException(String.format(
+            "Parse error: %s", String.format(fmt, args)));
+    }
+    
     protected int read() 
         throws IOException
     {
@@ -581,7 +843,7 @@ public class PORReader
                     // Otherwise, begin a new line
                     row++;
                     col = 0;
-                    System.out.printf("<eol>\n");
+                    //System.out.printf("<eol>\n");
                 }
             } // if-else
             
@@ -611,7 +873,7 @@ public class PORReader
             throw new RuntimeException(String.format(
                 "row %d is too long (more than %d chars)", row, opt_row_length));
         }
-        System.out.printf("%c", rval);
+        //System.out.printf("%c", rval);
         
         // TODO:
         // Apply decoding?

@@ -100,7 +100,8 @@ public class PORCharset
      * Writing a portable file can be done in the same manner.<p>
      *
      */
-    public static final int[] TRANS = {
+    //public static final int DEFAULT_TRANSLATION
+    public static final int[] DEFAULT_MAPPING = {
         // 0-60    Control characters. Not important enough to describe in full here. 
         // 61-63   Reserved. 
         
@@ -308,6 +309,12 @@ public class PORCharset
     /** Uppercase letter 'Z', symbol 99. */
     public static final int LETTER_UPPERCASE_Z                   = 99;
 
+    // CLASS VARIABLES
+    //=================
+
+    private static int[] g_default_charset = null;
+    
+
     // CONSTRUCTORS
     //==============
     
@@ -316,128 +323,118 @@ public class PORCharset
     } // ctor
 
     
-    private static int[] g_table = null;
-    
-    public static final int[] getDefaultTable() {
-        if (g_table == null) {
-            // TODO: initDefaultTable()
-            initialize();
+    public static final int[] getDefaultCharset() {
+        if (g_default_charset == null) {
+            g_default_charset = new int[256];
+            computeDefaultCharset(g_default_charset);
         }
-        return g_table;
-    } // getTable();
+        return g_default_charset;
+    } // getDefaultCharset();
     
-    public static void initDecoderTable(int[] dtable, byte[] intable) {
-        // get default table which is used as the codex
-        final int[] outtable = getDefaultTable();
+    /**
+     * Computes the default charset into the specified array.
+     * In this terminology, charset means a 256-element array, whose
+     * elements are the codes corresponding to the pre-defined characters.
+     *
+     * @param table 
+     *      [out] The array to populate, must contain exactly 256 elements.
+     */
+    public static void computeDefaultCharset(int[] table) {
+        if (table == null) {
+            throw new IllegalArgumentException(
+                "Input array is null");
+        }
         
-        for (int i = 0; i < dtable.length; i++) {
-            dtable[i] = -1;
-        } // for
+        if (table.length != 256) {
+            throw new IllegalArgumentException(
+                "Input array\'s length differs from 256 elements");
+        }
         
-        // In portable files, unused entries are marked with the zero
-        int inzero = intable[DIGIT_0];
-        
-        // This gets skipped in the following loop, so it must be set
-        // manually here
-        dtable[inzero] = '0';
-        
-        for (int i = 0; i < intable.length; i++) {
-            // when a character intable[i] is read from a portable file,
-            // it should be interpreted as character outtable[i]
-            int inc = ((int) intable[i]) & 0xff;
-            int outc = outtable[i];
-            
-            if (inc == inzero) {
-                // the input table entry has been marked with zero,
-                // so skip this entry
-                continue;
-            }
-            
-            // Otherwise, set the corresponding output char
-            dtable[inc] = outc;
-            
-        } // for
-        
-    } // initDecodeTable()
-    
-    private static void initialize() {
-        g_table = new int[256];
-        
-        // Clear the table to an invalid value
-        for (int i = 0; i < g_table.length; i++) {
-            g_table[i] = -1;
+        // Set all entries to an invalid value
+        for (int i = 0; i < table.length; i++) {
+            table[i] = -1;
         } // for
         
         // Calc the length of TRANS table
-        int len = TRANS.length / 2;
+        int len = DEFAULT_MAPPING.length / 2;
         
         for (int i = 0; i < len; i++) {
             // Calculate offset
             int offset = i*2;
             // Get the index
-            int index = TRANS[offset+0];
+            int index = DEFAULT_MAPPING[offset+0];
             // Get the value
-            int value = TRANS[offset+1];
+            int value = DEFAULT_MAPPING[offset+1];
             
             // if the value is -1, then skip this
             if (value == -1) {
                 continue;
             } // if: skip
             
-            // Otherwise, see if there is already uninvalid value
-            if (g_table[index] >= 0) {
-                // Error, already specified
+            // Otherwise, assert that the entry hasn't been mapped already.
+            if (table[index] >= 0) {
                 throw new RuntimeException(String.format(
-                    "PORCharset.initialize() failed: index=%d. This is a programming error",
+                    "PORCharset.computeDefaultCharset(): table[%d] >= 0 (internal error). ",
                     index));
             }
             
-            // If no previous value, then initialize the value
-            g_table[index] = value;
+            // Set mapping to the entry
+            table[index] = value;
         } // for
         
-    } // initialize()
-    
-    
-    
-    /*
-    public static final int[] getFullTable() {
-        if (FULL_TABLE == null) {
-            // Construct it
-            FULL_TABLE = new int[256];
-            for (int i = 0; i < FULL_TABLE.length; i++) {
-                int c = getIndex(i);
-                if (c == -1) {
-                    c = '0';
-                }
-                FULL_TABLE[i] = c;
-            } // for
-        } // if
-        return FULL_TABLE;
-    }
-    */
-    
+    } // computeDefaultCharset()
+
     /**
-     * Dumb search; fix with bisect
+     * Computes a decoding table for the given charset.
+     *
+     * @param dectab
+     *      [out] The decoding table to populate.
+     *      The array must have a size of 256 elements.
+     * @param charset
+     *      [in] The charset for which the decoding table is computed.
      */
-    public static int getIndex(int index) {
-        int len = TRANS.length / 2;
-        for (int i = 0; i < len; i++) {
-            if (TRANS[i*2] == index) {
-                return TRANS[(i*2)+1];
+    public static void computeDecodingTable(int[] dectab, byte[] charset) {
+        // NullPointerExceptions are implied:
+        if ((dectab.length != 256) || (charset.length != 256)) {
+            throw new IllegalArgumentException(
+                "ComputeDecodingTable(): incorrect array length (internal error)");
+        } // if
+        
+
+        // Get the default charset. This is used as reference.
+        final int[] default_charset = getDefaultCharset();
+        
+        // Set all entries to invalid value
+        for (int i = 0; i < dectab.length; i++) {
+            dectab[i] = -1;
+        }
+
+        // In portable files, unused entries are marked with the zero.
+        // Therefore, the code for zero must be picked
+        int inzero = charset[DIGIT_0];
+        
+        // The entry for zero in the decoding table gets skipped
+        // in the following loop. It mut be set manually instead:
+        dectab[inzero] = '0';
+
+        for (int code = 0; code < charset.length; code++) {
+            // When a byte charset[code] is read from a portable file,
+            // it should be interpreted as a character default_charset[code]
+            // (which is the UTF-8 character for code SPSS symbol code "code").
+            
+            int inbyte = ((int) charset[code]) & 0xff;
+            int outchar = default_charset[code];
+            
+            if (inbyte == inzero) {
+                // the input table entry has been marked with zero,
+                // so skip this entry
+                continue;
             }
-        } // for: each entry
-        return -1;
-    } // getIndex()
-    
-    /*
-    TODO:
-    input: byte from portable file.
-    output: java utf-8 char in the correct character set
-    
-    input: translation table from a portable file
-    
-    */
+            
+            // Otherwise, set the corresponding output char
+            dectab[inbyte] = outchar;
+        } // for
+    } // computeDecodingTable()
     
 } // class PORCharset
 

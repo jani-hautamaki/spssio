@@ -126,6 +126,9 @@ public class PORHeader {
      */
     public int weight_var_index;
     
+    /** The actual weight variable name found from the Portable file. */
+    public String weight_var_name;
+    
     // CONSTRUCTORS
     //==============
     
@@ -136,6 +139,8 @@ public class PORHeader {
         version = 0;
         date = null;
         time = null;
+        
+        weight_var_name = null;
     } // ctor
     
 } // class PORHeader

@@ -80,4 +80,18 @@ public class PORFile {
     // OTHER METHODS
     //===============
     
+    public PORVariable getVariable(String name) {
+        for (int i = 0; i < variables.size(); i++) {
+            PORVariable rval = variables.elementAt(i);
+            if (name.equals(rval.name)) {
+                return rval;
+            }
+        }
+        
+        return null;
+    } // getVariable()
+    
+    
+    
 } // class PORFile
+
