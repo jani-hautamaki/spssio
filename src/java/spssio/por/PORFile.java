@@ -66,7 +66,7 @@ public class PORFile {
     /**
      * Data record (tag 'F', sequence of floating-point and string fields)
      */
-    //public PORDataMatrix data;
+    public PORDataMatrix data;
     
     // CONSTRUCTORS
     //==============
@@ -75,6 +75,7 @@ public class PORFile {
         header = new PORHeader();
         variables = new Vector<PORVariable>();
         labels = new Vector<PORValueLabels>();
+        data = new PORDataMatrix();
     } // ctor
     
     // OTHER METHODS

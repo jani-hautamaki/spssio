@@ -98,7 +98,6 @@ public class SequentialByteArray
     public void allocate(int size_bytes) {
         size = size_bytes;
         int elems = (size + BYTES_IN_ELEMENT - 1) / BYTES_IN_ELEMENT;
-        System.out.printf("Reserving %d elements for %d bytes\n", elems, size_bytes);
         data = new int[elems];
         
         // Reset head position
@@ -211,6 +210,14 @@ public class SequentialByteArray
      */
     public int size() {
         return size;
+    }
+    
+    /**
+     * Get the reading/writing head position (in bytes).
+     * @return The current byte offset
+     */
+    public int pos() {
+        return cbyte;
     }
     
     // for testing

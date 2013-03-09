@@ -1,4 +1,3 @@
-
 //*******************************{begin:header}******************************//
 //                 spssio - http://code.google.com/p/spssio/                 //
 //***************************************************************************//
@@ -25,6 +24,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.FileNotFoundException;
+import java.io.File; // for size
 //  for iterating value labels (TODO: remove after initial dev)
 import java.util.Map;
 
@@ -37,6 +37,7 @@ import spssio.por.PORVariable;
 import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORHeader;
+import spssio.por.PORDataMatrix;
 
 // spssio common
 import spssio.common.SPSSFormat;
@@ -64,7 +65,7 @@ public class PORReader
     /**
      * Buffer size used for creating BufferedInputStream, unless specified.
      */
-    public static final int DEFAULT_BUFFER_SIZE = 16384;
+    public static final int DEFAULT_BUFFER_SIZE = 0x4000; // 16 KBs
     
     // MEMBER VARIABLES
     //==================
@@ -73,19 +74,30 @@ public class PORReader
      * Configuration variable; the size of the buffer to create.
      * Initialized to the default value.
      */
-    private int opt_buffer_size;
+    private int buffer_size;
 
     /** 
      * Configuration variable; determines the length of the rows.
      * If a row is longer than this, it is an error. If a row is shorter,
      * then it is internally widened into this length by spaces. */
-    private int opt_row_length;
+    private int row_length;
 
 
     /** 
      * The input stream
      */
     private BufferedInputStream istream;
+
+    /**
+     * File size
+     */
+    private long fsize;
+    
+    /**
+     * Bytes read
+     */
+    private long fpos;
+    
 
     /** Number of the current row. */
     private int row;
@@ -128,9 +140,12 @@ public class PORReader
     // CONSTRUCTORS
     //==============
     
+    /**
+     * Creates an initialized {@code PORReader} object.
+     */
     public PORReader() {
-        opt_buffer_size = DEFAULT_BUFFER_SIZE;
-        opt_row_length = SPSS_PORTABLE_ROW_LENGTH;
+        buffer_size = DEFAULT_BUFFER_SIZE;
+        row_length = SPSS_PORTABLE_ROW_LENGTH;
 
         // Allocated decoding table only once.
         dectab = new int[256];
@@ -146,25 +161,49 @@ public class PORReader
         
     } // ctor
     
+    // ERROR MANAGEMENT
+    //==================
+    
+    /**
+     * Get latest input row number.
+     * @return Latest input row number.
+     */
+    public int getRow() {
+        return row;
+    } 
+    
+    /**
+     * Get latest input column number.
+     * @return Latest input column number.
+     */
+    public int getColumn() {
+        return col;
+    } // getColumn()
+    
+    
     // OTHER METHODS
     //===============
     
-    /*
-    public void open(String fname) {
-    } // open()
-    
-    public void open(File file) {
-    } // open()
-    
-    public void close() {
-    } // close()
-    */
-    
+    /**
+     * Parses a Portable file.
+     *
+     * @param fname The name of the file to parse.
+     * @return The {@code PORFile} representing the parsed Portable file.
+     */
     public PORFile parse(String fname) 
-        throws FileNotFoundException
+        throws FileNotFoundException, IOException, SecurityException
     {
+        // Create a fname object
+        File f = new File(fname);
+        
         // May throw FileNotFound
         FileInputStream fis = new FileInputStream(fname);
+        
+        // Reset file position
+        fpos = 0;
+        
+        // Get file length. May throw SecurityException 
+        fsize = f.length();
         
         // Parse the input stream
         PORFile rval = parse(fis);
@@ -179,11 +218,16 @@ public class PORReader
         return rval;
     } // parse()
     
-    
+    /**
+     * Parse a Portable file using an {@code InputStream} as source.
+     *
+     * @param is The input from which the file is parsed.
+     * @return The {@code PORFile} reprsenting the parsed Portable file.
+     */
     public PORFile parse(InputStream is) {
         
         // Initialize
-        istream = new BufferedInputStream(is, opt_buffer_size);
+        istream = new BufferedInputStream(is, buffer_size);
         
         // Reset location
         col = 0;
@@ -193,14 +237,8 @@ public class PORReader
         // Clear auxiliary variables
         lastvar = null;
         
-        // TODO: clear dtable?
-        
-        try {
-            parse();
-        } catch(Exception ex) {
-            System.out.printf("Row: %d, column: %d\n", row, col);
-            ex.printStackTrace();
-        } // try-catch
+        // May throw
+        parse();
         
         return por;
     } // parse()
@@ -208,8 +246,7 @@ public class PORReader
     // RECURSIVE DESCENT PARSER FUNCTIONS
     //====================================
     
-    protected void parse() 
-    {
+    protected void parse() {
         
         // Create a new PORFile that will be built from the input stream.
         por = new PORFile();
@@ -232,8 +269,10 @@ public class PORReader
         // from this point on, read "tag" and switch until tag='F' is met.
         int tag;
         do {
+            // Read tag code
             tag = readc();
-            System.out.printf("tag: %c\n", tag);
+            
+            // Parse the incoming input according to the tag code
             switch(tag) {
                 case '1':
                     parse_software();
@@ -292,14 +331,20 @@ public class PORReader
                     break;
                 
                 case 'F':
-                    // Will exit
+                    // Terminate the loop.
+                    // The data itself is always at the end of the file.
                     break;
                 
                 default:
-                    throw new RuntimeException(String.format(
+                    error_parse(String.format(
                         "Unexpected tag code \'%c\'", tag));
+                    // never reached
+                
             } // switch
         } while (tag != 'F');
+        
+        // Parse the data matrix
+        parse_data_matrix();
     } // parse()
     
     protected void parse_splash_strings() {
@@ -360,11 +405,8 @@ public class PORReader
     protected void parse_file_version() {
         int c = readc();
         
-        // TODO: 
-        // Decode?
-        
-        // TODO:
-        // Validate: expect 'A'.
+        // TODO: Decode?
+        // TODO: Validate: expect 'A' ?
         
         por.header.version = (char) c;
     } // parse_file_version();
@@ -574,10 +616,77 @@ public class PORReader
         throw new RuntimeException(
             "Document records parsing is unimplemented");
     }
+
+    protected void parse_data_matrix() {
+        //System.out.printf("File position: %d / %d\n", fpos, fsize);
+        
+        // Pick to a local variable for convenience
+        PORDataMatrix dm = por.data;
+        
+        // Calculate the number of bytes left to read.
+        int size = (int) (fsize-fpos);
+        
+        // Allocate the calculated amount of memory.
+        dm.allocate(size);
+        
+        // Setup the column data types
+        int[] coltype = new int[por.variables.size()];
+        for (int i = 0; i < coltype.length; i++) {
+            coltype[i] = por.variables.elementAt(i).width == 0 ?
+                PORValue.TYPE_NUMERIC : PORValue.TYPE_STRING;
+        } // for
+        
+        dm.setDataColumnTypes(coltype);
+        dm.setTextColumn0(col);
+        
+        try {
+            int c;
+            
+            // Read the next character
+            while ((c = istream.read()) != -1) {
+
+                // decode the input byte
+                c = dectab[c];
+                
+                // Increase binary position
+                fpos++;
+                // Increase column number
+                col++;
+                
+                // Track column and row
+                if (c == '\n') {
+                    row++;
+                    col = 0;
+                } else if (c == '\r') {
+                    // Cancel the column increment
+                    col--;
+                }
+                
+                // Write
+                dm.write(c);
+                
+                // Send to parser
+                dm.consume(c);
+                
+                if (dm.errno() == PORDataMatrix.E_REJECTED) {
+                    error_cell(dm.getx(), dm.gety(), dm.strerror());
+                }
+            } // while
+            
+            // TODO:
+            // send end-of-file marker to dm
+            dm.debug();
+            
+        } catch(IOException ex) {
+            error_io("BufferedInputStream.read()", ex);
+        } // try-catch
+    } // parse_data_matrix()
+
+
     
-    
-    // PORTABLE PRIMITIES
-    //====================
+    //=======================================================================
+    // PRIMITIVES
+    //=======================================================================
     
     protected String parse_string() {
         int len = parse_uint();
@@ -725,34 +834,22 @@ public class PORReader
     // SUPPORT FUNCTIONS
     //===================
 
-    
+    /**
+     * Decodes an array of bytes
+     */
     protected void decode(byte[] array) {
         for (int i = 0; i < array.length; i++) {
             int inbyte = ((int) array[i]) & 0xff;
             int outchar = dectab[inbyte];
-            
-            if (outchar == -1) {
-                /*
-                throw new RuntimeException(String.format(
-                    "No decoding for input byte \'%c\' (%d dec)",
-                    inbyte, inbyte));
-                */
-                System.err.printf(
-                    "No decoding for input byte \'%c\' (%d dec)",
-                    inbyte, inbyte);
-                
-                // No decoding; use the byte as-is for the char.
-                // TODO: Possibly apply ISO-8859-1 to UTF-8 decoding
-                // or something similar.
-                continue;
-            }
             
             // Replace the element with decoded content
             array[i] = (byte) outchar;
         } // for
     } // decode
     
-    
+    /**
+     * Read an array of bytes. Throws an exception, if eof is reached.
+     */
     protected void read(byte[] array, int from, int to) {
         int offset = 0;
         int c = -1;
@@ -762,13 +859,11 @@ public class PORReader
                 c = read();
                 
                 if (c == -1) {
-                    System.out.printf("eof\n");
                     // eof
                     break;
                 }
                 array[offset] = (byte) c;
             } // for
-            System.out.printf("read %d bytes\n", to-from);
         } catch(IOException ex) {
             error_io(String.format(
                 "BufferedInputStream.read(byte[], from=%d, len=%d)",
@@ -784,22 +879,92 @@ public class PORReader
         } // if: 
     } // read()
     
+    /**
+     * Read a single byte. Throws an exception, if eof is reached.
+     */
     protected int readc() {
         int rval = -1;
         try {
             // May throw
             rval = read();
         } catch(IOException ex) {
-            error_io("BufferedInputStream.read()", ex);
+            error_io("BufferedInputStream.readc()", ex);
         } // try-catch
         
         // End-of-file is not allowed. If eof detected, throw an exception
         if (rval == -1) {
-            error_eof("BufferedInputStream.read()");
+            error_eof("BufferedInputStream.readc()");
         } // if: eof
         
         return rval;
     } //  readc()
+
+    /**
+     * Read a single byte and keep count of the current row and column.
+     * This method also appends the lines to row_length if newline is met
+     * earlier than expected. If eof is reached, returns -1.
+     */
+    protected int read() 
+        throws IOException
+    {
+        int rval = -1;
+        
+        do {
+            if (lastc == '\n') {
+                if (col < row_length) {
+                    // Keep filling with spaces until the required row length
+                    // has been reached.
+                    // It has to be space (0x20) BEFORE the decoding.
+                    
+                    rval = ' ';
+                    break; // exit loop
+                } else {
+                    // Otherwise, begin a new line
+                    row++;
+                    col = 0;
+                    //System.out.printf("<eol>\n");
+                }
+            } // if-else
+            
+            // This call shoudn't be slow, because the input stream has been
+            // wrapped into BufferedInputStream.
+            lastc = istream.read();
+            fpos++;
+            
+            if (lastc == -1) {
+                fpos--;
+                // end-of-file. Return immediately, and do not increase column.
+                return -1;
+            }
+            else if (lastc == '\r') {
+                // skip this, and read next.
+            }
+            else if (lastc == '\n') {
+                // skip this here, and read next.
+            } 
+            else {
+                // acceptable character.
+                rval = lastc;
+            } // if-else
+        } while (rval == -1);
+        
+        // Increase column
+        col++;
+        if (col > row_length) {
+            throw new RuntimeException(String.format(
+                "row %d is too long (more than %d chars)", row, row_length));
+        }
+        //System.out.printf("%c", rval);
+        
+        // TODO:
+        // Apply decoding?
+        
+        return rval;
+    } // read()
+    
+    
+    // EXCEPTIONS
+    //============
     
     protected static void error_io(String method, IOException ex) {
         String msg = ex.getMessage();
@@ -833,103 +998,16 @@ public class PORReader
             "Parse error: %s", String.format(fmt, args)));
     }
     
-    protected int read() 
-        throws IOException
-    {
-        int rval = -1;
-        
-        do {
-            if (lastc == '\n') {
-                if (col < opt_row_length) {
-                    // Keep filling with spaces until the required row length
-                    // has been reached.
-                    // It has to be space (0x20) BEFORE the decoding.
-                    
-                    rval = ' ';
-                    break; // exit loop
-                } else {
-                    // Otherwise, begin a new line
-                    row++;
-                    col = 0;
-                    //System.out.printf("<eol>\n");
-                }
-            } // if-else
-            
-            // This call shoudn't be slow, because the input stream has been
-            // wrapped into BufferedInputStream.
-            lastc = istream.read();
-            
-            if (lastc == -1) {
-                // end-of-file. Return immediately, and do not increase column.
-                return -1;
-            }
-            else if (lastc == '\r') {
-                // skip this, and read next.
-            }
-            else if (lastc == '\n') {
-                // skip this here, and read next.
-            } 
-            else {
-                // acceptable character.
-                rval = lastc;
-            } // if-else
-        } while (rval == -1);
-        
-        // Increase column
-        col++;
-        if (col > opt_row_length) {
-            throw new RuntimeException(String.format(
-                "row %d is too long (more than %d chars)", row, opt_row_length));
-        }
-        //System.out.printf("%c", rval);
-        
-        // TODO:
-        // Apply decoding?
-        
-        return rval;
-    } // read()
-
-    
-    // TODO:
-    // How to account for SYSMIS values? (asterisk followed by period "*.")
-    // They are accounted only in the casereader, which attempts to match
-    // the current input.
-    
-    public String parseNumeric() {
-        StringBuilder sb = new StringBuilder();
-        return sb.toString();
-    } // parseNumeric()
-    
-    public String parseInteger() {
-        String rval = null;
-        return rval;
-    } // parseInteger()
-    
-    // TODO: Do not translate the string???
-    
-    public String parseString() {
-        /*
-        int len = parseInteger();
-        */ 
-        int len = 1;
-        StringBuilder sb = new StringBuilder(len);
-        
-        
-        return sb.toString();
+    protected static void error_cell(
+        int x, 
+        int y, 
+        String fmt, 
+        Object... args
+    ) {
+        throw new RuntimeException(String.format(
+            "Cell (x=%d,y=%d): %s", x, y, String.format(fmt, args)));
     }
     
-    // Translated
-    public char parseChar() {
-        char rval = '\0';
-        return rval;
-    }
-    
-    /*
-    public String parseNumericData(boolean allow_sysmis) {
-    }
-    public String parseStringData(boolean allow_sysmis) {
-    }
-    */
     
     public static void printPortable(PORFile por) {
         PORHeader header = por.header;
@@ -967,6 +1045,23 @@ public class PORReader
         } else {
         System.out.printf("     Weight variable:    <unset>\n");
         } // if-else
+        
+        System.out.printf("     Data matrix:        %d x %d\n", por.data.sizey(), por.data.sizex());
+        System.out.printf("     Data size:          %d bytes\n", por.data.size());
+        int[] types = por.data.getDataColumnTypes();
+        int numeric_columns = 0;
+        int string_columns = 0;
+        for (int i = 0; i < types.length; i++) {
+            if (types[i] == PORValue.TYPE_STRING) {
+                string_columns++;
+            } else if (types[i] == PORValue.TYPE_NUMERIC) {
+                numeric_columns++;
+            } else {
+                // error
+            }
+        } // for
+        System.out.printf("     Numeric variables:  %d\n", numeric_columns);
+        System.out.printf("     String variables:   %d\n", string_columns);
         
         int size = por.variables.size();
         System.out.printf("  Variables (%d):\n", size);
@@ -1046,17 +1141,23 @@ public class PORReader
     
     
     public static void main(String[] args) {
+        String curFilename = null; 
+        PORReader preader = new PORReader();
         try {
-            PORReader preader = new PORReader();
             
             for (int i = 0; i < args.length; i++) {
-                System.out.printf("%s\n", args[i]);
+                curFilename = args[i];
+                System.out.printf("%s\n", curFilename);
                 PORFile por = null;
                 por = preader.parse(args[i]);
                 
                 printPortable(por);
             }
         } catch(Exception ex) {
+            System.out.printf("%s:%d:%d: %s", 
+                curFilename, preader.getRow(), preader.getColumn(),
+                ex.getMessage());
+            ex.printStackTrace();
         } // try-catch
     } // main()
     

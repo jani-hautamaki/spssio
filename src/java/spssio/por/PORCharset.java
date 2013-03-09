@@ -427,7 +427,9 @@ public class PORCharset
             
             if (inbyte == inzero) {
                 // the input table entry has been marked with zero,
-                // so skip this entry
+                // so skip this entry.
+                // Make it passthrough:
+                dectab[code] = code;
                 continue;
             }
             
