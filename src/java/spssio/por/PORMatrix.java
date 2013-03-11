@@ -38,7 +38,7 @@ import spssio.util.NumberSystem;
  * That's Java for you.<p>
  * 
  */
-public class PORDataMatrix
+public class PORMatrix
     extends SequentialByteArray
 {
     // CONSTANTS
@@ -157,7 +157,7 @@ public class PORDataMatrix
     // CONSTRUCTORS
     //==============
     
-    public PORDataMatrix() {
+    public PORMatrix() {
         super();
         
         xdim = 0;
@@ -580,4 +580,4 @@ public class PORDataMatrix
         //System.out.printf("\n");
     }
     
-} // PORDataMatrix
+} // PORMatrix

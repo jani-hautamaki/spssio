@@ -37,7 +37,7 @@ import spssio.por.PORVariable;
 import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORHeader;
-import spssio.por.PORDataMatrix;
+import spssio.por.PORMatrix;
 
 // spssio common
 import spssio.common.SPSSFormat;
@@ -621,7 +621,7 @@ public class PORReader
         //System.out.printf("File position: %d / %d\n", fpos, fsize);
         
         // Pick to a local variable for convenience
-        PORDataMatrix dm = por.data;
+        PORMatrix dm = por.data;
         
         // Calculate the number of bytes left to read.
         int size = (int) (fsize-fpos);
@@ -668,7 +668,7 @@ public class PORReader
                 // Send to parser
                 dm.consume(c);
                 
-                if (dm.errno() == PORDataMatrix.E_REJECTED) {
+                if (dm.errno() == PORMatrix.E_REJECTED) {
                     error_cell(dm.getx(), dm.gety(), dm.strerror());
                 }
             } // while
