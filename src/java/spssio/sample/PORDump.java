@@ -23,10 +23,15 @@ import java.util.Map;
 import java.util.Locale;
 
 // core java
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.io.File;
 import java.io.IOException;
+
+// for csv output
+import java.io.FileOutputStream;
+import java.io.Writer;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.OutputStreamWriter;
 
 // spssio por
 import spssio.por.PORMissingValue;
@@ -179,16 +184,20 @@ public class PORDump
         } // for: value labels lists
     }
     
-    public static void writeMatrix(PrintStream out, PORFile por) {
+    public static void writeMatrix(Writer out, PORFile por) {
         // The first line is variable names
         int nvars = por.variables.size();
-        for (int i = 0; i < nvars; i++) {
-            if (i > 0) {
-                out.print(',');
+        try {
+            for (int i = 0; i < nvars; i++) {
+                if (i > 0) {
+                    out.write(',');
+                }
+                out.write(por.variables.elementAt(i).name);
             }
-            out.printf(por.variables.elementAt(i).name);
+            out.write('\n');
+        } catch(IOException ex) {
+            throw new RuntimeException(ex);
         }
-        out.print('\n');
         
         MatrixOutputter visitor = new MatrixOutputter(out);
 
@@ -238,40 +247,43 @@ public class PORDump
             printPortable(por);
         }
         
+        /*
+        A matrix with dimensions 2448 x 136
+        takes 8 seconds to write out if PrintStream is used.
+        However, if BufferedWriter chain is used, 
+        it takes only about 2 seconds.
+        */
         if (args.length >= 3) {
-            PrintStream psr = null;
+            Writer w = null;
             
             System.out.printf("Writing data to file %s\n", args[2]);
             try {
-                // may throw
                 File fout = new File(args[2]);
                 
-                // may throw
-                psr = new PrintStream(
-                    new FileOutputStream(fout),
-                    true, // autoflush
-                    "iso-8859-15"
-                );
+                FileOutputStream fos 
+                    = new FileOutputStream(fout);
+                
+                OutputStreamWriter osw 
+                    = new OutputStreamWriter(fos, "iso-8859-15");
+                
+                w = new BufferedWriter(osw);
+                
             } catch(Exception ex) {
                 ex.printStackTrace();
                 System.exit(EXIT_FAILURE);
             } // try-catch
             
             try {
-                writeMatrix(psr, por);
-                psr.flush();
-                psr.close();
+                writeMatrix(w, por);
+                w.close();
             } catch(Exception ex) {
-                
-                ex.printStackTrace();
-                
+                // Silently close
                 try {
-                    psr.flush();
-                    psr.close();
-                } catch(Exception e) {
-                    // silently ignore
+                    w.close();
+                } catch(IOException ignored) {
                 } // try-catch
                 
+                ex.printStackTrace();
                 System.exit(EXIT_FAILURE);
             } // try-catch-finally
             
@@ -288,14 +300,14 @@ public class PORDump
         // CONFIGURATION VARIABLES
         //=========================
         
-        PrintStream out;
+        Writer out;
         String numfmt;
         
         // CONSTRUCTOR
         //=============
         
-        public MatrixOutputter(PrintStream ps) {
-            out = ps;
+        public MatrixOutputter(Writer writer) {
+            out = writer;
             numfmt = "%f";
         }
         
@@ -320,28 +332,26 @@ public class PORDump
         
         @Override
         public void rowEnd(int y) {
-            // newline
-            out.print('\n');
+            try {
+                out.write('\n');
+            } catch(IOException ex) {
+                throw new RuntimeException(ex);
+            }
         }
         
         @Override
         public void columnSysmiss(int x, int len, byte[] data) {
-            if (x > 0) {
-                // print column separator
-                out.print(','); 
+            try {
+                if (x > 0) out.write(','); 
+            } catch(IOException ex) {
+                throw new RuntimeException(ex);
             }
-            
-            // print nothing
         } // columnSysmiss()
         
         @Override
         public void columnNumeric(
             int x, int len, byte[] data, double value) 
         {
-            if (x > 0) {
-                // print column separator
-                out.print(','); 
-            }
             // Numeric; determine if it an integer?
             
             String valstr = null;
@@ -353,22 +363,28 @@ public class PORDump
                 // decimal
                 valstr = String.format(Locale.ROOT, numfmt, value);
             } // if-else
-            // print the value
-            out.print(valstr);
+            
+            try {
+                if (x > 0) out.write(',');
+                // print the value
+                out.write(valstr);
+            } catch(IOException ex) {
+                throw new RuntimeException(ex);
+            }
         } // columnNumeric()
         
         @Override
         public void columnString(int x, int len, byte[] data) {
-            if (x > 0) {
-                // print column separator
-                out.print(','); 
-            }
             // TODO: Optimize empty strings (len=1, content=ws)
             
-            
             String valstr = escapeString(new String(data, 0, len));
-            
-            out.print(valstr);
+
+            try {
+                if (x > 0) out.write(','); 
+                out.write(valstr);
+            } catch(IOException ex) {
+                throw new RuntimeException(ex);
+            }
         } // columnString()
         
         
