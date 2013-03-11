@@ -170,6 +170,9 @@ public class PORMatrix
         ycur = 0;
         xtype = null;
         
+        state = S_START;
+        eps = false;
+        
         startcol = 0;
         col = 0;
         row_length = DEFAULT_ROW_WIDTH;
@@ -202,6 +205,11 @@ public class PORMatrix
         // Reset cell buffer state
         vhead = 0;
         vbase = 0;
+        
+        // Reset parser
+        state = S_START;
+        eps = false;
+        
     }
     
     // CONFIGURATION
@@ -282,11 +290,17 @@ public class PORMatrix
         vhead = 0;
         vbase = 0;
         
+        // Reset parser state
+        // Reset parser
+        state = S_START;
+        eps = false;
+        
+        
         // Reset text column position
         col = startcol;
         
         // Set visitor
-        visitor = visitor;
+        this.visitor = visitor;
         
         // Signal the beginning of the matrix
         emit_matrix_begin();
@@ -354,7 +368,7 @@ public class PORMatrix
             vbuffer[vhead++] = (byte) c;
         } else {
             // TODO: Error. Cell buffer overflow.
-            System.out.printf("buffer overflow\n");
+            System.out.printf("buffer overflow vhead=%d\n", vhead);
         }
         
         
@@ -605,6 +619,7 @@ public class PORMatrix
     
     
     public void debug() {
+        /*
         System.out.printf("Ending state: %d\n", state);
         if (state == S_ACCEPT) {
             System.out.printf("Input is ACCEPTED.\n");
@@ -617,6 +632,7 @@ public class PORMatrix
         
         System.out.printf("xdim: %d\n", xdim);
         System.out.printf("xcur: %d, ycur: %d\n", xcur, ycur);
+        */
     }
     
     

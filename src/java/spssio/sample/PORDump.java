@@ -19,12 +19,22 @@ package spssio.sample;
 
 //  for iterating value labels
 import java.util.Map;
+// for locale-independent formatting
+import java.util.Locale;
+
+// core java
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.File;
+import java.io.IOException;
 
 // spssio por
 import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORVariable;
 import spssio.por.PORValue;
+import spssio.por.PORMatrix;
+import spssio.por.PORMatrixVisitor;
 import spssio.por.PORHeader;
 import spssio.por.PORFile;
 
@@ -32,6 +42,12 @@ import spssio.por.input.PORReader;
 
 public class PORDump
 {
+    
+    public static final int EXIT_SUCCESS = 0;
+    public static final int EXIT_FAILURE = 1;
+    
+    
+    
     
     
     public static void printPortable(PORFile por) {
@@ -163,27 +179,258 @@ public class PORDump
         } // for: value labels lists
     }
     
+    public static void writeMatrix(PrintStream out, PORFile por) {
+        // The first line is variable names
+        int nvars = por.variables.size();
+        for (int i = 0; i < nvars; i++) {
+            if (i > 0) {
+                out.print(',');
+            }
+            out.printf(por.variables.elementAt(i).name);
+        }
+        out.print('\n');
+        
+        MatrixOutputter visitor = new MatrixOutputter(out);
+
+        
+        long startTime = System.nanoTime();
+        por.data.visit(visitor);
+        long endTime = System.nanoTime();
+
+        long duration = endTime - startTime;
+        
+        System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
+    } // writeMatrix()
+    
     
     
     public static void main(String[] args) {
-        String curFilename = null; 
+        if (args.length < 1) {
+            System.out.printf("Usage: PORDump <input_por> [<dump_text_file>] [<data_csv>]\n");
+            System.out.printf("\n");
+            System.out.printf("where\n");
+            System.out.printf("     <input_por>         input Portable file\n");
+            System.out.printf("     <dump_text_file>    output text file\n");
+            System.out.printf("     <data_csv>          output csv file for data\n");
+            System.exit(EXIT_SUCCESS);
+        }
+        
+        String curFilename = args[0]; 
+        
         PORReader preader = new PORReader();
+        PORFile por = null;
+        
         try {
-            
-            for (int i = 0; i < args.length; i++) {
-                curFilename = args[i];
-                System.out.printf("%s\n", curFilename);
-                PORFile por = null;
-                por = preader.parse(args[i]);
-                
-                printPortable(por);
-            }
+            System.out.printf("%s\n", curFilename);
+            por = preader.parse(curFilename);
         } catch(Exception ex) {
             System.out.printf("%s:%d:%d: %s", 
                 curFilename, preader.getRow(), preader.getColumn(),
                 ex.getMessage());
             ex.printStackTrace();
+            System.exit(EXIT_FAILURE);
         } // try-catch
+        
+        if (args.length >= 2) {
+            // Otherwise write to a file
+        } else {
+            // Print information to the screen
+            printPortable(por);
+        }
+        
+        if (args.length >= 3) {
+            PrintStream psr = null;
+            
+            System.out.printf("Writing data to file %s\n", args[2]);
+            try {
+                // may throw
+                File fout = new File(args[2]);
+                
+                // may throw
+                psr = new PrintStream(
+                    new FileOutputStream(fout),
+                    true, // autoflush
+                    "iso-8859-15"
+                );
+            } catch(Exception ex) {
+                ex.printStackTrace();
+                System.exit(EXIT_FAILURE);
+            } // try-catch
+            
+            try {
+                writeMatrix(psr, por);
+                psr.flush();
+                psr.close();
+            } catch(Exception ex) {
+                
+                ex.printStackTrace();
+                
+                try {
+                    psr.flush();
+                    psr.close();
+                } catch(Exception e) {
+                    // silently ignore
+                } // try-catch
+                
+                System.exit(EXIT_FAILURE);
+            } // try-catch-finally
+            
+        } else {
+            // Do nothing
+        } // if-else
+        
     } // main()
+    
+    
+    public static class MatrixOutputter
+        implements PORMatrixVisitor
+    {
+        // CONFIGURATION VARIABLES
+        //=========================
+        
+        PrintStream out;
+        String numfmt;
+        
+        // CONSTRUCTOR
+        //=============
+        
+        public MatrixOutputter(PrintStream ps) {
+            out = ps;
+            numfmt = "%f";
+        }
+        
+        
+        // METHODS
+        //=========
+        
+        @Override
+        public void matrixBegin(int xdim, int ydim, int[] xtypes) {
+            // do nothing
+        }
+        
+        @Override
+        public void matrixEnd() {
+            // do nothing
+        }
+        
+        @Override
+        public void rowBegin(int y) {
+            // do nothing
+        }
+        
+        @Override
+        public void rowEnd(int y) {
+            // newline
+            out.print('\n');
+        }
+        
+        @Override
+        public void columnSysmiss(int x, int len, byte[] data) {
+            if (x > 0) {
+                // print column separator
+                out.print(','); 
+            }
+            
+            // print nothing
+        } // columnSysmiss()
+        
+        @Override
+        public void columnNumeric(
+            int x, int len, byte[] data, double value) 
+        {
+            if (x > 0) {
+                // print column separator
+                out.print(','); 
+            }
+            // Numeric; determine if it an integer?
+            
+            String valstr = null;
+            int ivalue = (int) value;
+            if (value == (double) ivalue) {
+                // an integer
+                valstr = String.format("%d", ivalue);
+            } else {
+                // decimal
+                valstr = String.format(Locale.ROOT, numfmt, value);
+            } // if-else
+            // print the value
+            out.print(valstr);
+        } // columnNumeric()
+        
+        @Override
+        public void columnString(int x, int len, byte[] data) {
+            if (x > 0) {
+                // print column separator
+                out.print(','); 
+            }
+            // TODO: Optimize empty strings (len=1, content=ws)
+            
+            
+            String valstr = escapeString(new String(data, 0, len));
+            
+            out.print(valstr);
+        } // columnString()
+        
+        
+            
+    } // class MatrixOutputter
+
+        
+    protected static String escapeString(String s) {
+        int len = s.length();
+        
+        StringBuilder sb = null;
+        int capacity = 0;
+        
+        for (int round = 0; round < 2; round++) {
+            if (round == 1) {
+                sb = new StringBuilder(capacity);
+            } // if
+            
+            
+            capacity = sbAppend(sb, '\"', capacity);
+            for (int i = 0; i < len; i++) {
+                char c = s.charAt(i);
+                if ((c == '\"') 
+                    || (c == '\'')
+                    || (c == '\\')
+                    || (c == '\t')
+                    || (c == '\n')
+                    || (c == '\r'))
+                {
+                    // Escape the following character
+                    capacity = sbAppend(sb, '\\', capacity);
+                } // if: needs escaping
+                
+                // Translation here
+                if (c == '\t') {
+                    c = 't';
+                } else if (c == '\n') {
+                    c = 'n';
+                } else if (c == '\r') {
+                    c = 'r';
+                }
+                
+                // Append the actual character
+                capacity = sbAppend(sb, c, capacity);
+            } // for: each char
+            
+            capacity = sbAppend(sb, '\"', capacity);
+        } // for: two rounds
+        
+        return sb.toString();
+    } // escapeString()
+    
+    private static int sbAppend(
+        StringBuilder sb,
+        char c,
+        int len
+    ) {
+        if (sb != null) {
+            sb.append(c);
+        }
+        
+        return len+1;
+    } // stringAppend()
     
 } // class PORDump
