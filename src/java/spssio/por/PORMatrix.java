@@ -77,17 +77,17 @@ public class PORMatrix
     // SPSS/PSPP cell-level
     //======================
     
+    /** Number of columns */
+    private int xdim;
+
     /** Number of rows */
     private int ydim;
 
-    /** Number of columns */
-    private int xdim;
-    
-    /** Cell offsets in row-major order. */
-    private int[] yoffset;
-
     /** Column data type configuration */
     private int[] xtype;
+
+    /** Cell offsets in row-major order. */
+    private int[] yoffset;
     
     /** Current column */
     private int xcur;
@@ -99,8 +99,8 @@ public class PORMatrix
     // PARSING
     //=========
     
-    /** Text column (in the file) of the byte */
-    private int col0;
+    /** Text column (in the file) of the first byte */
+    private int startcol;
     
     /** Current text column */
     private int col;
@@ -110,30 +110,33 @@ public class PORMatrix
 
 
     /**
-     * NumberParser is used internally to convert the ASCII base-30 number
+     * NumberParser is used internally to convert the ASCII base-30 numbers
      * into binary integers and floating points. 
      */
     private NumberParser num_parser;
 
     /** If string cell, this is the number of bytes left */
-    private int strend;
-
+    private int stringleft;
 
     /** Verbatim copy of the current data cell's contents. */
-    private byte[] ccell;
+    private byte[] vbuffer;
 
-    /** Valid length of the ccell array */
-    private int clen;
+    /** Valid length of the vbuffer array */
+    private int vhead;
 
+    /** Base index for vbuffer[] array. Used for various purposes. */
+    private int vbase;
+    
+    // VISITOR
+    //=========
+    
     /** 
-     * Base index for ccell[] array. This is used to mark the beginning
-     * the beginning of the actual contents. For numeric cells, this marks
-     * the position where leading whitespaces end. For textual cells, this
-     * marks the position of the slash.
+     * Reference to the Visitor object.
+      *
+     * This member variable can be assumed to have a valid value only 
+     * during the activation of {@link #visit(PORMatrixVisitor)}.
      */
-    private int cbi;
-    
-    
+    private PORMatrixVisitor visitor;
     
     // STATES
     //========
@@ -167,23 +170,45 @@ public class PORMatrix
         ycur = 0;
         xtype = null;
         
-        col0 = 0;
+        startcol = 0;
         col = 0;
         row_length = DEFAULT_ROW_WIDTH;
         
-        ccell = new byte[DEFAULT_CELL_BUFFER_SIZE];
-        clen = 0;
-        cbi = 0;
+        vbuffer = new byte[DEFAULT_CELL_BUFFER_SIZE];
+        vhead = 0;
+        vbase = 0;
         
+        visitor = null;
         num_parser = new NumberParser(new NumberSystem(30, null));
         strerror = null;
     } // ctor
+    
+    // OVERRIDE
+    //==========
+    
+    
+    @Override
+    public void allocate(int size_bytes) {
+        super.allocate(size_bytes);
+        
+        // In addition, reset the SPSS/PSPP cell level data
+        ydim = 0;
+        xdim = 0;
+        yoffset = null;
+        xtype = null;
+        xcur = 0;
+        ycur = 0;
+        
+        // Reset cell buffer state
+        vhead = 0;
+        vbase = 0;
+    }
     
     // CONFIGURATION
     //===============
     
     public void setTextColumn0(int cur_column) {
-        col0 = cur_column;
+        startcol = cur_column;
         col = cur_column;
     }
     
@@ -237,6 +262,50 @@ public class PORMatrix
         return strerror;
     }
     
+    // VISITOR
+    //=========
+    
+    /**
+     * Visits all data cells in the matrix in row-major order.
+     *
+     * @param visitor The visitor.
+     */
+    public void visit(PORMatrixVisitor visitor) {
+        // Seek to the beginning of the array
+        seek(0);
+        
+        // Reset SPSS/PSPP cell address
+        xcur = 0;
+        ycur = 0;
+        
+        // Reset current cell buffer head position
+        vhead = 0;
+        vbase = 0;
+        
+        // Reset text column position
+        col = startcol;
+        
+        // Set visitor
+        visitor = visitor;
+        
+        // Signal the beginning of the matrix
+        emit_matrix_begin();
+        
+        // Parse the whole matrix
+        int c;
+        while ((c = read()) != -1) {
+            consume(c);
+        } // while
+        
+        // Signal the end of the matrix
+        emit_matrix_end();
+        
+        // Unset visitor
+        visitor = null;
+        
+    } // visit()
+    
+    
     /*
     public void computeOffsets() {
     }
@@ -281,8 +350,8 @@ public class PORMatrix
         // TODO, expand newlines automatically to row length
         
         // Write cell data
-        if (clen < ccell.length) {
-            ccell[clen++] = (byte) c;
+        if (vhead < vbuffer.length) {
+            vbuffer[vhead++] = (byte) c;
         } else {
             // TODO: Error. Cell buffer overflow.
             System.out.printf("buffer overflow\n");
@@ -307,13 +376,17 @@ public class PORMatrix
                         // Accept; further input is ignored.
                         state = S_ACCEPT;
                     } else {
+                        // Signal beginning of a new row
+                        emit_row_begin();
+                        
                         /*
                         // Record offset
                         if (yoffset != null) {
                             yoffset[ycur] = pos();
                         }
                         */
-                        // Otherwise, it has to be data.
+                        
+                        // No 'Z' found. The c has to be data.
                         state = S_NEW_COLUMN;
                     }
                     break;
@@ -322,12 +395,12 @@ public class PORMatrix
                     // Reset number parser
                     num_parser.reset();
                 
-                    // Reset ccell writing position and base index
-                    clen = 0;
-                    // Reset practically destroyed the ccell contents,
+                    // Reset vbuffer writing position and base index
+                    vhead = 0;
+                    // Reset practically destroyed the vbuffer contents,
                     // so the current char needs to be appended again.
                     // However, this time there's space left for sure
-                    ccell[clen++] = (byte) c;
+                    vbuffer[vhead++] = (byte) c;
                 
                     // Regardless of the cell type, 
                     // it should begin with a numeric.
@@ -338,8 +411,13 @@ public class PORMatrix
                 case S_NUMERIC_EMPTY:
                     // Skip leading spaces
                     if (c == CHAR_WHITESPACE) { // ' '
-                        // Consumed
-                        //System.out.printf("Surprising whitespace met\n");
+                        // Whitespaces are consumed silently.
+                        // Reset writing position
+                        vhead = 0;
+                        // TODO:
+                        // Ignorable whitespaces are unfortunate,
+                        // since they render the data unreproducible.
+                        // This event should be signaled somehow.
                     }
                     else if (c == CHAR_ASTERISK) { // '*'
                         // System missing value. 
@@ -350,14 +428,14 @@ public class PORMatrix
                             state = S_ERROR;
                         } else {
                             state = S_SYSMISS_DUMMY;
-                            cbi = clen-1;
+                            vbase = vhead-1;
                         }
                     } else if (c == CHAR_SLASH) { // '/'
                         // ERROR. Empty numbers are not allowed.
                         strerror = String.format("A number must have at least one digit");
                         state = S_ERROR;
                     } else {
-                        cbi = clen-1;
+                        vbase = vhead-1;
                         state = S_NUMERIC_UNEMPTY;
                         eps = true;
                     }
@@ -389,13 +467,13 @@ public class PORMatrix
                     
                 case S_NUMERIC_READY:
                     // Discard the ending slash
-                    clen--;
+                    vhead--;
                     // send end-of-data
                     errno = num_parser.consume(-1);
                     // Examine number parser status
                     if (errno == NumberParser.E_OK) {
                         // Number ok. The finishing slash is not counted,
-                        // and therefore clen is minus one.
+                        // and therefore vhead is minus one.
                         emit_numeric();
                         
                         // Next column.
@@ -431,8 +509,12 @@ public class PORMatrix
                     
                 case S_STRLEN_READY:
                     // The current char is '/'. Mark the next position
-                    // (which is actually current clen) as cbi.
-                    cbi = clen;
+                    // (which is actually current vhead) as vbase.
+                
+                    //vbase = vhead; // TODO: Make this into an option?
+                
+                    // Reset writing head position
+                    vhead = 0;
                     
                     // Send end-of-data and pick errno.
                     errno = num_parser.consume(-1);
@@ -444,18 +526,18 @@ public class PORMatrix
                         state = S_ERROR;
                     } else {
                         // validate string length
-                        strend = (int) num_parser.lastvalue();
-                        if ((double) strend != num_parser.lastvalue()) {
+                        stringleft = (int) num_parser.lastvalue();
+                        if ((double) stringleft != num_parser.lastvalue()) {
                             // ERROR. String length is not an integer.
                             strerror = String.format("String length has non-integer value: %g", num_parser.lastvalue());
                             state = S_ERROR;
-                        } else if (strend <= 0) {
+                        } else if (stringleft <= 0) {
                             // ERROR. String length is non-positive.
-                            strerror = String.format("String length has non-positive value: %d", strend);
+                            strerror = String.format("String length has non-positive value: %d", stringleft);
                             state = S_ERROR;
-                        } else if (strend >= 256) {
+                        } else if (stringleft >= 256) {
                             // ERROR. String length is too long.
-                            strerror = String.format("String length is too long: %d", strend);
+                            strerror = String.format("String length is too long: %d", stringleft);
                             state = S_ERROR;
                         } else {
                             // String length validated.
@@ -466,8 +548,8 @@ public class PORMatrix
                     
                 case S_STRING_CONTENTS:
                     // Decrease the number of chars left to read
-                    strend--;
-                    if (strend == 0) {
+                    stringleft--;
+                    if (stringleft == 0) {
                         // String finished
                         state = S_STRING_READY;
                         eps = true;
@@ -497,12 +579,12 @@ public class PORMatrix
                     break;
                     
                 case S_NEXT_ROW:
+                    // Emit ending of the row
+                    emit_row_end();
                     // Increase the y-coordinate
                     ycur++;
                     // Reset the x-coordinate
                     xcur = 0;
-                    // emit new row
-                    emit_row();
                     // Switch to the next state; this allows end-of-data tag.
                     state = S_NEW_ROW;
                     eps = true;
@@ -539,45 +621,48 @@ public class PORMatrix
     
     
     /**
-     * Emits (ycur, xcur, ccell, cbi, clen, null)
+     * Emits (ycur, xcur, vbuffer, vbase, vhead, null)
      */
     protected void emit_sysmiss() {
-        /*
-        if (xcur > 0) {
-            System.out.printf(",");
+        if (visitor != null) {
+            visitor.columnSysmiss(xcur, vhead, vbuffer);
         }
-        */
-    }
+    } // emit_sysmiss()
     
-    /**
-     * Emits (ycur, xcur, ccell, cbi, clen, num_parser.lastvalue()).
-     * if value is null, this is "sysmiss"
-     *
-     */
     protected void emit_numeric() {
-        /*
-        if (xcur > 0) {
-            System.out.printf(",");
+        if (visitor != null) {
+            visitor.columnNumeric(
+                xcur, vhead, vbuffer, num_parser.lastvalue());
         }
-        System.out.printf("%s", new String(ccell, cbi, clen-cbi));
-        //System.out.printf("%f", num_parser.lastvalue());
-        */
     } // emit_numeric()
 
-    /**
-     * Emits (ycur, xcur, ccell, cbi, clen)
-     */
     protected void emit_string() {
-        /*
-        if (xcur > 0) {
-            System.out.printf(",");
+        if (visitor != null) {
+            visitor.columnString(xcur, vhead, vbuffer);
         }
-        System.out.printf("\"%s\"", new String(ccell, cbi, clen-cbi));
-        */
-    } // emit_string()
-    
-    protected void emit_row() {
-        //System.out.printf("\n");
     }
     
+    protected void emit_row_begin() {
+        if (visitor != null) {
+            visitor.rowBegin(ycur);
+        }
+    }
+    
+    protected void emit_row_end() {
+        if (visitor != null) {
+            visitor.rowEnd(ycur);
+        }
+    }
+    
+    protected void emit_matrix_begin() {
+        if (visitor != null) {
+            visitor.matrixBegin(xdim, ydim, xtype);
+        }
+    }
+    
+    protected void emit_matrix_end() {
+        if (visitor != null) {
+            visitor.matrixEnd();
+        }
+    }
 } // PORMatrix
