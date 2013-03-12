@@ -19,6 +19,8 @@ package spssio.sample;
 
 //  for iterating value labels
 import java.util.Map;
+// for iterating variables and missing values
+import java.util.Vector;
 // for locale-independent formatting
 import java.util.Locale;
 
@@ -45,55 +47,207 @@ import spssio.por.PORFile;
 
 import spssio.por.input.PORReader;
 
-public class PORDump
-{
+public class PORDump {
     
+    /**
+     * Exit code for succesful execution.
+     */
     public static final int EXIT_SUCCESS = 0;
+    
+    /**
+     * Exit code for failed execution.
+     */
     public static final int EXIT_FAILURE = 1;
     
     
+    public static String val2str(String s) {
+        final String VALUE_UNSET = "<unset>";
+        
+        if (s == null) {
+            return VALUE_UNSET;
+        } 
+        // Otherwise use a quoted value
+        return String.format("\"%s\"", s);
+    }
     
+    /**
+     * Prints Portable file's header information
+     */
+    public static void printPORHeader(PORHeader header) {
+        String s = null;
+        
+        // These are mandatory
+        System.out.printf("Signature:           \"%s\"\n", header.signature);
+        System.out.printf("Version:             \'%c\'\n", header.version);
+        System.out.printf("Creation date:       \"%s\"\n", header.date);
+        System.out.printf("Creation time:       \"%s\"\n", header.time);
+        
+        // Software field is optional
+        System.out.printf("Software:            %s\n", val2str(header.software));
+        // Author field is optional
+        System.out.printf("Author:              %s\n", val2str(header.author));
+        // Title field is optional
+        System.out.printf("Title:               %s\n", val2str(header.title));
+        
+        // These are mandatory, but in theory they could be missing.
+        System.out.printf("# of variables:      %d\n", header.nvariables);
+        System.out.printf("Precision:           %d base-30 digits\n", header.precision);
+
+        // Weight variable name is optional
+        System.out.printf("Weight variable:     %s\n", val2str(header.weight_var_name));
+    } // printHeader()
+    
+    public static void printVariables(Vector<PORVariable> variables) {
+        int size = variables.size();
+        
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
+                System.out.printf("\n");
+            }
+            System.out.printf("Variable %d/%d details:\n", i+1, size);
+            printPORVariable(variables.elementAt(i));
+        } // for
+    } // printVariables()
+    
+    public static void printPORVariable(PORVariable pvar) {
+        System.out.printf("Name:                \"%s\"\n", pvar.name);
+        System.out.printf("Width:               %d %s\n", 
+            pvar.width, pvar.width==0 ? "(numeric)" : "(string)");
+        
+        // Label iso optional
+        System.out.printf("Label:               %s\n", val2str(pvar.label));
+        
+        // Formatting details
+        System.out.printf("Output format:       %d:%d.%d\n",
+            pvar.printfmt.type, pvar.printfmt.width, pvar.printfmt.decimals);
+        
+        System.out.printf("Input format:        %d:%d.%d\n", 
+            pvar.writefmt.type, pvar.writefmt.width, pvar.writefmt.decimals);
+        
+        // Missing value specifications are optional
+        if (pvar.missvalues.size() == 0) {
+            System.out.printf("No additional missing value specifications.\n");
+        } else {
+            System.out.printf("Has %d additional missing value specifications.\n",
+                pvar.missvalues.size());
+            
+            printMissingValues(pvar.missvalues);
+        } // if-else: has missing values
+    } // printPORVariable()
+    
+    public static void printMissingValues(
+        Vector<PORMissingValue> missvalues
+    ) {
+        int size = missvalues.size();
+        for (int i = 0; i < size; i++) {
+            printPORMissingValue(missvalues.elementAt(i));
+        } // for
+    } // printMissingValues()
+    
+    public static void printPORMissingValue(PORMissingValue pmv) {
+        String s = null;
+        switch(pmv.type) {
+            case PORMissingValue.TYPE_DISCRETE_VALUE:
+                s = String.format(
+                    "Missing value:       Singular:     %s",
+                    pmv.values[0].value);
+                break;
+            case PORMissingValue.TYPE_RANGE_OPEN_LO:
+                s = String.format(
+                    "Missing value:       Open range:   --%s", 
+                    pmv.values[0].value);
+                break;
+            case PORMissingValue.TYPE_RANGE_OPEN_HI:
+                s = String.format(
+                    "Missing value:       Open range:   %s--", 
+                    pmv.values[0].value);
+                break;
+            case PORMissingValue.TYPE_RANGE_CLOSED:
+                s = String.format(
+                    "Missing value:       Closed range: %s--%s", 
+                    pmv.values[0].value,
+                    pmv.values[1].value);
+                break;
+            
+            default:
+                s = String.format(
+                    "Missing value:       <unknown type>     %d", 
+                    pmv.type);
+                break;
+        } // switch
+        System.out.printf("%s\n", s);
+    } // printPORMissingValue()
+    
+    public static void printValueLabels(
+        Vector<PORValueLabels> labels
+    ) {
+        int size = labels.size();
+        
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
+                System.out.printf("\n");
+            }
+            System.out.printf("Value-Label set %d/%d details:\n", i+1, size);
+            printPORValueLabels(labels.elementAt(i));
+        } // for
+    } // printValueLabels
+    
+    public static void printPORValueLabels(PORValueLabels labels) {
+        // vars
+        // mappings
+        int nvars = labels.vars.size();
+        int listed=0;
+        for (int i = 0; i < nvars; i++) {
+            PORVariable pvar = labels.vars.elementAt(i);
+            
+            if (listed == 0) {
+                if (i == 0) {
+                    System.out.printf("Variables:           ");
+                } else {
+                    System.out.printf("                     ");
+                }
+            } // if: first entry of the line
+            
+            if (listed < 6) {
+                System.out.printf("%-8s ", pvar.name);
+                listed++;
+            } else {
+                System.out.printf("\n");
+                listed = 0;
+            }
+        } // for
+        if (listed != 0) {
+            // Finish the line
+            System.out.printf("\n");
+        }
+        
+        System.out.printf("Mappings:\n");
+        
+        for (Map.Entry<PORValue, String> entry : labels.mappings.entrySet()) {
+            System.out.printf("%-20s %s\n",
+                entry.getKey().value, entry.getValue());
+        } // for: each mapping
+        
+        
+        
+    }
     
     
     public static void printPortable(PORFile por) {
         PORHeader header = por.header;
         System.out.printf("Portable file contents\n");
-        System.out.printf("  Header:\n");
-        System.out.printf("     Signature:          \"%s\"\n", header.signature);
-        System.out.printf("     Version:            \'%c\'\n", header.version);
-        System.out.printf("     Creation date:      \"%s\"\n", header.date);
-        System.out.printf("     Creation time:      \"%s\"\n", header.time);
-        
-        if (header.software != null) {
-        System.out.printf("     Software:           \"%s\"\n", header.software);
-        } else {
-        System.out.printf("     Software:           <unset>\n");
-        } // if-else
-        
-        if (header.author != null) {
-        System.out.printf("     Author:             \"%s\"\n", header.author);
-        } else {
-        System.out.printf("     Author:             <unset>\n");
-        } // if-else
 
-        if (header.title != null) {
-        System.out.printf("     Title:              \"%s\"\n", header.title);
-        } else {
-        System.out.printf("     Title:              <unset>\n");
-        } // if-else
+        System.out.printf("\n");
+        System.out.printf("Header:\n");
+        printPORHeader(por.header);
 
-        System.out.printf("     # of variables:     %d\n", header.nvariables);
+        System.out.printf("\n");
+        System.out.printf("Data matrix overview:\n");
+        System.out.printf("Dimensions:          %d x %d (cases x variables)\n", por.data.sizey(), por.data.sizex());
+        System.out.printf("Size:                %d bytes\n", por.data.size());
+
+        // Count the data types
         
-        System.out.printf("     Precision:          %d base-30 digits\n", header.precision);
-        
-        if (header.weight_var_name != null) {
-        System.out.printf("     Weight variable:    \"%s\"\n", header.weight_var_name);
-        } else {
-        System.out.printf("     Weight variable:    <unset>\n");
-        } // if-else
-        
-        System.out.printf("     Data matrix:        %d x %d\n", por.data.sizey(), por.data.sizex());
-        System.out.printf("     Data size:          %d bytes\n", por.data.size());
         int[] types = por.data.getDataColumnTypes();
         int numeric_columns = 0;
         int string_columns = 0;
@@ -106,82 +260,16 @@ public class PORDump
                 // error
             }
         } // for
-        System.out.printf("     Numeric variables:  %d\n", numeric_columns);
-        System.out.printf("     String variables:   %d\n", string_columns);
+        System.out.printf("Numeric variables:   %d\n", numeric_columns);
+        System.out.printf("String variables:    %d\n", string_columns);
+
+        // If variable details are not desired. skip this
+        System.out.printf("\n");
+        printVariables(por.variables);
+
         
-        int size = por.variables.size();
-        System.out.printf("  Variables (%d):\n", size);
-        
-        for (int i = 0; i < size; i++) {
-        PORVariable cvar = por.variables.elementAt(i);
-        System.out.printf("     Name:               \"%s\"\n", cvar.name);
-        System.out.printf("     Width:              %d\n", cvar.width);
-            
-        if (cvar.label != null) {
-        System.out.printf("     Label:              \"%s\"\n", cvar.label);
-        } else {
-        System.out.printf("     Label:              <unsert>\n");
-        } // if-else
-        
-        System.out.printf("     Print fmt:          %d / %d / %d\n",
-            cvar.printfmt.type, cvar.printfmt.width, cvar.printfmt.decimals);
-        System.out.printf("     Wrint fmt:          %d / %d / %d\n",
-            cvar.writefmt.type, cvar.writefmt.width, cvar.writefmt.decimals);
-        
-        System.out.printf("     Missing values (%d)\n", cvar.missvalues.size());
-        for (int j = 0; j < cvar.missvalues.size(); j++) {
-            PORMissingValue miss = cvar.missvalues.elementAt(j);
-            String s = null;
-            switch(miss.type) {
-                case PORMissingValue.TYPE_DISCRETE_VALUE:
-                    s = String.format(
-                        "discrete: %s", 
-                        miss.values[0].value);
-                    break;
-                case PORMissingValue.TYPE_RANGE_OPEN_LO:
-                    s = String.format(
-                        "range:    --%s",
-                        miss.values[0].value);
-                    break;
-                case PORMissingValue.TYPE_RANGE_OPEN_HI:
-                    s = String.format(
-                        "range:    %s--",
-                        miss.values[0].value);
-                    break;
-                case PORMissingValue.TYPE_RANGE_CLOSED:
-                    s = String.format(
-                        "range:    %s--%s",
-                        miss.values[0].value,
-                        miss.values[1].value);
-                    break;
-                
-                default:
-                    s = "????? error";
-                    break;
-                
-            } // switch
-            System.out.printf("         %s\n", s);
-        } // for: missing values
-        
-        } // for: variables
-        
-        size = por.labels.size();
-        
-        System.out.printf("  Value labels lists (%d):\n", size);
-        for (int i = 0; i < size; i++) {
-            PORValueLabels labels = por.labels.elementAt(i);
-            
-        System.out.printf("     Variables:   %d\n", labels.vars.size());
-        for (int j = 0; j < labels.vars.size(); j++) {
-        System.out.printf("         \"%s\"\n", labels.vars.elementAt(j).name);
-        } // for: variables
-        System.out.printf("     Pairs:       %d\n", labels.mappings.size());
-        for (Map.Entry<PORValue, String> entry : labels.mappings.entrySet()) {
-        System.out.printf("          \"%s\" : \"%s\"\n",
-            entry.getKey().value, entry.getValue());
-        } // for: each mapping
-        
-        } // for: value labels lists
+        System.out.printf("\n");
+        printValueLabels(por.labels);
     }
     
     public static void writeMatrix(Writer out, PORFile por) {
@@ -231,7 +319,14 @@ public class PORDump
         
         try {
             System.out.printf("%s\n", curFilename);
+            
+            long startTime = System.nanoTime();
             por = preader.parse(curFilename);
+            long endTime = System.nanoTime();
+    
+            long duration = endTime - startTime;
+            System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
+            
         } catch(Exception ex) {
             System.out.printf("%s:%d:%d: %s", 
                 curFilename, preader.getRow(), preader.getColumn(),
@@ -252,6 +347,25 @@ public class PORDump
         takes 8 seconds to write out if PrintStream is used.
         However, if BufferedWriter chain is used, 
         it takes only about 2 seconds.
+        
+        A matrix with dimensions 30780 x 719 ( bytes)
+        takes 10 seconds to parse,
+        and 105.47 seconds to dump as CSV,
+        resulting in 46 200 000 bytes,
+        the speed is then about 440 000 bytes/s
+        
+        Increasing the buffer size to 128 kilobytes,
+        did not affect the writing time.
+        Without any actual Writer.write() operations,
+        the time spent traversing and visiting the matrix
+        takes 103 seconds, so no actual improvements in there.
+        
+        Removing the String.format() operations reduces the duration
+        of serialization down to 7 seconds!
+        
+        After converting the writing operations to dump the data
+        directly from the buffer, the time spent is 9 seconds.
+        
         */
         if (args.length >= 3) {
             Writer w = null;
@@ -266,7 +380,7 @@ public class PORDump
                 OutputStreamWriter osw 
                     = new OutputStreamWriter(fos, "iso-8859-15");
                 
-                w = new BufferedWriter(osw);
+                w = new BufferedWriter(osw, 0x20000); // 128 kb
                 
             } catch(Exception ex) {
                 ex.printStackTrace();
@@ -332,20 +446,24 @@ public class PORDump
         
         @Override
         public void rowEnd(int y) {
+            /*
             try {
                 out.write('\n');
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }
+            */
         }
         
         @Override
         public void columnSysmiss(int x, int len, byte[] data) {
+            
             try {
                 if (x > 0) out.write(','); 
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }
+            
         } // columnSysmiss()
         
         @Override
@@ -354,6 +472,7 @@ public class PORDump
         {
             // Numeric; determine if it an integer?
             
+            /*
             String valstr = null;
             int ivalue = (int) value;
             if (value == (double) ivalue) {
@@ -363,28 +482,40 @@ public class PORDump
                 // decimal
                 valstr = String.format(Locale.ROOT, numfmt, value);
             } // if-else
+            */
             
             try {
                 if (x > 0) out.write(',');
                 // print the value
-                out.write(valstr);
+                //out.write(valstr);
+                for (int i = 0; i < len; i++) {
+                    out.write((int) data[i]);
+                }
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }
+            
         } // columnNumeric()
         
         @Override
         public void columnString(int x, int len, byte[] data) {
             // TODO: Optimize empty strings (len=1, content=ws)
             
-            String valstr = escapeString(new String(data, 0, len));
+            //String valstr = escapeString(new String(data, 0, len));
 
+            
             try {
                 if (x > 0) out.write(','); 
-                out.write(valstr);
+                //out.write(valstr);
+                out.write('\"');
+                for (int i = 0; i < len; i++) {
+                    out.write((int) data[i]);
+                }
+                out.write('\"');
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }
+            
         } // columnString()
         
         
