@@ -67,9 +67,10 @@ public class PORDump {
         public static final int METH_UNDEFINED          = -1;
         public static final int METH_JUST_VISIT         = 0;
         public static final int METH_STRING_FORMAT      = 1;
-        public static final int METH_OBJECT_ARRAY       = 2;
-        public static final int METH_FROM_INPUT         = 3;
-        public static final int METH_RECTANGLE          = 4;
+        public static final int METH_TOSTRING           = 2;
+        public static final int METH_OBJECT_ARRAY       = 3;
+        public static final int METH_FROM_INPUT         = 4;
+        public static final int METH_RECTANGLE          = 5;
         
         public boolean debug_flag                       = false;
         
@@ -322,14 +323,13 @@ public class PORDump {
     public static void writeMatrix(
         Writer out, 
         PORFile por, 
-        int method,
-        int ysteps
+        Options opt
     ) 
         throws IOException
     {
         // This is done differently.
-        if (method == Options.METH_OBJECT_ARRAY) {
-            writeObjectsArray(out, por, ysteps);
+        if (opt.data_output_method == Options.METH_OBJECT_ARRAY) {
+            writeObjectsArray(out, por, opt);
             return;
         } // if:
         
@@ -339,7 +339,11 @@ public class PORDump {
         }
         
         // Create the visitor
-        MatrixOutputter visitor = new MatrixOutputter(out, method, ysteps);
+        MatrixOutputter visitor = new MatrixOutputter(
+            out, 
+            opt.data_output_method,
+            opt.status_ysteps
+        );
         
         // Start timing
         long startTime = System.nanoTime();
@@ -362,13 +366,13 @@ public class PORDump {
     public static void writeObjectsArray(
         Writer out, 
         PORFile por, 
-        int ysteps
+        Options opt
     ) 
         throws IOException
     {
         
         // Create the visitor
-        MatrixConverter converter = new MatrixConverter(ysteps);
+        MatrixConverter converter = new MatrixConverter(opt.status_ysteps);
         
         // Start timing
         long startTime = System.nanoTime();
@@ -406,7 +410,9 @@ public class PORDump {
                 for (int x = 0; x < xdim; x++) {
                     if (x > 0) out.write(',');
                     Object obj = array[offset++];
-                    out.write(obj.toString());
+                    if (obj != null) {
+                        out.write(obj.toString());
+                    }
                 } // for: x
                 out.write('\n');
             } // for: y
@@ -461,6 +467,9 @@ public class PORDump {
                 }
                 else if (s.equals("string")) {
                     val = Options.METH_STRING_FORMAT;
+                }
+                else if (s.equals("tostring")) {
+                    val = Options.METH_TOSTRING;
                 }
                 else if (s.equals("object")) {
                     val = Options.METH_OBJECT_ARRAY;
@@ -517,7 +526,8 @@ public class PORDump {
         System.out.printf("     -method=<meth>      Visitor method used for writing\n");
         System.out.printf("  Visitor methods for <meth>:\n");
         System.out.printf("     none                Just visit and do not write output\n");
-        System.out.printf("     string              Use Java\'s String.format()\n");
+        System.out.printf("     string              Use String.format()\n");
+        System.out.printf("     tostring            Use Integer.toString() and Double.toString()\n");
         System.out.printf("     object              Convert data into Java Objects before writing\n");
         System.out.printf("     direct              Use the input byte array directly\n");
         System.out.printf("  Error management:\n");
@@ -652,12 +662,7 @@ public class PORDump {
             
             try {
                 
-                writeMatrix(
-                    w, 
-                    por, 
-                    opt.data_output_method,
-                    opt.status_ysteps
-                );
+                writeMatrix(w, por, opt);
                 
                 if (w != null) w.close();
             } catch(Exception ex) {
@@ -801,6 +806,7 @@ public class PORDump {
         
         protected void printStatusLine(int y) {
             // Do garbage collectioning prior to memory status
+            // (Enabling the gc will choke Java VM on big files)
             //Runtime.getRuntime().gc();
             
             MemoryUsage usage = mem_bean.getHeapMemoryUsage();
@@ -909,7 +915,6 @@ public class PORDump {
             
             // Select method
             if (meth == Options.METH_STRING_FORMAT) {
-                
                 String valstr = null;
                 // Determine whether an integer or decimal
                 int ivalue = (int) value;
@@ -920,10 +925,21 @@ public class PORDump {
                     // Decimal
                     valstr = String.format(Locale.ROOT, numfmt, value);
                 } // if-else
-                
                 // Output the number
                 write(valstr);
-                
+            } else if (meth == Options.METH_TOSTRING) {
+                String valstr = null;
+                // Determine whether an integer or decimal
+                int ivalue = (int) value;
+                if (value == (double) ivalue) {
+                    // Integer
+                    valstr = Integer.toString(ivalue);
+                } else {
+                    // Decimal
+                    valstr = Double.toString(value);
+                } // if-else
+                // Output the number
+                write(valstr);
             } else if (meth == Options.METH_FROM_INPUT) {
                 
                 // Output the number
@@ -941,7 +957,9 @@ public class PORDump {
             
             // TODO: Optimize empty strings (len=1, content=ws)
             
-            if (meth == Options.METH_STRING_FORMAT) {
+            if ((meth == Options.METH_STRING_FORMAT) 
+                || (meth == Options.METH_TOSTRING)) 
+            {
                 
                 //String valstr = escapeString(new String(data, 0, len));
                 String valstr = new String(data, 0, len);
