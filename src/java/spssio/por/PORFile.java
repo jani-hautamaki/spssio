@@ -81,6 +81,11 @@ public class PORFile {
     // OTHER METHODS
     //===============
     
+    /**
+     * Finds a variable with the specified name
+     * @param name Variable's name.
+     * @return The variable, or {@code null} if no such name found.
+     */
     public PORVariable getVariable(String name) {
         for (int i = 0; i < variables.size(); i++) {
             PORVariable rval = variables.elementAt(i);

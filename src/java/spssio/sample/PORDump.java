@@ -17,16 +17,13 @@
 
 package spssio.sample;
 
-//  for iterating value labels
-import java.util.Map;
-// for iterating variables and missing values
-import java.util.Vector;
-// for locale-independent formatting
-import java.util.Locale;
 
 // core java
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Vector;
+import java.util.Locale; // for locale-independent formatting
 
 // for csv output
 import java.io.FileOutputStream;
@@ -44,8 +41,13 @@ import spssio.por.PORMatrix;
 import spssio.por.PORMatrixVisitor;
 import spssio.por.PORHeader;
 import spssio.por.PORFile;
-
+// spssio por parser
 import spssio.por.input.PORReader;
+
+// for MatrixConverter
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 
 public class PORDump {
     
@@ -65,8 +67,9 @@ public class PORDump {
         public static final int METH_UNDEFINED          = -1;
         public static final int METH_JUST_VISIT         = 0;
         public static final int METH_STRING_FORMAT      = 1;
-        public static final int METH_FROM_INPUT         = 2;
-        public static final int METH_RECTANGLE          = 3;
+        public static final int METH_OBJECT_ARRAY       = 2;
+        public static final int METH_FROM_INPUT         = 3;
+        public static final int METH_RECTANGLE          = 4;
         
         public boolean debug_flag                       = false;
         
@@ -79,6 +82,8 @@ public class PORDump {
         
         public String data_output_filename              = null;
         public int data_output_method                   = METH_UNDEFINED;
+        
+        public int status_ysteps                        = 0;
     } // class Options
     
     
@@ -314,16 +319,27 @@ public class PORDump {
         
     } // writeHeader()
     
-    public static void writeMatrix(Writer out, PORFile por, int method) 
+    public static void writeMatrix(
+        Writer out, 
+        PORFile por, 
+        int method,
+        int ysteps
+    ) 
         throws IOException
     {
+        // This is done differently.
+        if (method == Options.METH_OBJECT_ARRAY) {
+            writeObjectsArray(out, por, ysteps);
+            return;
+        } // if:
+        
         
         if (out != null) {
             writeHeader(out, por);
         }
         
         // Create the visitor
-        MatrixOutputter visitor = new MatrixOutputter(out, method);
+        MatrixOutputter visitor = new MatrixOutputter(out, method, ysteps);
         
         // Start timing
         long startTime = System.nanoTime();
@@ -340,7 +356,69 @@ public class PORDump {
         
         // Notify
         System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
+        
     } // writeMatrix()
+    
+    public static void writeObjectsArray(
+        Writer out, 
+        PORFile por, 
+        int ysteps
+    ) 
+        throws IOException
+    {
+        
+        // Create the visitor
+        MatrixConverter converter = new MatrixConverter(ysteps);
+        
+        // Start timing
+        long startTime = System.nanoTime();
+        
+        // ========== VISIT ==========
+        por.data.visit(converter);
+        // ===========================
+        
+        // Stop timing
+        long endTime = System.nanoTime();
+
+        // Calculate duration
+        long duration = endTime - startTime;
+        
+        // Notify
+        System.out.printf("Spent %.2f seconds in converting\n", duration/1.0e9);
+        
+        // SERIALIZE
+        //===========
+        
+        if (out != null) {
+            // Write header as usual
+            writeHeader(out, por);
+                
+            int xdim = por.data.sizex();
+            int ydim = por.data.sizey();
+            // Pop the array out of the converter.
+            Object[] array = converter.popArray();
+            
+            // Start timing
+            startTime = System.nanoTime();
+            
+            int offset = 0;
+            for (int y = 0; y < ydim; y++) {
+                for (int x = 0; x < xdim; x++) {
+                    if (x > 0) out.write(',');
+                    Object obj = array[offset++];
+                    out.write(obj.toString());
+                } // for: x
+                out.write('\n');
+            } // for: y
+            
+            // End timing and calculate duration
+            endTime = System.nanoTime();
+            duration = endTime - startTime;
+            
+            // Display results
+            System.out.printf("Spent %.2f seconds in writing\n", duration/1.0e9);
+        } // if: out
+    }
     
     private static void parse_error(
         String fmt, 
@@ -384,13 +462,24 @@ public class PORDump {
                 else if (s.equals("string")) {
                     val = Options.METH_STRING_FORMAT;
                 }
-                else if (s.equals("array")) {
+                else if (s.equals("object")) {
+                    val = Options.METH_OBJECT_ARRAY;
+                }
+                else if (s.equals("direct")) {
                     val = Options.METH_FROM_INPUT;
                 }
                 else {
                     parse_error("Unrecognized method: \"%s\"", s);
                 } // if-else
                 opt.data_output_method = val;
+            }
+            else if (carg.startsWith("-ysteps=")) {
+                String s = carg.substring(carg.indexOf('=')+1);
+                try {
+                    opt.status_ysteps = Integer.parseInt(s);
+                } catch(NumberFormatException ex) {
+                    parse_error("Not an integer: %s\n", s);
+                }
             }
             else if (carg.equals("-debug")) {
                 opt.debug_flag = true;
@@ -406,9 +495,12 @@ public class PORDump {
     } // parseArgs()
     
     public static void usage() {
-        System.out.printf("Usage: PORDump <input_por> [<input_por2> ...] [<options>]\n");
+        System.out.printf("Usage:\n");
+        System.out.printf("\n");
+        System.out.printf("     PORDump <input_por> [<input_por2> ...] [<options>]\n");
         System.out.printf("\n");
         System.out.printf("where\n");
+        System.out.printf("\n");
         System.out.printf("     <input_por>         Input SPSS/PSPP Portable file\n");
         System.out.printf("     <options>           Options. See the list below\n");
         System.out.printf("\n");
@@ -418,21 +510,25 @@ public class PORDump {
         System.out.printf("     -silent             Do not display any details\n");
         System.out.printf("     -vars               Display variable details\n");
         System.out.printf("     -labels             Display value-label details\n");
-        System.out.printf("     -all                Display all details\n");
+        System.out.printf("     -all                Display all details\n");      
+        System.out.printf("     -ysteps=<int>       If method=object, display status <int> times\n");
         System.out.printf("  Data output:\n");
         System.out.printf("     -output=<dest>      Write data matrix into <dest>\n");
         System.out.printf("     -method=<meth>      Visitor method used for writing\n");
         System.out.printf("  Visitor methods for <meth>:\n");
         System.out.printf("     none                Just visit and do not write output\n");
         System.out.printf("     string              Use Java\'s String.format()\n");
-        System.out.printf("     array               Use the input array directly\n");
+        System.out.printf("     object              Convert data into Java Objects before writing\n");
+        System.out.printf("     direct              Use the input byte array directly\n");
         System.out.printf("  Error management:\n");
         System.out.printf("     -debug              Display stack trace on error\n");
         System.out.printf("\n");
         System.out.printf("Notes:\n");
-        System.out.printf("1) When multiple input files, only the last one\'s data is written\n");
-        System.out.printf("2) Output file is ignored with method \"none\"\n");
-        System.out.printf("3) Output file is optional with method \"string\"\n");
+        System.out.printf("  1) When multiple input files, only the last one\'s data is written\n");
+        System.out.printf("  2) Output file is ignored with method \"none\"\n");
+        System.out.printf("  3) Output file is optional with method \"string\"\n");
+        System.out.printf("\n");
+        System.out.printf("PORDump (C) 2013 Jani Hautamaki <jani.hautamaki@hotmail.com>\n");
         
     }
     
@@ -555,7 +651,14 @@ public class PORDump {
             } // if-else
             
             try {
-                writeMatrix(w, por, opt.data_output_method);
+                
+                writeMatrix(
+                    w, 
+                    por, 
+                    opt.data_output_method,
+                    opt.status_ysteps
+                );
+                
                 if (w != null) w.close();
             } catch(Exception ex) {
                 // Silently close
@@ -603,13 +706,55 @@ public class PORDump {
         // MEMBER VARIABLES
         //==================
         
-        Writer out;
+        /**
+         * For writing the output
+         */
+        protected Writer out;
+        
+        /* These member variables are for status display and gc */
+        
+        /**
+         * Total number of rows; this is required for the progress indicator.
+         */
+        private int sizey;
+        
+        /**
+         * Next row which triggers the status display
+         */
+        private int nexty;
+        
+        /**
+         * Step size for {@code nexty}.
+         */
+        private int stepy;
+        
+        /**
+         * How many times the status is displayed during the visiting.
+         */
+        private int steps;
+        
+        /**
+         * For retrieving the heap status.
+         */
+        private MemoryMXBean mem_bean;
+        
         
         // CONSTRUCTORS
         //==============
         
         public AbstractMatrixWriter(Writer writer) {
             out = writer;
+            // Status display variables
+            steps = 0;
+            sizey = 0;
+            nexty = 0;
+            stepy = 0;
+            mem_bean = ManagementFactory.getMemoryMXBean();
+        } // default ctor
+        
+        public AbstractMatrixWriter(Writer writer, int ysteps) {
+            this(writer);
+            steps = ysteps;
         }
         
         // HELPERS
@@ -647,26 +792,64 @@ public class PORDump {
             } // if
         }
         
+        // STATUS DISPLAY
+        //================
+        
+        protected void printStatusHeaders() {
+            System.out.printf("progress        row           used    commit       max\n");
+        }
+        
+        protected void printStatusLine(int y) {
+            // Do garbage collectioning prior to memory status
+            //Runtime.getRuntime().gc();
+            
+            MemoryUsage usage = mem_bean.getHeapMemoryUsage();
+            
+            //System.out.printf("%3d%%                       %4d      %4d      %4d\n", 
+            System.out.printf(" %3d%%        %6d        %4d MB   %4d MB   %4d MB\n", 
+                (y*100)/sizey,
+                y,
+                usage.getUsed()         / (1024*1024),
+                usage.getCommitted()    / (1024*1024),
+                usage.getMax()          / (1024*1024)
+            );
+        }
+
         
         // INTERFACE IMPLEMENTATION
         //==========================
         
         @Override
         public void matrixBegin(int xdim, int ydim, int[] xtypes) {
+            
+            // Init status display
+            if (steps > 0) {
+                sizey = ydim;
+                stepy = sizey / steps;
+                nexty = 0;
+            } // if: status enabled
         }
         
         @Override
         public void matrixEnd() {
+            if (steps > 0) {
+                printStatusLine(sizey);
+            }
         }
         
         @Override
         public void rowBegin(int y) {
+            if ((steps > 0) && (y >= nexty)) {
+                // Display status
+                printStatusLine(y);
+                nexty += stepy;
+            }
         }
         
         @Override
         public void rowEnd(int y) {
-            write('\n');
-        } // rowEnd()
+            // dummy
+        }
         
         @Override
         public abstract void columnSysmiss(int x, int len, byte[] data);
@@ -677,7 +860,6 @@ public class PORDump {
         
         @Override
         public abstract void columnString(int x, int len, byte[] data);
-        
     } // abstract class AbstractMatrixWriter
     
     public static class MatrixOutputter
@@ -694,7 +876,12 @@ public class PORDump {
         
         public MatrixOutputter(Writer writer, int method) {
             super(writer);
-            out = writer;
+            numfmt = "%f";
+            meth = method;
+        }
+        
+        public MatrixOutputter(Writer writer, int method, int ysteps) {
+            super(writer, ysteps);
             numfmt = "%f";
             meth = method;
         }
@@ -703,6 +890,10 @@ public class PORDump {
         // METHODS
         //=========
         
+        @Override
+        public void rowEnd(int y) {
+            write('\n');
+        }
         
         @Override
         public void columnSysmiss(int x, int len, byte[] data) {
@@ -773,6 +964,70 @@ public class PORDump {
         } // columnString()
     } // class MatrixOutputter
 
+    public static class MatrixConverter
+        extends AbstractMatrixWriter
+    {
+        
+        // MEMBER VARIABLES
+        //==================
+        
+        private Object[] array;
+        private int offset;
+        
+        // CONSTRUCTORS
+        //==============
+        
+        public MatrixConverter(int ysteps) {
+            super(null, ysteps);
+            array = null;
+            offset = 0;
+        }
+        
+        // RETRIEVAL
+        //===========
+        
+        public Object[] popArray() {
+            Object[] rval = array;
+            array = null;
+            offset = 0;
+            return rval;
+        } // popArray()
+        
+        
+        // INTERFACE IMPLEMENTATION
+        //==========================
+
+        @Override
+        public void matrixBegin(int xdim, int ydim, int[] xtypes) {
+            super.matrixBegin(xdim, ydim, xtypes);
+            
+            // Allocate properly sized array
+            array = new Object[xdim*ydim];
+        }
+        
+        @Override
+        public void columnSysmiss(int x, int len, byte[] data) {
+            array[offset++] = null;
+        }
+        
+        @Override
+        public void columnNumeric(
+            int x, int len, byte[] data, double value)
+        {
+            // Determine whether integer or double
+            int ivalue = (int) value;
+            if (value == (double) ivalue) {
+                array[offset++] = new Integer(ivalue);
+            } else {
+                array[offset++] = new Double(value);
+            }
+        }
+        
+        @Override
+        public void columnString(int x, int len, byte[] data) {
+            array[offset++] = new String(data, 0, len);
+        }
+    } // class MatrixConverter
         
     protected static String escapeString(String s) {
         int len = s.length();
