@@ -442,14 +442,13 @@ public class PORMatrix
                             state = S_ERROR;
                         } else {
                             state = S_SYSMISS_DUMMY;
-                            vbase = vhead-1;
+                            vbase = 0;
                         }
                     } else if (c == CHAR_SLASH) { // '/'
                         // ERROR. Empty numbers are not allowed.
                         strerror = String.format("A number must have at least one digit");
                         state = S_ERROR;
                     } else {
-                        vbase = vhead-1;
                         state = S_NUMERIC_UNEMPTY;
                         eps = true;
                     }
@@ -461,7 +460,6 @@ public class PORMatrix
                         num_parser.consume(c);
                     }
                     else {
-                        
                         // Switch immediately
                         eps = true;
                         // Pick the date type to a local var for convenience.
@@ -525,10 +523,13 @@ public class PORMatrix
                     // The current char is '/'. Mark the next position
                     // (which is actually current vhead) as vbase.
                 
-                    //vbase = vhead; // TODO: Make this into an option?
+                    // vhead points now to the array location where 
+                    // the first actual content character will come.
+                    // The position is recorded as the base offset
+                    vbase = vhead;
                 
                     // Reset writing head position
-                    vhead = 0;
+                    //vhead = 0;
                     
                     // Send end-of-data and pick errno.
                     errno = num_parser.consume(-1);
@@ -641,20 +642,20 @@ public class PORMatrix
      */
     protected void emit_sysmiss() {
         if (visitor != null) {
-            visitor.columnSysmiss(xcur, vhead, vbuffer);
+            visitor.columnSysmiss(xcur, vbuffer, vhead);
         }
     } // emit_sysmiss()
     
     protected void emit_numeric() {
         if (visitor != null) {
             visitor.columnNumeric(
-                xcur, vhead, vbuffer, num_parser.lastvalue());
+                xcur, vbuffer, vhead, num_parser.lastvalue());
         }
     } // emit_numeric()
 
     protected void emit_string() {
         if (visitor != null) {
-            visitor.columnString(xcur, vhead, vbuffer);
+            visitor.columnString(xcur, vbuffer, vbase, vhead);
         }
     }
     

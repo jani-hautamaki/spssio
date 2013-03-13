@@ -858,14 +858,27 @@ public class PORDump {
         }
         
         @Override
-        public abstract void columnSysmiss(int x, int len, byte[] data);
+        public abstract void columnSysmiss(
+            int x, 
+            byte[] data, 
+            int len
+        );
         
         @Override
         public abstract void columnNumeric(
-            int x, int len, byte[] data, double value);
+            int x, 
+            byte[] data, 
+            int len, 
+            double value
+        );
         
         @Override
-        public abstract void columnString(int x, int len, byte[] data);
+        public abstract void columnString(
+            int x,
+            byte[] data, 
+            int len, 
+            int offset
+        );
     } // abstract class AbstractMatrixWriter
     
     public static class MatrixOutputter
@@ -902,14 +915,21 @@ public class PORDump {
         }
         
         @Override
-        public void columnSysmiss(int x, int len, byte[] data) {
+        public void columnSysmiss(
+            int x, 
+            byte[] data, 
+            int len
+        ) {
             if (x > 0) write(',');
         } // columnSysmiss()
         
         @Override
         public void columnNumeric(
-            int x, int len, byte[] data, double value) 
-        {
+            int x, 
+            byte[] data, 
+            int len, 
+            double value
+        ) {
             // separator
             if (x > 0) write(',');
             
@@ -951,7 +971,12 @@ public class PORDump {
         } // columnNumeric()
         
         @Override
-        public void columnString(int x, int len, byte[] data) {
+        public void columnString(
+            int x, 
+            byte[] data,
+            int base,
+            int len
+        ) {
             // separator
             if (x > 0) write(','); 
             
@@ -962,7 +987,7 @@ public class PORDump {
             {
                 
                 //String valstr = escapeString(new String(data, 0, len));
-                String valstr = new String(data, 0, len);
+                String valstr = new String(data, base, len-base);
                 
                 // Write string
                 write('\"');
@@ -973,7 +998,7 @@ public class PORDump {
                 
                 // Write string
                 write('\"');
-                write(data, 0, len);
+                write(data, base, len);
                 write('\"');
                 
             } else {
@@ -1024,14 +1049,21 @@ public class PORDump {
         }
         
         @Override
-        public void columnSysmiss(int x, int len, byte[] data) {
+        public void columnSysmiss(
+            int x, 
+            byte[] data,
+            int len
+        ) {
             array[offset++] = null;
         }
         
         @Override
         public void columnNumeric(
-            int x, int len, byte[] data, double value)
-        {
+            int x, 
+            byte[] data, 
+            int len, 
+            double value
+        ) {
             // Determine whether integer or double
             int ivalue = (int) value;
             if (value == (double) ivalue) {
@@ -1042,11 +1074,27 @@ public class PORDump {
         }
         
         @Override
-        public void columnString(int x, int len, byte[] data) {
-            array[offset++] = new String(data, 0, len);
+        public void columnString(
+            int x, 
+            byte[] data,
+            int base,
+            int len 
+        ) {
+            // Do some hacking; enclose the data into quotes.
+            // This is possible, since there's always at least 2 chars
+            // preceding the base (length is at least 1 char, and slash
+            // is the second char). Also, the data[] array has at least
+            // twice the size of maximum string allowed.
+            data[base--] = '\"';
+            data[len++] = '\"';
+            
+            array[offset++] = new String(data, base, len-base);
         }
     } // class MatrixConverter
         
+    
+    
+    /*
     protected static String escapeString(String s) {
         int len = s.length();
         
@@ -1103,5 +1151,6 @@ public class PORDump {
         
         return len+1;
     } // stringAppend()
+    */
     
 } // class PORDump
