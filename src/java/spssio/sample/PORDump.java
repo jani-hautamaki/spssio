@@ -895,13 +895,13 @@ public class PORDump {
         
         public MatrixOutputter(Writer writer, int method) {
             super(writer);
-            numfmt = "%f";
+            numfmt = "%g";
             meth = method;
         }
         
         public MatrixOutputter(Writer writer, int method, int ysteps) {
             super(writer, ysteps);
-            numfmt = "%f";
+            numfmt = "%g";
             meth = method;
         }
         
@@ -980,7 +980,11 @@ public class PORDump {
             // separator
             if (x > 0) write(','); 
             
-            // TODO: Optimize empty strings (len=1, content=ws)
+            // Optimize empty strings (len=1, content=ws)
+            if (((len-base) == 1) && (data[base] == ' ')) {
+                // No quotes for empty strings.
+                return;
+            }
             
             if ((meth == Options.METH_STRING_FORMAT) 
                 || (meth == Options.METH_TOSTRING)) 
@@ -1080,12 +1084,20 @@ public class PORDump {
             int base,
             int len 
         ) {
+            
+            // Optimize empty strings (len=1, content=ws)
+            if (((len-base) == 1) && (data[base] == ' ')) {
+                // null value
+                array[offset++] = null;
+                return;
+            } // if: empty string
+            
             // Do some hacking; enclose the data into quotes.
             // This is possible, since there's always at least 2 chars
             // preceding the base (length is at least 1 char, and slash
             // is the second char). Also, the data[] array has at least
             // twice the size of maximum string allowed.
-            data[base--] = '\"';
+            data[--base] = '\"';
             data[len++] = '\"';
             
             array[offset++] = new String(data, base, len-base);
