@@ -37,8 +37,8 @@ package spssio.por;
  * "Symbols that are not defined in a particular character set are set to 
  * the same value as symbol 64; i.e., to `0'."<p>
  *
- * The constant array {@link #TRANS} contains the following table which has 
- * been pulled out from the PSPP's documentation:<p>
+ * The constant array {@link #DEFAULT_MAPPING} contains the following table 
+ * which has been pulled out from the PSPP's documentation:<p>
  *
  * <code><pre>
  *  0-60     Control characters. Not important enough to describe in full here.

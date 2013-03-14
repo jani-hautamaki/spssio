@@ -37,6 +37,10 @@ import spssio.util.NumberSystem;
  * when computers have, like, at least 2048 MBs of RAM memory by default.
  * That's Java for you.<p>
  * 
+ * TODO: The SequentialByteArray should not be inherited. Instead, it
+ * should be a member variable. The inheritance makes it impossible to
+ * replace the underlying data stream. 
+ *
  */
 public class PORMatrix
     extends SequentialByteArray

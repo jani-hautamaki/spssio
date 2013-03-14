@@ -1,4 +1,3 @@
-
 //*******************************{begin:header}******************************//
 //                 spssio - http://code.google.com/p/spssio/                 //
 //***************************************************************************//
@@ -18,21 +17,884 @@
 
 package spssio.por.output;
 
+// core java
+import java.io.OutputStream;
+import java.io.IOException;
+import java.util.Map; // for PORValueLabels
 
+// spssio
+import spssio.util.NumberSystem;
+import spssio.por.PORCharset;
+import spssio.por.PORFile;
+import spssio.por.PORVariable;
+import spssio.por.PORMissingValue;
+import spssio.por.PORValueLabels;
+import spssio.por.PORValue;
+import spssio.por.PORMatrix;
+import spssio.por.PORConstants;
+
+
+
+// TODO:
+// reconsider the need
+import java.util.List;  // to_sections()
+
+/**
+ * Write SPSS/SPSS Portable files.<p>
+ *
+ * The class contains methods on three different levels of abstraction.
+ * This layering enables customization of POR file production.<p>
+ *
+ * First level is the highest level, which is intended for most
+ * applications:
+ * <ul>
+ *   <li>(@link TODO) - Serialize {@code PORFile} object into a Portable file.
+ * </ul>
+ * <p>
+ *
+ * Second level. These are meant for applications, which are interested 
+ * in more fine-grained control over the serialization process. 
+ * The Portable file on disk consists of various "records" each having 
+ * a unique "tag code". The second level methods allow serialization
+ * of individual "records":
+ *
+ * <ul>
+ *   <li>(@link TODO) - Serialize Portable header (splash strings,
+ *       charset, signature, format version, creation date, creation time).
+ *   <li>(@link TODO) - Serialize tag='1': Author record.
+ *   <li>(@link TODO) - Serialize tag='2': Software record.
+ *   <li>(@link TODO) - Serialize tag='3': Title record.
+ *   <li>(@link TODO) - Serialize tag='4': Variable count record.
+ *   <li>(@link TODO) - Serialize tag='5': Precision record.
+ *   <li>(@link TODO) - Serialize tag='6': Weight variable name record.
+ *   <li>(@link TODO) - Serialize tag='7': Variable record.
+ *   <li>(@link TODO) - Serialize tag='8': Missing value discrete record.
+ *   <li>(@link TODO) - Serialize tag='9': Missing value open lo range record.
+ *   <li>(@link TODO) - Serialize tag='A': Missing value open hi range record.
+ *   <li>(@link TODO) - Serialize tag='B': Missing value closed range record.
+ *   <li>(@link TODO) - Serialize tag='C': Variable label record.
+ *   <li>(@link TODO) - Serialize tag='D': Value labels record.
+ *   <li>(@link TODO) - Serialize tag='E': Documents record (unimplemented).
+ *   <li>(@link TODO) - Serialize tag='F': Data matrix record.
+ * </ul>
+ * <p>
+ *
+ * Third level. This consists of method which are used to serialize
+ * the primitive SPSS/PSPP data elements: strings, numbers and sysmiss values.
+ * <ul>
+ * </ul>
+ *   <li>(@link TODO) - 
+ * <p>
+ *
+ * Fourth level. This is the last level; it controls the individual character
+ * serialization to the Portable file. This level takes care of 
+ * the encoding of the characters, and splitting them into lines properly.
+ * <ul>
+ *   <li>(@link TODO) - 
+ * </ul>
+ * <p>
+ *
+ * A proper serialization sequence must satisfy some constraints:
+ * <ol>
+ *   <li>The header fields must be serialized first.
+ *   <li>Missing value records and variable label records must be preceded
+ *       by a variable record to which they relate to.
+ *   <li>Before a value labels record can be serialized, all the referenced
+ *       variables must be have a corresponding variable record serialized.
+ *   <li>The data matrix must be serialized last.
+ * </ol>
+ * <p>
+ * 
+ *
+ * 
+ */
 public class PORWriter
 {
+    
+    // CONSTANTS
+    //===========
+    
+    /**
+     * Use Usnix-style end-of-lines: LF ({@code '\n'}) only.
+     */
+    
+    public static final int EOL_LF                  = 1;
+    
+    /**
+     * Use Windows-style end-of-lines: CR {@code '\r'} + LF ({@code '\n'}).
+     */
+    public static final int EOL_CRLF                = 2;
     
     // MEMBER VARIABLES
     //==================
     
+    /**
+     * Encoding table
+     */
+    private int[] enctab;
+    
+    /**
+     * Column number of the next byte, 0-based.
+     */
+    private int col;
+    
+    /**
+     * Row number of the next byte, 0-based.
+     */
+    private int row;
+
+    
+    /**
+     * Row length (number of columns in a row).
+     */
+    private int row_length;
+    
+    /**
+     * End-of-line type, either LF (unix) or CRLF (windows).
+     */
+    private int eol;
+    
+    /**
+     * Output byte stream to which the serialization is sent.
+     */
+    private OutputStream ostream;
+
+    /**
+     * Number of bytes written.
+     */
+    private int size;
+    
+    /**
+     * NumberSystem object for base-30 numbers
+     */
+    private NumberSystem numsys;
+    
+    /**
+     * Formatter for the base-30 numbers
+     */
+    //private NumberFormatter numformatter;
+    
+    
+    
     // CONSTRUCTORS
     //==============
     
+    public void PORWriter() {
+    }
     
     
     // OTHER METHODS
     //===============
     
+    public void output(String filename, PORFile file) {
+    }
+    
+    public void output(OutputStream os, PORFile file) {
+        
+        // setup stream
+        /*
+        write_header(file.header);
+        
+        write_variables(file.variables);
+        
+        write_valuelabels(file.labels);
+        
+        write_data_matrix(file.data);
+        */
+    }
     
     
+    public List<PORSection> to_sections(PORFile file) {
+        return null;
+    }
+
+    // OUTPUT PRIMITIVES
+    //===================
+    
+    public void output_section(PORSection section) {
+        // switch...
+    }
+    
+    public void output_section(int tag, Object obj) 
+        throws IOException
+    {
+        switch(tag) {
+            case PORSection.TAG_SOFTWARE:
+                output_software((String) obj);
+                break;
+            
+            case PORSection.TAG_AUTHOR:
+                output_author((String) obj);
+                break;
+            
+            case PORSection.TAG_TITLE:
+                output_title((String) obj);
+                break;
+            
+            case PORSection.TAG_VARIABLE_COUNT:
+                output_variable_count((Integer) obj);
+                break;
+            
+            case PORSection.TAG_PRECISION:
+                output_precision((Integer) obj);
+                break;
+            
+            case PORSection.TAG_WEIGHT_VARIABLE:
+                output_weight_variable((String) obj);
+                break;
+            
+            case PORSection.TAG_VARIABLE_RECORD:
+                output_variable_record((PORVariable) obj);
+                break;
+            
+            case PORSection.TAG_MISSING_DISCRETE:
+                output_missing_discrete((PORMissingValue) obj);
+                break;
+            
+            case PORSection.TAG_MISSING_OPEN_LO:
+                output_missing_open_lo((PORMissingValue) obj);
+                break;
+            
+            case PORSection.TAG_MISSING_OPEN_HI:
+                output_missing_open_hi((PORMissingValue) obj);
+                break;
+            
+            case PORSection.TAG_MISSING_RANGE:
+                output_missing_range((PORMissingValue) obj);
+                break;
+            
+            case PORSection.TAG_VARIABLE_LABEL:
+                output_variable_label((String) obj);
+                break;
+            
+            case PORSection.TAG_VALUE_LABELS:
+                output_value_labels((PORValueLabels) obj);
+                break;
+            
+            case PORSection.TAG_DOCUMENTS_RECORD:
+                // Unimplemented
+                break;
+            
+            case PORSection.TAG_DATA_MATRIX:
+                output_data_matrix((PORMatrix) obj);
+                break;
+            
+            default:
+                throw new RuntimeException(String.format(
+                    "Unrecognized tag code: \'%c\' (hex: %02x)", tag, tag));
+        } // switch
+    } // output_section()
+    
+    
+    //=======================================================================
+    // WRITE HEADER
+    //=======================================================================
+    
+    /**
+     * Convience method for using default values as a header.
+     */
+    public void output_header() 
+        throws IOException
+    {
+        output_header(null, null, null, 0, null, null);
+    }
+    
+    public void output_header(
+        String[] splash,
+        byte[] charset,
+        String signature,
+        int version,
+        String date,
+        String time
+    ) 
+        throws IOException
+    {
+        // TODO: Set identity encoding (=no encoding)
+        
+        // Write the 200-byte header
+        output_splash_strings(splash);
+        
+        // Write the 256-byte character set
+        output_charset(charset);
+        
+        // TODO: Set encoding
+        
+        // Write the 8-byte signature
+        output_signature(signature);
+        
+        // Write the 1-byte format identifier
+        output_file_version(version);
+        
+        // Write the 8-byte creation date, and the 6-byte creation time.
+        output_creation_datetime(date, time);
+        
+    } // output_header
+    
+    // splash is an array of 40 chars
+    public void output_splash_strings(String[] splash) 
+        throws IOException
+    {
+        // TODO:
+        // If splash == null, use defaults!
+        
+        if (splash.length != 5) throw new IllegalArgumentException();
+        
+        for (int i = 0; i < 5; i++) {
+            String s = splash[i];
+            if (s.length() != 49) throw new IllegalArgumentException();
+            write(s);
+        } // for: each splash string
+    } // output_splash()
+
+    
+    public void output_charset(byte[] charset) 
+        throws IOException
+    {
+        // TODO:
+        // if charset == null, use defaults
+        
+        if (charset.length != 256) throw new IllegalArgumentException();
+        for (int i = 0; i < 256; i++) {
+            // write byte
+        }
+    } // output_charset()
+    
+    public void output_signature(String signature) 
+        throws IOException
+    {
+        // TODO: if null, use defaults
+        
+        if (signature.length() != 8) throw new IllegalArgumentException();
+        
+        // TODO
+        // This is SPSS String, that is, 
+        // it has to be preceded with the string length!
+        output_string(signature);
+    }
+    
+    public void output_file_version(int version) 
+        throws IOException
+    {
+        // TODO:
+        // If 0, use default
+        //write(version);
+    }
+    
+    public void output_creation_datetime(String date, String time) 
+        throws IOException
+    {
+        // TODO:
+        // if null, calculate current date and time
+        
+        if ((date.length() != 8) || (time.length() != 6))
+            throw new IllegalArgumentException();
+
+        // TODO
+        // These are SPSS String, that is, 
+        // they must be preceded with the string length!
+        
+        // Output 8-byte date
+        output_string(date);
+        
+        // Output 6-byte time
+        output_string(time);
+    } // output_creation_datetime()
+    
+    //=======================================================================
+    // PORTABLE SECTIONS OUTPUT METHODS
+    //=======================================================================
+
+    public void output_software(String software) 
+        throws IOException
+    {
+        if (software.length() >= PORConstants.MAX_SOFTWARE_LENGTH) {
+            throw new IllegalArgumentException();
+        }
+        
+        // Tag code
+        output_tag(PORSection.TAG_SOFTWARE);
+        output_string(software);
+    }
+    
+    public void output_author(String author) 
+        throws IOException
+    {
+        if (author.length() > PORConstants.MAX_AUTHOR_LENGTH) {
+            throw new IllegalArgumentException();
+        }
+        
+        // Tag code
+        output_tag(PORSection.TAG_AUTHOR);
+        output_string(author);
+    } 
+    
+    public void output_title(String title) 
+        throws IOException
+    {
+        if (title.length() > PORConstants.MAX_TITLE_LENGTH) {
+            throw new IllegalArgumentException();
+        }
+        
+        output_tag(PORSection.TAG_TITLE);
+        output_string(title);
+    }
+    
+    public void output_variable_count(int varcount) 
+        throws IOException
+    {
+        if (varcount < 1) {
+            throw new IllegalArgumentException();
+        }
+        
+        output_tag(PORSection.TAG_VARIABLE_COUNT);
+        output_uint(varcount);
+    }
+
+    public void output_precision(int precision) 
+        throws IOException
+    {
+        if (precision < 1) {
+            throw new IllegalArgumentException();
+        }
+        
+        output_tag(PORSection.TAG_PRECISION);
+        output_uint(precision);
+    }
+    
+    public void output_weight_variable(String weight_var_name) 
+        throws IOException
+    {
+        if (weight_var_name.length() >= PORConstants.MAX_VARNAME_LENGTH) {
+            throw new IllegalArgumentException();
+        }
+        
+        output_tag(PORSection.TAG_WEIGHT_VARIABLE);
+        output_string(weight_var_name);
+    }
+    
+    public void output_variable_record(PORVariable pvar) 
+        throws IOException
+    {
+        if (pvar.name.length() >= PORConstants.MAX_VARNAME_LENGTH) {
+            throw new IllegalArgumentException();
+        }
+        
+        output_tag(PORSection.TAG_VARIABLE_RECORD);
+        
+        // <width:int> <name:string>
+        // <outputfmt>
+        // <inputfmt>
+        output_uint(pvar.width);
+        output_string(pvar.name);
+        
+        // output format: type, width, decimals
+        output_uint(pvar.printfmt.type);
+        output_uint(pvar.printfmt.width);
+        output_uint(pvar.printfmt.decimals);
+        
+        // input format: type, width, decimals
+        output_uint(pvar.writefmt.type);
+        output_uint(pvar.writefmt.width);
+        output_uint(pvar.writefmt.decimals);
+    }
+    
+    public void output_missing_discrete(PORMissingValue miss) 
+        throws IOException
+    {
+        // Tag code
+        output_tag(PORSection.TAG_MISSING_DISCRETE);
+        // Value (depends on the variable's type)
+        output_value(miss.values[0]);
+    }
+    
+    public void output_missing_open_lo(PORMissingValue miss) 
+        throws IOException
+    {
+        // Tag code
+        output_tag(PORSection.TAG_MISSING_OPEN_LO);
+        // Value (depends on the variable's type)
+        output_value(miss.values[0]);
+    }
+
+    public void output_missing_open_hi(PORMissingValue miss) 
+        throws IOException
+    {
+        // Tag code
+        output_tag(PORSection.TAG_MISSING_OPEN_HI);
+        // Value (depends on the variable's type)
+        output_value(miss.values[0]);
+    }
+
+    public void output_missing_range(PORMissingValue miss) 
+        throws IOException
+    {
+        // Tag code
+        output_tag(PORSection.TAG_MISSING_RANGE);
+        // Value (depends on the variable's type)
+        output_value(miss.values[0]);
+        output_value(miss.values[1]);
+    }
+    
+    public void output_variable_label(String varlabel) 
+        throws IOException
+    {
+        if (varlabel.length() >= PORConstants.MAX_VARLABEL_LENGTH) {
+            throw new RuntimeException();
+        }
+        
+        output_tag(PORSection.TAG_VARIABLE_LABEL);
+        output_string(varlabel);
+    }
+
+    public void output_value_labels(PORValueLabels vallabels) 
+        throws IOException
+    {
+        output_tag(PORSection.TAG_VALUE_LABELS);
+        
+        // <variable_count>
+        int size = vallabels.vars.size();
+        output_uint(size);
+        
+        // <list_of_varnames>
+        int valtype = PORValue.TYPE_UNASSIGNED;
+        
+        for (int i = 0; i < size; i++) {
+            PORVariable cur_var = vallabels.vars.elementAt(i);
+            
+            if (valtype == PORValue.TYPE_NUMERIC) {
+                if (cur_var.width != 0) {
+                    // ERROR: Incompatible type
+                    throw new RuntimeException();
+                }
+            } else if (valtype == PORValue.TYPE_STRING) {
+                if (cur_var.width == 0) {
+                    // ERROR: Incompatible type
+                    throw new RuntimeException();
+                }
+            } else if (valtype == PORValue.TYPE_UNASSIGNED) {
+                // Use first variable as variable type indicator
+                if (cur_var.width == 0) {
+                    valtype = PORValue.TYPE_NUMERIC;
+                } else {
+                    valtype = PORValue.TYPE_STRING;
+                }
+            } else {
+                // Does not happen.
+            } // if-else
+            
+            // Write variable name
+            output_string(cur_var.name);
+        } // for: each variable
+        
+        
+        // <number_of_mappings> (aka label_count)
+        output_uint(vallabels.mappings.size());
+        
+        // [<value> <label>]+
+        for (Map.Entry<PORValue, String> entry 
+            : vallabels.mappings.entrySet())
+        {
+            output_value(entry.getKey());
+            output_string(entry.getValue());
+        } // for: entry set
+        
+    } // output_value_labels()
+
+    //=======================================================================
+    // PORDataMatrix OUTPUT METHOD
+    //=======================================================================
+    
+    public void output_data_matrix(PORMatrix data) 
+        throws IOException
+    {
+        output_tag(PORSection.TAG_DATA_MATRIX);
+        
+        // This is a bit dirty hack for finding out the end-marker 'Z'.
+        // Anyway, if the lines are at most 80 chars wide, then 
+        // it has a property: the written data matrix won't be longer
+        // than the source data matrix (number of lines full of end-markers
+        // can't increase gradually).
+        
+        int endoffset = data.size();
+        endoffset -= 2*80; // count back 2 lines
+        if (endoffset < 0) endoffset = 0; // saturate
+        
+        // seek and determine the end
+        data.seek(endoffset);
+        endoffset = -1;
+        int c;
+        int lastc = 0;
+        while ((c = data.read()) != -1) {
+            if ((c == '\n') || (c == '\r')) {
+                // Ignore EOL chars.
+                continue;
+            }
+            
+            if (c == 'Z') {
+                if (lastc != 'Z') {
+                    // New 'Z'.
+                    // Record current position
+                    endoffset = data.pos();
+                } else {
+                    // Consequetive 'Z'.
+                }
+            } else {
+                // Lose the position
+                endoffset = -1;
+            }
+            
+            lastc = c;
+        } // while
+        
+        System.out.printf("endoffset: %d, size: %d\n",
+            endoffset, data.size());
+        
+        if (endoffset == -1) {
+            // default to end-of-data
+            endoffset = data.size();
+        }
+        
+        // seek to the beginning
+        data.seek(0);
+        int data_col = 0; // TODO: data.getColumn0()
+        int data_row_length = 80; // TODO: data.getRowLength()
+        
+        for (int i = 0; i < endoffset; i++) {
+            c = data.read();
+            if (c == '\n') {
+                
+                if (data_col < data_row_length) {
+                    // fill the end of the line with whitespaces
+                    for (; data_col < data_row_length; data_col++) {
+                        write(' ');
+                    }
+                } // if: incomplete line
+                
+                // New line
+                data_col = 0;
+            } else if (c == '\r') {
+                // ignore
+                continue;
+            } else {
+                // Pass-through
+                write(c);
+                // Next column in data
+                data_col++;
+            }
+        } // for
+        
+        // Write end-marker
+        write('Z');
+        
+        // Complete the last line with end-markers.
+        int len = row_length-col;
+        for (int i = 0; i < len; i++) {
+            write('Z');
+        }
+        
+        // and we are done!
+        
+    } // output_data_matrix()
+    
+
+    //=======================================================================
+    // PORValue OUTPUT METHOD
+    //=======================================================================
+    
+    public void output_value(PORValue pvalue) 
+        throws IOException
+    {
+        switch(pvalue.type) {
+            case PORValue.TYPE_STRING:
+                output_string(pvalue.value);
+                break;
+            case PORValue.TYPE_NUMERIC:
+                write(pvalue.value); // pass-through
+                break;
+            default:
+                throw new RuntimeException();
+        } // switch
+    }
+
+    
+    //=======================================================================
+    // SPSS/PSPP PRIMITIVES' OUTPUT METHODS
+    //=======================================================================
+    
+    public void output_string(String string) 
+        throws IOException
+    {
+        // TODO: Apply NumberFormatter to the length
+    }
+    
+    public void output_number(double value) 
+        throws IOException
+    {
+        // TODO: Apply NumberFormatter
+    }
+    
+    public void output_number(Double value) 
+        throws IOException
+    {
+        // TODO: Apply NumberFormatter
+        // TODO: This probably should belong to the next abstraction level,
+        // since it involves a selection of the proper primitive method.
+    }
+    
+    public void output_uint(int value) 
+        throws IOException
+    {
+        // TODO
+    }
+    
+    public void output_sysmiss()
+        throws IOException
+    {
+        // TODO: An asterisk and a dot
+    }
+    
+    public void output_sysmiss(char sep) 
+        throws IOException
+    {
+        // TODO: An asterisk plus a separator, usullay dot.
+    }
+
+    public void output_tag(int c) 
+        throws IOException
+    {
+        // TODO!!!!!!!!!! 
+        // Study whether the tag codes are subject to decoding/encoding
+        write(c);
+    }
+    
+    
+    //=======================================================================
+    // LOW-LEVEL OUTPUT METHODS
+    //=======================================================================
+    
+    private void set_encoding(byte[] charset) {
+        // TODO: calculate encoding table
+    }
+    
+    private void write(String string) 
+        throws IOException
+    {
+        int len = string.length();
+        int c;
+        
+        for (int i = 0; i < len; i++) {
+            // Pick the current char
+            c = string.charAt(i);
+            
+            // Truncate and encode
+            c = enctab[c & 0xff];
+            
+            // UNROLLED write(int)
+            //=====================
+            
+           // Write
+            ostream.write(c);
+            
+            // Next column
+            col++;
+            
+            // If line is full, write an end-of-line sequence,
+            // reset column, and move to next row.
+            if (col == row_length) {
+                // Write end-of-line sequence.
+                // If Windows-style, then precede LF by CR.
+                if (eol == EOL_CRLF) {
+                    ostream.write('\r'); // CR
+                }
+                ostream.write('\n'); // LF
+                
+                // Reset column and move to next row.
+                col = 0;
+                row++;
+            } // if: row full
+            
+        } // for: each char
+        
+    } // write()
+
+    // The most low-level writing operations.
+    // These handle the encoding and line-wrapping
+    private void write(int[] array, int from, int to) 
+        throws IOException
+    {
+        int c;
+        
+        for (int i = from; i < to; i++) {
+            // Pick the next byte
+            c = array[i];
+            
+            // Encode
+            c = enctab[c];
+            
+ 
+            // Finish with update sequence
+            
+            // UNROLLED write(int)
+            //=====================
+ 
+           // Write
+            ostream.write(c);
+            
+            // Next column
+            col++;
+            
+            // If line is full, write an end-of-line sequence,
+            // reset column, and move to next row.
+            if (col == row_length) {
+                // Write end-of-line sequence.
+                // If Windows-style, then precede LF by CR.
+                if (eol == EOL_CRLF) {
+                    ostream.write('\r'); // CR
+                }
+                ostream.write('\n'); // LF
+                
+                // Reset column and move to next row.
+                col = 0;
+                row++;
+            } // if: row full
+        } // for
+        
+    } // write(array)
+    
+    /**
+     * Writes a byte to output stream with encoding and line-wrapping.
+     *
+     * @param c The byte to write
+     */
+    private void write(int c) 
+        throws IOException
+    {
+        // Apparently SPSS writes an end-of-line sequence after 'Z' sequence.
+        
+        // Encode
+        c = enctab[c];
+        
+        
+        // Write output
+        ostream.write(c);
+        
+        // Next column
+        col++;
+        
+        // If line is full, write an end-of-line sequence,
+        // reset column, and move to next row.
+        if (col == row_length) {
+            // Write end-of-line sequence.
+            // If Windows-style, then precede LF by CR.
+            if (eol == EOL_CRLF) {
+                ostream.write('\r'); // CR
+            }
+            ostream.write('\n'); // LF
+            
+            // Reset column and move to next row.
+            col = 0;
+            row++;
+        } // if: row full
+        
+    } // write()
 } // class PORWriter

@@ -27,11 +27,11 @@ public interface PORMatrixVisitor {
     /**
      * Matrix begins.
      * This is called before any {code rowXxxx} 
-     * or {@code columnXxxx] methods.
+     * or {@code columnXxxx} methods.
      *
      * @param xdim      Length of the x dimension, ie. number of columns.
      * @param ydim      Length of the y dimension, ie. number of rows.
-     * @param xtype     Columns' data types as {@link #PORValue} types.
+     * @param xtypes    Columns' data types as {@link PORValue} types.
      */
     public void matrixBegin(int xdim, int ydim, int[] xtypes);
     

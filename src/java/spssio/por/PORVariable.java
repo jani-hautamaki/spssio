@@ -33,6 +33,7 @@ import spssio.common.SPSSFormat;
  *    </a>
  * </ul>
  *
+ * TBC: Rename {@code printfmt} and {@code writefmt} into readfmt and writefmt?
  */
 public class PORVariable {
     

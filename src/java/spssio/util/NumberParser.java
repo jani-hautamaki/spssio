@@ -384,9 +384,9 @@ public class NumberParser
      * </ul>
      * <p>
      *
-     * Once the parser has reached an ending state and the return value
-     * is different than {@code E_UNFINISHED}, the parser has to be reset
-     * before it can be used again. The resetting is done with {@link reset()}.
+     * Once the parser has reached an ending state and the return value is 
+     * different than {@code E_UNFINISHED}, the parser has to be reset before
+     * it can be used again. The resetting is done with {@link #reset()}.
      * <p>
      * 
      * Emitting {@code -1} will always cause the parser to finish with 
