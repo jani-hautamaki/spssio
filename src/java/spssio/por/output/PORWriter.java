@@ -215,60 +215,73 @@ public class PORWriter
         // switch...
     }
     
-    public void output_section(int tag, Object obj) 
+    public void outputSection(int tag, Object obj) 
         throws IOException
     {
         switch(tag) {
             case PORSection.TAG_SOFTWARE:
-                output_software((String) obj);
+                outputSoftware((String) obj);
+                //output_software((String) obj);
                 break;
             
             case PORSection.TAG_AUTHOR:
-                output_author((String) obj);
+                outputAuthor((String) obj);
+                //output_author((String) obj);
                 break;
             
             case PORSection.TAG_TITLE:
-                output_title((String) obj);
+                outputTitle((String) obj);
+                //output_title((String) obj);
                 break;
             
             case PORSection.TAG_VARIABLE_COUNT:
-                output_variable_count((Integer) obj);
+                outputVariableCount((Integer) obj);
+                //output_variable_count((Integer) obj);
                 break;
             
             case PORSection.TAG_PRECISION:
-                output_precision((Integer) obj);
+                outputNumericPrecision((Integer) obj);
+                //output_precision((Integer) obj);
                 break;
             
             case PORSection.TAG_WEIGHT_VARIABLE:
-                output_weight_variable((String) obj);
+                outputWeightVariable((String) obj);
+                //output_weight_variable((String) obj);
                 break;
             
             case PORSection.TAG_VARIABLE_RECORD:
-                output_variable_record((PORVariable) obj);
+                outputVariableRecord((PORVariable) obj);
+                //output_variable_record((PORVariable) obj);
                 break;
             
             case PORSection.TAG_MISSING_DISCRETE:
-                output_missing_discrete((PORMissingValue) obj);
+                outputMissingDiscrete((PORMissingValue) obj);
+                //output_missing_discrete((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_MISSING_OPEN_LO:
-                output_missing_open_lo((PORMissingValue) obj);
+                outputMissingRangeOpenLo((PORMissingValue) obj);
+                //output_missing_open_lo((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_MISSING_OPEN_HI:
-                output_missing_open_hi((PORMissingValue) obj);
+                outputMissingRangeOpenHi((PORMissingValue) obj);
+                //output_missing_open_hi((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_MISSING_RANGE:
-                output_missing_range((PORMissingValue) obj);
+                outputMissingRangeClosed((PORMissingValue) obj);
+                //output_missing_range((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_VARIABLE_LABEL:
-                output_variable_label((String) obj);
+                outputVariableLabel((String) obj);
+                //output_variable_label((String) obj);
                 break;
             
             case PORSection.TAG_VALUE_LABELS:
-                output_value_labels((PORValueLabels) obj);
+                outputValueLabelsRecord((PORValueLabels) obj);
+                //output_value_labels((PORValueLabels) obj);
                 break;
             
             case PORSection.TAG_DOCUMENTS_RECORD:
@@ -276,7 +289,8 @@ public class PORWriter
                 break;
             
             case PORSection.TAG_DATA_MATRIX:
-                output_data_matrix((PORMatrix) obj);
+                outputDataMatrixRecord((PORMatrix) obj);
+                //output_data_matrix((PORMatrix) obj);
                 break;
             
             default:
@@ -293,13 +307,13 @@ public class PORWriter
     /**
      * Convience method for using default values as a header.
      */
-    public void output_header() 
+    public void outputHeader() 
         throws IOException
     {
-        output_header(null, null, null, 0, null, null);
+        outputHeader(null, null, null, 0, null, null);
     }
     
-    public void output_header(
+    public void outputHeader(
         String[] splash,
         byte[] charset,
         String signature,
@@ -312,26 +326,31 @@ public class PORWriter
         // TODO: Set identity encoding (=no encoding)
         
         // Write the 200-byte header
-        output_splash_strings(splash);
+        outputSplashStrings(splash);
+        //output_splash_strings(splash);
         
         // Write the 256-byte character set
-        output_charset(charset);
+        outputCharset(charset);
+        //output_charset(charset);
         
         // TODO: Set encoding
         
         // Write the 8-byte signature
-        output_signature(signature);
+        outputSignature(signature);
+        //output_signature(signature);
         
         // Write the 1-byte format identifier
-        output_file_version(version);
+        outputFormatVersion(version);
+        //output_file_version(version);
         
         // Write the 8-byte creation date, and the 6-byte creation time.
-        output_creation_datetime(date, time);
+        outputCreationTimestamp(date, time);
+        //output_creation_datetime(date, time);
         
     } // output_header
     
     // splash is an array of 40 chars
-    public void output_splash_strings(String[] splash) 
+    public void outputSplashStrings(String[] splash) 
         throws IOException
     {
         // TODO:
@@ -347,7 +366,7 @@ public class PORWriter
     } // output_splash()
 
     
-    public void output_charset(byte[] charset) 
+    public void outputCharset(byte[] charset) 
         throws IOException
     {
         // TODO:
@@ -359,7 +378,7 @@ public class PORWriter
         }
     } // output_charset()
     
-    public void output_signature(String signature) 
+    public void outputSignature(String signature) 
         throws IOException
     {
         // TODO: if null, use defaults
@@ -372,7 +391,7 @@ public class PORWriter
         output_string(signature);
     }
     
-    public void output_file_version(int version) 
+    public void outputFormatVersion(int version) 
         throws IOException
     {
         // TODO:
@@ -380,7 +399,7 @@ public class PORWriter
         //write(version);
     }
     
-    public void output_creation_datetime(String date, String time) 
+    public void outputCreationTimestamp(String date, String time) 
         throws IOException
     {
         // TODO:
@@ -404,7 +423,7 @@ public class PORWriter
     // PORTABLE SECTIONS OUTPUT METHODS
     //=======================================================================
 
-    public void output_software(String software) 
+    public void outputSoftware(String software) 
         throws IOException
     {
         if (software.length() >= PORConstants.MAX_SOFTWARE_LENGTH) {
@@ -416,7 +435,7 @@ public class PORWriter
         output_string(software);
     }
     
-    public void output_author(String author) 
+    public void outputAuthor(String author) 
         throws IOException
     {
         if (author.length() > PORConstants.MAX_AUTHOR_LENGTH) {
@@ -428,7 +447,7 @@ public class PORWriter
         output_string(author);
     } 
     
-    public void output_title(String title) 
+    public void outputTitle(String title) 
         throws IOException
     {
         if (title.length() > PORConstants.MAX_TITLE_LENGTH) {
@@ -439,7 +458,7 @@ public class PORWriter
         output_string(title);
     }
     
-    public void output_variable_count(int varcount) 
+    public void outputVariableCount(int varcount) 
         throws IOException
     {
         if (varcount < 1) {
@@ -450,7 +469,7 @@ public class PORWriter
         output_uint(varcount);
     }
 
-    public void output_precision(int precision) 
+    public void outputNumericPrecision(int precision) 
         throws IOException
     {
         if (precision < 1) {
@@ -461,7 +480,7 @@ public class PORWriter
         output_uint(precision);
     }
     
-    public void output_weight_variable(String weight_var_name) 
+    public void outputWeightVariable(String weight_var_name) 
         throws IOException
     {
         if (weight_var_name.length() >= PORConstants.MAX_VARNAME_LENGTH) {
@@ -472,7 +491,7 @@ public class PORWriter
         output_string(weight_var_name);
     }
     
-    public void output_variable_record(PORVariable pvar) 
+    public void outputVariableRecord(PORVariable pvar) 
         throws IOException
     {
         if (pvar.name.length() >= PORConstants.MAX_VARNAME_LENGTH) {
@@ -498,7 +517,7 @@ public class PORWriter
         output_uint(pvar.writefmt.decimals);
     }
     
-    public void output_missing_discrete(PORMissingValue miss) 
+    public void outputMissingDiscrete(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
@@ -507,7 +526,7 @@ public class PORWriter
         output_value(miss.values[0]);
     }
     
-    public void output_missing_open_lo(PORMissingValue miss) 
+    public void outputMissingRangeOpenLo(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
@@ -516,7 +535,7 @@ public class PORWriter
         output_value(miss.values[0]);
     }
 
-    public void output_missing_open_hi(PORMissingValue miss) 
+    public void outputMissingRangeOpenHi(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
@@ -525,7 +544,7 @@ public class PORWriter
         output_value(miss.values[0]);
     }
 
-    public void output_missing_range(PORMissingValue miss) 
+    public void outputMissingRangeClosed(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
@@ -535,7 +554,7 @@ public class PORWriter
         output_value(miss.values[1]);
     }
     
-    public void output_variable_label(String varlabel) 
+    public void outputVariableLabel(String varlabel) 
         throws IOException
     {
         if (varlabel.length() >= PORConstants.MAX_VARLABEL_LENGTH) {
@@ -546,7 +565,7 @@ public class PORWriter
         output_string(varlabel);
     }
 
-    public void output_value_labels(PORValueLabels vallabels) 
+    public void outputValueLabelsRecord(PORValueLabels vallabels) 
         throws IOException
     {
         output_tag(PORSection.TAG_VALUE_LABELS);
@@ -604,7 +623,54 @@ public class PORWriter
     // PORDataMatrix OUTPUT METHOD
     //=======================================================================
     
-    public void output_data_matrix(PORMatrix data) 
+    /*
+     * TODO:
+     * This is a "pass-through" serialization, which does not reformat
+     * the data according to the precision specification.
+     * However, it could be done as follows:
+     * The data in PORMatrix is assumed to have a precision_data.
+     * Output data is required to have a precision_output.
+     * Now there are three different possibilities:
+     *
+     *      Case 1. precision_data < precision_output
+     *          Now the output is required to have a higher precision,
+     *          than the data has. There is nothing that can be done
+     *          to increase precision. Pass-through serialization.
+     *         
+     *      Case 2. precision_data == precision_output
+     *          The data has the required precision. Nothing needs to
+     *          be done. Pass-through serialization.
+     *
+     *      Case 3. precision_data > precision_output
+     *          Now this is the worst case. The data in the matrix
+     *          has higher precision than the output allows. Consequently,
+     *          the data in the matrix needs to be rounded further.
+     *     
+     *          How to do the rounding????
+     *
+     * Rounding:
+     * The numbers come in ascii base-30 digits.
+     * Generally they have the following format: [+-]<ABCD>[.]HIJK[<+->LMN]
+     * Steps to determine the precision: 
+     *
+     *          1. Ignore leading sign
+     *          2. Count all digits up to the next sign or end of data.
+     *          3. Put the position of the dot into memory.
+     * 
+     * Now the precision is the number of digits.
+     * Do the rounding: start at the required precision+1, and see
+     * whether it is >=5. If so, pos-1 is rounded upwards recursively.
+     *
+     * At the end, eliminate trailing zeros. If the dot's position
+     * is crossed, then the exponent needs to be increased as well.
+     
+     *
+     * NOTE!!! When rounding upwards occurs, there's a possiblity
+     * that the rounded value exceeds numeric limits.
+     *
+     * 
+     */
+    public void outputDataMatrixRecord(PORMatrix data) 
         throws IOException
     {
         output_tag(PORSection.TAG_DATA_MATRIX);
@@ -693,8 +759,18 @@ public class PORWriter
         }
         
         // and we are done!
-        
     } // output_data_matrix()
+    
+    public void outputDataMatrixRecord2(PORMatrix data) 
+        throws IOException
+    {
+        // TODO:
+        // This uses PORMatrixVisitor to do the outputting
+        
+        // for a given numeric value:
+        // if len < precision: pass-through
+        // else: round(array, len, desired_precision)
+    } // output_data_matrix2()
     
 
     //=======================================================================
@@ -709,6 +785,7 @@ public class PORWriter
                 output_string(pvalue.value);
                 break;
             case PORValue.TYPE_NUMERIC:
+                // TODO: The precision has to be accounted for.
                 write(pvalue.value); // pass-through
                 break;
             default:
