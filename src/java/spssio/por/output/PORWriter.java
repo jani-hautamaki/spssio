@@ -211,7 +211,7 @@ public class PORWriter
     // OUTPUT PRIMITIVES
     //===================
     
-    public void output_section(PORSection section) {
+    public void outputSection(PORSection section) {
         // switch...
     }
     
@@ -375,6 +375,7 @@ public class PORWriter
         if (charset.length != 256) throw new IllegalArgumentException();
         for (int i = 0; i < 256; i++) {
             // write byte
+            write(charset[i]);
         }
     } // output_charset()
     
@@ -388,7 +389,7 @@ public class PORWriter
         // TODO
         // This is SPSS String, that is, 
         // it has to be preceded with the string length!
-        output_string(signature);
+        outputString(signature);
     }
     
     public void outputFormatVersion(int version) 
@@ -413,10 +414,10 @@ public class PORWriter
         // they must be preceded with the string length!
         
         // Output 8-byte date
-        output_string(date);
+        outputString(date);
         
         // Output 6-byte time
-        output_string(time);
+        outputString(time);
     } // output_creation_datetime()
     
     //=======================================================================
@@ -431,8 +432,8 @@ public class PORWriter
         }
         
         // Tag code
-        output_tag(PORSection.TAG_SOFTWARE);
-        output_string(software);
+        outputTag(PORSection.TAG_SOFTWARE);
+        outputString(software);
     }
     
     public void outputAuthor(String author) 
@@ -443,8 +444,8 @@ public class PORWriter
         }
         
         // Tag code
-        output_tag(PORSection.TAG_AUTHOR);
-        output_string(author);
+        outputTag(PORSection.TAG_AUTHOR);
+        outputString(author);
     } 
     
     public void outputTitle(String title) 
@@ -454,19 +455,20 @@ public class PORWriter
             throw new IllegalArgumentException();
         }
         
-        output_tag(PORSection.TAG_TITLE);
-        output_string(title);
+        outputTag(PORSection.TAG_TITLE);
+        outputString(title);
     }
     
     public void outputVariableCount(int varcount) 
         throws IOException
     {
+        // Validate variable count
         if (varcount < 1) {
             throw new IllegalArgumentException();
         }
         
-        output_tag(PORSection.TAG_VARIABLE_COUNT);
-        output_uint(varcount);
+        outputTag(PORSection.TAG_VARIABLE_COUNT);
+        outputInt(varcount);
     }
 
     public void outputNumericPrecision(int precision) 
@@ -476,8 +478,8 @@ public class PORWriter
             throw new IllegalArgumentException();
         }
         
-        output_tag(PORSection.TAG_PRECISION);
-        output_uint(precision);
+        outputTag(PORSection.TAG_PRECISION);
+        outputInt(precision);
     }
     
     public void outputWeightVariable(String weight_var_name) 
@@ -487,8 +489,8 @@ public class PORWriter
             throw new IllegalArgumentException();
         }
         
-        output_tag(PORSection.TAG_WEIGHT_VARIABLE);
-        output_string(weight_var_name);
+        outputTag(PORSection.TAG_WEIGHT_VARIABLE);
+        outputString(weight_var_name);
     }
     
     public void outputVariableRecord(PORVariable pvar) 
@@ -498,60 +500,60 @@ public class PORWriter
             throw new IllegalArgumentException();
         }
         
-        output_tag(PORSection.TAG_VARIABLE_RECORD);
+        outputTag(PORSection.TAG_VARIABLE_RECORD);
         
         // <width:int> <name:string>
         // <outputfmt>
         // <inputfmt>
-        output_uint(pvar.width);
-        output_string(pvar.name);
+        outputInt(pvar.width);
+        outputString(pvar.name);
         
         // output format: type, width, decimals
-        output_uint(pvar.printfmt.type);
-        output_uint(pvar.printfmt.width);
-        output_uint(pvar.printfmt.decimals);
+        outputInt(pvar.printfmt.type);
+        outputInt(pvar.printfmt.width);
+        outputInt(pvar.printfmt.decimals);
         
         // input format: type, width, decimals
-        output_uint(pvar.writefmt.type);
-        output_uint(pvar.writefmt.width);
-        output_uint(pvar.writefmt.decimals);
+        outputInt(pvar.writefmt.type);
+        outputInt(pvar.writefmt.width);
+        outputInt(pvar.writefmt.decimals);
     }
     
     public void outputMissingDiscrete(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
-        output_tag(PORSection.TAG_MISSING_DISCRETE);
+        outputTag(PORSection.TAG_MISSING_DISCRETE);
         // Value (depends on the variable's type)
-        output_value(miss.values[0]);
+        outputPORValue(miss.values[0]);
     }
     
     public void outputMissingRangeOpenLo(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
-        output_tag(PORSection.TAG_MISSING_OPEN_LO);
+        outputTag(PORSection.TAG_MISSING_OPEN_LO);
         // Value (depends on the variable's type)
-        output_value(miss.values[0]);
+        outputPORValue(miss.values[0]);
     }
 
     public void outputMissingRangeOpenHi(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
-        output_tag(PORSection.TAG_MISSING_OPEN_HI);
+        outputTag(PORSection.TAG_MISSING_OPEN_HI);
         // Value (depends on the variable's type)
-        output_value(miss.values[0]);
+        outputPORValue(miss.values[0]);
     }
 
     public void outputMissingRangeClosed(PORMissingValue miss) 
         throws IOException
     {
         // Tag code
-        output_tag(PORSection.TAG_MISSING_RANGE);
+        outputTag(PORSection.TAG_MISSING_RANGE);
         // Value (depends on the variable's type)
-        output_value(miss.values[0]);
-        output_value(miss.values[1]);
+        outputPORValue(miss.values[0]);
+        outputPORValue(miss.values[1]);
     }
     
     public void outputVariableLabel(String varlabel) 
@@ -561,18 +563,19 @@ public class PORWriter
             throw new RuntimeException();
         }
         
-        output_tag(PORSection.TAG_VARIABLE_LABEL);
-        output_string(varlabel);
+        outputTag(PORSection.TAG_VARIABLE_LABEL);
+        outputString(varlabel);
     }
 
     public void outputValueLabelsRecord(PORValueLabels vallabels) 
         throws IOException
     {
-        output_tag(PORSection.TAG_VALUE_LABELS);
+        outputTag(PORSection.TAG_VALUE_LABELS);
         
         // <variable_count>
         int size = vallabels.vars.size();
-        output_uint(size);
+        // NOTE: size() can't return negative value
+        outputInt(size);
         
         // <list_of_varnames>
         int valtype = PORValue.TYPE_UNASSIGNED;
@@ -602,19 +605,20 @@ public class PORWriter
             } // if-else
             
             // Write variable name
-            output_string(cur_var.name);
+            outputString(cur_var.name);
         } // for: each variable
         
         
         // <number_of_mappings> (aka label_count)
-        output_uint(vallabels.mappings.size());
+        // NOTE: size() cannot return negative value
+        outputInt(vallabels.mappings.size());
         
         // [<value> <label>]+
         for (Map.Entry<PORValue, String> entry 
             : vallabels.mappings.entrySet())
         {
-            output_value(entry.getKey());
-            output_string(entry.getValue());
+            outputPORValue(entry.getKey());
+            outputString(entry.getValue());
         } // for: entry set
         
     } // output_value_labels()
@@ -673,7 +677,7 @@ public class PORWriter
     public void outputDataMatrixRecord(PORMatrix data) 
         throws IOException
     {
-        output_tag(PORSection.TAG_DATA_MATRIX);
+        outputTag(PORSection.TAG_DATA_MATRIX);
         
         // This is a bit dirty hack for finding out the end-marker 'Z'.
         // Anyway, if the lines are at most 80 chars wide, then 
@@ -777,12 +781,12 @@ public class PORWriter
     // PORValue OUTPUT METHOD
     //=======================================================================
     
-    public void output_value(PORValue pvalue) 
+    public void outputPORValue(PORValue pvalue) 
         throws IOException
     {
         switch(pvalue.type) {
             case PORValue.TYPE_STRING:
-                output_string(pvalue.value);
+                outputString(pvalue.value);
                 break;
             case PORValue.TYPE_NUMERIC:
                 // TODO: The precision has to be accounted for.
@@ -798,45 +802,40 @@ public class PORWriter
     // SPSS/PSPP PRIMITIVES' OUTPUT METHODS
     //=======================================================================
     
-    public void output_string(String string) 
+    public void outputString(String string) 
         throws IOException
     {
         // TODO: Apply NumberFormatter to the length
     }
     
-    public void output_number(double value) 
+    // TODO:
+    // Should the method be renamed to outputDouble()?
+    public void outputNumber(double value)
         throws IOException
     {
         // TODO: Apply NumberFormatter
     }
     
-    public void output_number(Double value) 
-        throws IOException
-    {
-        // TODO: Apply NumberFormatter
-        // TODO: This probably should belong to the next abstraction level,
-        // since it involves a selection of the proper primitive method.
-    }
-    
-    public void output_uint(int value) 
-        throws IOException
-    {
-        // TODO
-    }
-    
-    public void output_sysmiss()
+    public void outputSysmiss()
         throws IOException
     {
         // TODO: An asterisk and a dot
     }
     
-    public void output_sysmiss(char sep) 
+    public void outputSysmiss(char sep)
         throws IOException
     {
         // TODO: An asterisk plus a separator, usullay dot.
     }
 
-    public void output_tag(int c) 
+    public void outputInt(int value)
+        throws IOException
+    {
+        // TODO
+    }
+    
+
+    public void outputTag(int c)
         throws IOException
     {
         // TODO!!!!!!!!!! 
