@@ -54,6 +54,15 @@ public class PORConstants
     public static int MAX_VARLABEL_LENGTH = 255;
     
     
+    /**
+     * File format signature.
+     */
+    public static final String FORMAT_SIGNATURE     = "SPSSPORT";
+    
+    /**
+     * File format version
+     */
+    public static final int FORMAT_VERSION          = 'A';
     
     
     // CONSTRUCTORS

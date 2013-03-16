@@ -192,21 +192,33 @@ public class PORWriter
     public void output(OutputStream os, PORFile file) {
         
         // setup stream
+        
         /*
-        write_header(file.header);
-        
-        write_variables(file.variables);
-        
-        write_valuelabels(file.labels);
-        
-        write_data_matrix(file.data);
+        outputPORHeader()
+        outputPORVariables()
+        outputPORValueLabels()
+        outputDataRecord();
         */
     }
     
     
-    public List<PORSection> to_sections(PORFile file) {
+    /**
+     * Convert {@code PORFile} into a list of {@code PORSection}s.
+     *
+     * @param file The Portable file to sectionize
+     *
+     * @return List of sections ready for serialization.
+     */
+    public static List<PORSection> sectionize(PORFile file) {
+        // TODO: Write implementation
         return null;
     }
+    
+    
+    
+    
+    
+    
 
     // OUTPUT PRIMITIVES
     //===================
@@ -221,67 +233,54 @@ public class PORWriter
         switch(tag) {
             case PORSection.TAG_SOFTWARE:
                 outputSoftware((String) obj);
-                //output_software((String) obj);
                 break;
             
             case PORSection.TAG_AUTHOR:
                 outputAuthor((String) obj);
-                //output_author((String) obj);
                 break;
             
             case PORSection.TAG_TITLE:
                 outputTitle((String) obj);
-                //output_title((String) obj);
                 break;
             
             case PORSection.TAG_VARIABLE_COUNT:
                 outputVariableCount((Integer) obj);
-                //output_variable_count((Integer) obj);
                 break;
             
             case PORSection.TAG_PRECISION:
                 outputNumericPrecision((Integer) obj);
-                //output_precision((Integer) obj);
                 break;
             
             case PORSection.TAG_WEIGHT_VARIABLE:
                 outputWeightVariable((String) obj);
-                //output_weight_variable((String) obj);
                 break;
             
             case PORSection.TAG_VARIABLE_RECORD:
                 outputVariableRecord((PORVariable) obj);
-                //output_variable_record((PORVariable) obj);
                 break;
             
             case PORSection.TAG_MISSING_DISCRETE:
                 outputMissingDiscrete((PORMissingValue) obj);
-                //output_missing_discrete((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_MISSING_OPEN_LO:
                 outputMissingRangeOpenLo((PORMissingValue) obj);
-                //output_missing_open_lo((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_MISSING_OPEN_HI:
                 outputMissingRangeOpenHi((PORMissingValue) obj);
-                //output_missing_open_hi((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_MISSING_RANGE:
                 outputMissingRangeClosed((PORMissingValue) obj);
-                //output_missing_range((PORMissingValue) obj);
                 break;
             
             case PORSection.TAG_VARIABLE_LABEL:
                 outputVariableLabel((String) obj);
-                //output_variable_label((String) obj);
                 break;
             
             case PORSection.TAG_VALUE_LABELS:
                 outputValueLabelsRecord((PORValueLabels) obj);
-                //output_value_labels((PORValueLabels) obj);
                 break;
             
             case PORSection.TAG_DOCUMENTS_RECORD:
@@ -290,7 +289,6 @@ public class PORWriter
             
             case PORSection.TAG_DATA_MATRIX:
                 outputDataMatrixRecord((PORMatrix) obj);
-                //output_data_matrix((PORMatrix) obj);
                 break;
             
             default:
@@ -315,7 +313,7 @@ public class PORWriter
     
     public void outputHeader(
         String[] splash,
-        byte[] charset,
+        int[] charset,
         String signature,
         int version,
         String date,
@@ -327,25 +325,20 @@ public class PORWriter
         
         // Write the 200-byte header
         outputSplashStrings(splash);
-        //output_splash_strings(splash);
         
         // Write the 256-byte character set
         outputCharset(charset);
-        //output_charset(charset);
         
         // TODO: Set encoding
         
         // Write the 8-byte signature
         outputSignature(signature);
-        //output_signature(signature);
         
         // Write the 1-byte format identifier
         outputFormatVersion(version);
-        //output_file_version(version);
         
         // Write the 8-byte creation date, and the 6-byte creation time.
         outputCreationTimestamp(date, time);
-        //output_creation_datetime(date, time);
         
     } // output_header
     
@@ -353,72 +346,81 @@ public class PORWriter
     public void outputSplashStrings(String[] splash) 
         throws IOException
     {
-        // TODO:
-        // If splash == null, use defaults!
+        // TODO: If unspecified, use defaults.
         
         if (splash.length != 5) throw new IllegalArgumentException();
         
         for (int i = 0; i < 5; i++) {
             String s = splash[i];
-            if (s.length() != 49) throw new IllegalArgumentException();
+            if (s.length() != 40) throw new IllegalArgumentException();
             write(s);
         } // for: each splash string
-    } // output_splash()
+    }
 
     
-    public void outputCharset(byte[] charset) 
+    public void outputCharset(int[] charset) 
         throws IOException
     {
-        // TODO:
-        // if charset == null, use defaults
+        // If unspecified, use default charset
+        if (charset == null) {
+            charset = PORCharset.getDefaultCharset();
+        }
         
         if (charset.length != 256) throw new IllegalArgumentException();
         for (int i = 0; i < 256; i++) {
-            // write byte
-            write(charset[i]);
+            // Truncate the value, and write a single byte.
+            write(charset[i] & 0xff);
         }
-    } // output_charset()
+    }
     
     public void outputSignature(String signature) 
         throws IOException
     {
-        // TODO: if null, use defaults
+        // If unspecified, use defalt
+        if (signature == null) {
+            signature = PORConstants.FORMAT_SIGNATURE;
+        }
         
         if (signature.length() != 8) throw new IllegalArgumentException();
         
-        // TODO
-        // This is SPSS String, that is, 
-        // it has to be preceded with the string length!
-        outputString(signature);
+        // NOTE: This is NOT string, it is simply 8 bytes.
+        write(signature);
     }
     
     public void outputFormatVersion(int version) 
         throws IOException
     {
-        // TODO:
-        // If 0, use default
-        //write(version);
+        // If unspecified, use default version
+        if (version == 0) {
+            version = PORConstants.FORMAT_VERSION;
+        }
+        
+        // NOTE: This is a single byte.
+        write(version);
     }
     
     public void outputCreationTimestamp(String date, String time) 
         throws IOException
     {
         // TODO:
-        // if null, calculate current date and time
+        // If date or time is left unspecified, use current date/time.
+        if (date == null) {
+        }
+        if (time == null) {
+        }
         
-        if ((date.length() != 8) || (time.length() != 6))
+        if ((date.length() != 8) || (time.length() != 6)) {
             throw new IllegalArgumentException();
+        }
 
-        // TODO
-        // These are SPSS String, that is, 
-        // they must be preceded with the string length!
+        // NOTE: These are true strings with lengths.
         
         // Output 8-byte date
         outputString(date);
         
         // Output 6-byte time
         outputString(time);
-    } // output_creation_datetime()
+    }
     
     //=======================================================================
     // PORTABLE SECTIONS OUTPUT METHODS
@@ -500,11 +502,10 @@ public class PORWriter
             throw new IllegalArgumentException();
         }
         
+        // Tag code
         outputTag(PORSection.TAG_VARIABLE_RECORD);
         
-        // <width:int> <name:string>
-        // <outputfmt>
-        // <inputfmt>
+        // width and name
         outputInt(pvar.width);
         outputString(pvar.name);
         
@@ -524,6 +525,7 @@ public class PORWriter
     {
         // Tag code
         outputTag(PORSection.TAG_MISSING_DISCRETE);
+        
         // Value (depends on the variable's type)
         outputPORValue(miss.values[0]);
     }
@@ -533,6 +535,7 @@ public class PORWriter
     {
         // Tag code
         outputTag(PORSection.TAG_MISSING_OPEN_LO);
+        
         // Value (depends on the variable's type)
         outputPORValue(miss.values[0]);
     }
@@ -542,6 +545,7 @@ public class PORWriter
     {
         // Tag code
         outputTag(PORSection.TAG_MISSING_OPEN_HI);
+        
         // Value (depends on the variable's type)
         outputPORValue(miss.values[0]);
     }
@@ -551,7 +555,8 @@ public class PORWriter
     {
         // Tag code
         outputTag(PORSection.TAG_MISSING_RANGE);
-        // Value (depends on the variable's type)
+        
+        // Values (depends on the variable's type)
         outputPORValue(miss.values[0]);
         outputPORValue(miss.values[1]);
     }
@@ -563,7 +568,10 @@ public class PORWriter
             throw new RuntimeException();
         }
         
+        // Tag code
         outputTag(PORSection.TAG_VARIABLE_LABEL);
+        
+        // Variable label
         outputString(varlabel);
     }
 
@@ -573,8 +581,8 @@ public class PORWriter
         outputTag(PORSection.TAG_VALUE_LABELS);
         
         // <variable_count>
-        int size = vallabels.vars.size();
         // NOTE: size() can't return negative value
+        int size = vallabels.vars.size();
         outputInt(size);
         
         // <list_of_varnames>
@@ -621,7 +629,7 @@ public class PORWriter
             outputString(entry.getValue());
         } // for: entry set
         
-    } // output_value_labels()
+    } // outputValueLabelsRecord()
 
     //=======================================================================
     // PORDataMatrix OUTPUT METHOD
@@ -848,7 +856,14 @@ public class PORWriter
     // LOW-LEVEL OUTPUT METHODS
     //=======================================================================
     
-    private void set_encoding(byte[] charset) {
+    /**
+     * Set byte encoding according to charset.
+     * 
+     * @param charset The character set to use in encoding,
+     *      or {@code null} to disable encoding.
+     * 
+     */
+    private void setEncodingCharset(int[] charset) {
         // TODO: calculate encoding table
     }
     
@@ -862,13 +877,13 @@ public class PORWriter
             // Pick the current char
             c = string.charAt(i);
             
+            // UNROLLED write(int)
+            //=====================
+
             // Truncate and encode
             c = enctab[c & 0xff];
             
-            // UNROLLED write(int)
-            //=====================
-            
-           // Write
+            // Write
             ostream.write(c);
             
             // Next column
@@ -888,10 +903,9 @@ public class PORWriter
                 col = 0;
                 row++;
             } // if: row full
-            
         } // for: each char
         
-    } // write()
+    } // write(String)
 
     // The most low-level writing operations.
     // These handle the encoding and line-wrapping
@@ -904,15 +918,15 @@ public class PORWriter
             // Pick the next byte
             c = array[i];
             
-            // Encode
-            c = enctab[c];
-            
  
             // Finish with update sequence
             
             // UNROLLED write(int)
             //=====================
- 
+
+            // Encode
+            c = enctab[c & 0xff];
+            
            // Write
             ostream.write(c);
             
@@ -948,8 +962,7 @@ public class PORWriter
         // Apparently SPSS writes an end-of-line sequence after 'Z' sequence.
         
         // Encode
-        c = enctab[c];
-        
+        c = enctab[c & 0xff];
         
         // Write output
         ostream.write(c);
@@ -972,5 +985,5 @@ public class PORWriter
             row++;
         } // if: row full
         
-    } // write()
+    } // write(int)
 } // class PORWriter
