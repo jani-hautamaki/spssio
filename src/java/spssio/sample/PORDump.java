@@ -438,7 +438,11 @@ public class PORDump {
     public static void parseArgs(String[] args, Options opt) {
         for (int i = 0; i < args.length; i++) {
             String carg = args[i];
-            if (carg.equals("-silent")) {
+            if (carg.equals("-help")) {
+                usage();
+                System.exit(EXIT_SUCCESS);
+            }
+            else if (carg.equals("-silent")) {
                 opt.header_details_flag     = false;
                 opt.variable_details_flag   = false;
                 opt.value_details_flag      = false;
