@@ -36,6 +36,7 @@ import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORHeader;
 import spssio.por.PORMatrix;
+import spssio.por.PORConstants;
 
 // spssio common
 import spssio.common.SPSSFormat;
@@ -52,12 +53,6 @@ public class PORReader
     
     // CONSTANTS
     //===========
-    
-    /** 
-     * The default row length used 
-     * (TODO: This value should be shared with the writer too).
-     */
-    public static final int SPSS_PORTABLE_ROW_LENGTH = 80;
     
     /**
      * Buffer size used for creating BufferedInputStream, unless specified.
@@ -142,7 +137,7 @@ public class PORReader
      */
     public PORReader() {
         buffer_size = DEFAULT_BUFFER_SIZE;
-        row_length = SPSS_PORTABLE_ROW_LENGTH;
+        row_length = PORConstants.ROW_LENGTH;
 
         // Allocated decoding table only once.
         dectab = new int[256];
@@ -162,7 +157,7 @@ public class PORReader
     //==================
     
     /**
-     * Get latest input row number.
+     * Get latest input file row number.
      * @return Latest input row number.
      */
     public int getRow() {
@@ -170,7 +165,7 @@ public class PORReader
     } 
     
     /**
-     * Get latest input column number.
+     * Get latest input file column number.
      * @return Latest input column number.
      */
     public int getColumn() {
@@ -249,19 +244,19 @@ public class PORReader
         por = new PORFile();
         
         // Read the 200-byte header
-        parse_splash_strings();
+        parseSplashStrings();
         
         // Read the 256-byte characte set mapping
-        parse_charset_map();
+        parseCharset();
         
         // Reads the 8-byte signature
-        parse_signature();
+        parseFormatSignature();
         
         // reads the 1-byte format identifier
-        parse_file_version();
+        parseFormatVersion();
         
         // Reads the 8-byte creation date, and the 6-byte creation time.
-        parse_creation_datetime();
+        parseCreationTimestamp();
         
         // from this point on, read "tag" and switch until tag='F' is met.
         int tag;
@@ -272,59 +267,59 @@ public class PORReader
             // Parse the incoming input according to the tag code
             switch(tag) {
                 case '1':
-                    parse_software();
+                    parseSoftware();
                     break;
                 
                 case '2':
-                    parse_author();
+                    parseAuthor();
                     break;
                 
                 case '3':
-                    parse_title();
+                    parseTitle();
                     break;
                 
                 case '4':
-                    parse_varcount();
+                    parseVariableCount();
                     break;
                 
                 case '5':
-                    parse_precision();
+                    parseNumericPrecision();
                     break;
                 
                 case '6':
-                    parse_weight_variable();
+                    parseWeightVariable();
                     break;
                     
                 case '7':
-                    parse_variable_record();
+                    parseVariableRecord();
                     break;
                 
                 case '8':
-                    parse_missing_discrete();
+                    parseMissingDiscrete();
                     break;
             
                 case '9':
-                    parse_missing_open_lo();
+                    parseMissingRangeOpenLo();
                     break;
                 
                 case 'A':
-                    parse_missing_open_hi();
+                    parseMissingRangeOpenHi();
                     break;
                 
                 case 'B':
-                    parse_missing_closed();
+                    parseMissingRangeClosed();
                     break;
                 
                 case 'C':
-                    parse_variable_label();
+                    parseVariableLabel();
                     break;
                 
                 case 'D':
-                    parse_value_labels();
+                    parseValueLabelsRecord();
                     break;
                 
                 case 'E':
-                    parse_document_records();
+                    parseDocumentsRecord();
                     break;
                 
                 case 'F':
@@ -341,10 +336,10 @@ public class PORReader
         } while (tag != 'F');
         
         // Parse the data matrix
-        parse_data_matrix();
+        parseDataMatrixRecord();
     } // parse()
     
-    protected void parse_splash_strings() {
+    protected void parseSplashStrings() {
         // Allocate a byte array for the splash strings.
         byte[] array = new byte[5*40];
         
@@ -355,7 +350,7 @@ public class PORReader
         por.header.splash = array;
     } // parse_splash_strings()
     
-    protected void parse_charset_map() {
+    protected void parseCharset() {
         // TODO:
         // Avoid allocating a new one, and use the one that
         // has been allocated to the PORFile?
@@ -375,7 +370,7 @@ public class PORReader
     } // parse_charset_map()
     
     
-    protected void parse_signature() {
+    protected void parseFormatSignature() {
         
         // Allocate an array for the signature
         byte[] array = new byte[8];
@@ -399,7 +394,7 @@ public class PORReader
         por.header.signature = signature;
     } // parse_signature()
 
-    protected void parse_file_version() {
+    protected void parseFormatVersion() {
         int c = readc();
         
         // TODO: Decode?
@@ -408,7 +403,7 @@ public class PORReader
         por.header.version = (char) c;
     } // parse_file_version();
 
-    protected void parse_creation_datetime() {
+    protected void parseCreationTimestamp() {
         // Parse creation date
         por.header.date = parse_string();
         
@@ -417,31 +412,31 @@ public class PORReader
     }
 
     
-    protected void parse_software() {
+    protected void parseSoftware() {
         por.header.software = parse_string();
     }
     
-    protected void parse_author() {
+    protected void parseAuthor() {
         por.header.author = parse_string();
     }
     
-    protected void parse_title() {
+    protected void parseTitle() {
         por.header.title = parse_string();
     }
     
-    protected void parse_varcount() {
+    protected void parseVariableCount() {
         por.header.nvariables = parse_uint();
     }
     
-    protected void parse_precision() {
+    protected void parseNumericPrecision() {
         por.header.precision = parse_uint();
     }
     
-    protected void parse_weight_variable() {
+    protected void parseWeightVariable() {
         por.header.weight_var_name = parse_string();
     }
     
-    protected void parse_variable_record() {
+    protected void parseVariableRecord() {
         // Create a new PORVariable object
         lastvar = new PORVariable();
         
@@ -472,7 +467,7 @@ public class PORReader
         
     } // parse_variable_record()
                 
-    protected void parse_missing_discrete() {
+    protected void parseMissingDiscrete() {
         if (lastvar == null) {
             error_syntax("Tag '7\' (variable record) should precede tag=\'8' (missing value)");
         }
@@ -489,7 +484,7 @@ public class PORReader
     } // parse_missing_discrete()
     
             
-    protected void parse_missing_open_lo() {
+    protected void parseMissingRangeOpenLo() {
         if (lastvar == null) {
             error_syntax("Tag '7\' (variable record) should precede tag=\'9' (missing open lo)");
         }
@@ -505,7 +500,7 @@ public class PORReader
         miss.values[0] = parse_value(lastvar);
     } // parse_missing_open_lo()
     
-    protected void parse_missing_open_hi() {
+    protected void parseMissingRangeOpenHi() {
         if (lastvar == null) {
             error_syntax("Tag '7\' (variable record) should precede tag=\'A' (missing open hi)");
         }
@@ -521,7 +516,7 @@ public class PORReader
         miss.values[0] = parse_value(lastvar);
     } // parse_missing_open_hi()
     
-    protected void parse_missing_closed() {
+    protected void parseMissingRangeClosed() {
         if (lastvar == null) {
             error_syntax("Tag '7\' (variable record) should precede tag=\'A' (missing range)");
         }
@@ -538,7 +533,7 @@ public class PORReader
         miss.values[1] = parse_value(lastvar);
     } // parse_missing_closed()
     
-    protected void parse_variable_label() {
+    protected void parseVariableLabel() {
         if (lastvar == null) {
             error_syntax("Tag '7\' (variable record) should precede tag=\'A' (variable label)");
         }
@@ -553,7 +548,7 @@ public class PORReader
      * Therefore, the only way of knowing this is to assume and expect
      * that variable records for the variables listed are already specified.
      */
-    protected void parse_value_labels() {
+    protected void parseValueLabelsRecord() {
         PORValueLabels valuelabels = new PORValueLabels();
         
         int vartype = PORValue.TYPE_UNASSIGNED;
@@ -609,12 +604,12 @@ public class PORReader
         por.labels.add(valuelabels);
     } // parse_value_labels()
                 
-    protected void parse_document_records() {
+    protected void parseDocumentsRecord() {
         throw new RuntimeException(
             "Document records parsing is unimplemented");
     }
 
-    protected void parse_data_matrix() {
+    protected void parseDataMatrixRecord() {
         //System.out.printf("File position: %d / %d\n", fpos, fsize);
         
         // Pick to a local variable for convenience

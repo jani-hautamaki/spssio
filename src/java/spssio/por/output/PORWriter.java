@@ -347,7 +347,7 @@ public class PORWriter
         // TODO: Set encoding
         
         // Write the 8-byte signature
-        outputSignature(signature);
+        outputFormatSignature(signature);
         
         // Write the 1-byte format identifier
         outputFormatVersion(version);
@@ -388,7 +388,7 @@ public class PORWriter
         }
     }
     
-    public void outputSignature(String signature) 
+    public void outputFormatSignature(String signature) 
         throws IOException
     {
         // If unspecified, use defalt

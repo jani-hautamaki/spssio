@@ -31,7 +31,7 @@ public class PORConstants
     /**
      * Text row width for Portable files (bytes).
      */
-    public static final int ROW_WIDTH = 80;
+    public static final int ROW_LENGTH = 80;
     
     
     /**
