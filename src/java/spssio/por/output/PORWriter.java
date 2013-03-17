@@ -21,6 +21,9 @@ package spssio.por.output;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.util.Map; // for PORValueLabels
+// for timestamp formation
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 // spssio
 import spssio.util.NumberSystem;
@@ -115,15 +118,16 @@ public class PORWriter
     //===========
     
     /**
-     * Use Usnix-style end-of-lines: LF ({@code '\n'}) only.
+     * Use Unix-style end-of-lines: LF ({@code '\n'}) only.
+     * TBC: Use int[] array instead of a constant?
      */
-    
-    public static final int EOL_LF                  = 1;
+    public static final int EOL_LF                  = 0x0A;
     
     /**
-     * Use Windows-style end-of-lines: CR {@code '\r'} + LF ({@code '\n'}).
+     * Use Windows-style end-of-lines: CR+LF ({@code '\r'}+{@code '\n'}).
+     * TBC: Use int[] array instead of a constant?
      */
-    public static final int EOL_CRLF                = 2;
+    public static final int EOL_CRLF                = 0x0D0A;
     
     // MEMBER VARIABLES
     //==================
@@ -203,7 +207,8 @@ public class PORWriter
     
     
     /**
-     * Convert {@code PORFile} into a list of {@code PORSection}s.
+     * Convert {@code PORFile} into a sequence of {@code PORSection}s.
+     * The sequence can then be assembled into a Portable file.
      *
      * @param file The Portable file to sectionize
      *
@@ -214,19 +219,29 @@ public class PORWriter
         return null;
     }
     
-    
-    
-    
-    
-    
 
     // OUTPUT PRIMITIVES
     //===================
     
-    public void outputSection(PORSection section) {
-        // switch...
+    public void outputSection(PORSection section) 
+        throws IOException
+    {
+        // Pass-forward
+        outputSection(section.tag, section.obj);
     }
     
+    /**
+     * Output a Portable file section with specified tag and object.
+     * This method is provided for bypassing the creation of a temporary
+     * {@code PORSection} object.
+     *
+     * @param tag The tag code. See {@code PORSection} for tag codes.
+     * @param obj The associated object. See {@code PORSection} for
+     *      the expected types of the associated objects.
+     * 
+     * @see PORSection
+     *
+     */
     public void outputSection(int tag, Object obj) 
         throws IOException
     {
@@ -405,8 +420,12 @@ public class PORWriter
         // TODO:
         // If date or time is left unspecified, use current date/time.
         if (date == null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+            date = sdf.format(new Date());
         }
         if (time == null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("HHmmss");
+            date = sdf.format(new Date());
         }
         
         if ((date.length() != 8) || (time.length() != 6)) {
@@ -818,7 +837,7 @@ public class PORWriter
     
     // TODO:
     // Should the method be renamed to outputDouble()?
-    public void outputNumber(double value)
+    public void outputNumeric(double value)
         throws IOException
     {
         // TODO: Apply NumberFormatter
@@ -974,7 +993,7 @@ public class PORWriter
         // reset column, and move to next row.
         if (col == row_length) {
             // Write end-of-line sequence.
-            // If Windows-style, then precede LF by CR.
+            // If Windows-style, then precede with CR.
             if (eol == EOL_CRLF) {
                 ostream.write('\r'); // CR
             }

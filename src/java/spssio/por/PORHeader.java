@@ -110,6 +110,7 @@ public class PORHeader {
      * Tag code '4', the number of variables in the file dictionary (mandatory).
      */
     public int nvariables;
+    // TBC: Rename into numberOfVariables
     
     /**
      * Tag code '5', the precision used for Portable file base-30 floating point
@@ -128,6 +129,7 @@ public class PORHeader {
     
     /** The actual weight variable name found from the Portable file. */
     public String weight_var_name;
+    // TBC: weightName;
     
     // CONSTRUCTORS
     //==============

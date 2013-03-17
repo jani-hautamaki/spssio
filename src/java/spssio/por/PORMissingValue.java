@@ -73,6 +73,7 @@ public class PORMissingValue
      * The values related to the missing value specification
      */
     public PORValue[] values;
+    // TBC: use singular instead of plural?
     
     // CONSTRUCTORS
     //==============

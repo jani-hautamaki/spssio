@@ -60,12 +60,14 @@ public class PORVariable {
      * Write format. Same as in SAVFile.
      */
     public SPSSFormat writefmt;
+    // TBC: parsefmt?
     
     /**
      * Tag codes '8', '9', 'A' and 'B', missing value specifications (optional).
      * If there aren't any missing values, the vector length is zero.
      */
     public Vector<PORMissingValue> missvalues;
+    // TBC: missings?
     
     /**
      * Tag code 'C', variable label (optional).

@@ -313,7 +313,7 @@ public class PORCharset
     //=================
 
     private static int[] g_default_charset = null;
-    
+    private static int[] g_identity_table = null;
 
     // CONSTRUCTORS
     //==============
@@ -329,7 +329,17 @@ public class PORCharset
             computeDefaultCharset(g_default_charset);
         }
         return g_default_charset;
-    } // getDefaultCharset();
+    } // getDefaultCharset()
+    
+    public static final int[] getIdentityTable() {
+        if (g_identity_table == null) {
+            g_identity_table = new int[256];
+            for (int i = 0; i < 256; i++) {
+                g_identity_table[i] = i;
+            }
+        }
+        return g_identity_table;
+    } // getIdentityTable()
     
     /**
      * Computes the default charset into the specified array.
