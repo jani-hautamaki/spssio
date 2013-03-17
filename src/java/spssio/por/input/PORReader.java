@@ -405,35 +405,35 @@ public class PORReader
 
     protected void parseCreationTimestamp() {
         // Parse creation date
-        por.header.date = parse_string();
+        por.header.date = parseString();
         
         // Parse creation time of day
-        por.header.time = parse_string();
+        por.header.time = parseString();
     }
 
     
     protected void parseSoftware() {
-        por.header.software = parse_string();
+        por.header.software = parseString();
     }
     
     protected void parseAuthor() {
-        por.header.author = parse_string();
+        por.header.author = parseString();
     }
     
     protected void parseTitle() {
-        por.header.title = parse_string();
+        por.header.title = parseString();
     }
     
     protected void parseVariableCount() {
-        por.header.nvariables = parse_uint();
+        por.header.nvariables = parseIntU();
     }
     
     protected void parseNumericPrecision() {
-        por.header.precision = parse_uint();
+        por.header.precision = parseIntU();
     }
     
     protected void parseWeightVariable() {
-        por.header.weight_var_name = parse_string();
+        por.header.weight_var_name = parseString();
     }
     
     protected void parseVariableRecord() {
@@ -443,25 +443,25 @@ public class PORReader
         // Add it immediately to the PORFile object
         por.variables.add(lastvar);
         
-        lastvar.width = parse_uint();
+        lastvar.width = parseIntU();
         // TODO: Validate value range: 0-255
         
-        lastvar.name = parse_string();
+        lastvar.name = parseString();
         // TODO: Validate name length; 1-8
         
         SPSSFormat fmt = null;
         
         fmt = new SPSSFormat();
-        fmt.type = parse_uint();
-        fmt.width = parse_uint();
-        fmt.decimals = parse_uint();
+        fmt.type = parseIntU();
+        fmt.width = parseIntU();
+        fmt.decimals = parseIntU();
         // TODO: Validate numeric values
         lastvar.printfmt = fmt;
         
         fmt = new SPSSFormat();
-        fmt.type = parse_uint();
-        fmt.width = parse_uint();
-        fmt.decimals = parse_uint();
+        fmt.type = parseIntU();
+        fmt.width = parseIntU();
+        fmt.decimals = parseIntU();
         // TODO: Validate numeric values
         lastvar.writefmt = fmt;
         
@@ -480,7 +480,7 @@ public class PORReader
         lastvar.missvalues.add(miss);
         
         // Parse the value
-        miss.values[0] = parse_value(lastvar);
+        miss.values[0] = parseValue(lastvar);
     } // parse_missing_discrete()
     
             
@@ -497,7 +497,7 @@ public class PORReader
         lastvar.missvalues.add(miss);
         
         // Parse the value
-        miss.values[0] = parse_value(lastvar);
+        miss.values[0] = parseValue(lastvar);
     } // parse_missing_open_lo()
     
     protected void parseMissingRangeOpenHi() {
@@ -513,7 +513,7 @@ public class PORReader
         lastvar.missvalues.add(miss);
         
         // Parse the value
-        miss.values[0] = parse_value(lastvar);
+        miss.values[0] = parseValue(lastvar);
     } // parse_missing_open_hi()
     
     protected void parseMissingRangeClosed() {
@@ -529,8 +529,8 @@ public class PORReader
         lastvar.missvalues.add(miss);
         
         // Parse the values
-        miss.values[0] = parse_value(lastvar);
-        miss.values[1] = parse_value(lastvar);
+        miss.values[0] = parseValue(lastvar);
+        miss.values[1] = parseValue(lastvar);
     } // parse_missing_closed()
     
     protected void parseVariableLabel() {
@@ -538,7 +538,7 @@ public class PORReader
             error_syntax("Tag '7\' (variable record) should precede tag=\'A' (variable label)");
         }
         
-        lastvar.label = parse_string();
+        lastvar.label = parseString();
     } // parse_variable_label()
     
     /**
@@ -557,12 +557,12 @@ public class PORReader
         int count;
         
         // Variable names count
-        count = parse_uint();
+        count = parseIntU();
         
         valuelabels.vars.ensureCapacity(count);
         
         for (int i = 0; i < count; i++) {
-            String varname = parse_string();
+            String varname = parseString();
             // Resolve variable
             PORVariable cvar = por.getVariable(varname);
             if (cvar == null) {
@@ -589,14 +589,14 @@ public class PORReader
         } // for: varnames list
         
         // Value labels count
-        count = parse_uint();
+        count = parseIntU();
         
         for (int i = 0; i < count; i++) {
             PORValue value;
             String label;
             
-            value = parse_value(vartype);
-            label = parse_string();
+            value = parseValue(vartype);
+            label = parseString();
             valuelabels.mappings.put(value, label);
         } // for: value-label list
         
@@ -680,8 +680,8 @@ public class PORReader
     // PRIMITIVES
     //=======================================================================
     
-    protected String parse_string() {
-        int len = parse_uint();
+    protected String parseString() {
+        int len = parseIntU();
         
         StringBuilder sb = new StringBuilder(len);
         for (int i = 0; i < len; i++) {
@@ -691,32 +691,32 @@ public class PORReader
         }
         
         return sb.toString();
-    } // parse_string()
+    } // parseString()
     
-    protected PORValue parse_value(PORVariable variable) {
+    protected PORValue parseValue(PORVariable variable) {
         PORValue rval;
         
         if (variable.width == 0) {
             // Numeric
-            rval = parse_numeric_value();
+            rval = parseValueNumeric();
         } else {
             // String
-            rval = parse_string_value();
+            rval = parseValueString();
             // TODO:
             // Validate the string length
         }
         return rval;
     } // parse_value();
     
-    protected PORValue parse_value(int value_type) {
+    protected PORValue parseValue(int value_type) {
         PORValue rval;
         
         if (value_type == PORValue.TYPE_NUMERIC) {
             // Numeric
-            rval = parse_numeric_value();
+            rval = parseValueNumeric();
         } else if (value_type == PORValue.TYPE_STRING) {
             // String
-            rval = parse_string_value();
+            rval = parseValueString();
             // TODO:
             // Validate the string length
         } else {
@@ -728,11 +728,11 @@ public class PORReader
     } // parse_value();
     
 
-    protected PORValue parse_string_value() {
-        return new PORValue(PORValue.TYPE_STRING, parse_string());
+    protected PORValue parseValueString() {
+        return new PORValue(PORValue.TYPE_STRING, parseString());
     }
     
-    protected PORValue parse_numeric_value() {
+    protected PORValue parseValueNumeric() {
         int c;
         StringBuilder sb = new StringBuilder(128);
         
@@ -781,8 +781,7 @@ public class PORReader
         return new PORValue(PORValue.TYPE_NUMERIC, sb.toString());
     } // parse_numeric_value()
     
-    
-    protected int parse_uint() {
+    protected int parseIntU() {
         int c;
         
         // Reset the NumberParser
@@ -820,7 +819,7 @@ public class PORReader
         }
         
         return rval;
-    } // parse_uint()
+    } // parseIntU()
     
 
     // SUPPORT FUNCTIONS
