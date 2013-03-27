@@ -37,6 +37,12 @@ public class NumberFormatter {
      */
     public static final int DEFAULT_BUFFER_SIZE             = 256;
     
+    /**
+     * Initial value of the precision.
+     * Indicates that the precision hasn't been initialized yet.
+     */
+    public static final int PRECISION_UNSET                 = -1;
+    
     // MEMBER VARIABLES
     //==================
     
@@ -101,7 +107,7 @@ public class NumberFormatter {
         head = 0;
         
         // Mark the precision as invalid
-        precision = -1;
+        precision = PRECISION_UNSET;
         
         // Unset the number system
         numberSystem = null;
@@ -147,7 +153,8 @@ public class NumberFormatter {
     //===============
     
     /** 
-     * Set the number system, and use the default precision for it.
+     * Set the number system, and use the default precision for it,
+     * if the number system is initialized.
      * 
      * @param numsys The number system to be used
      */
@@ -155,21 +162,17 @@ public class NumberFormatter {
         // Validate the parameter
         if (numsys == null) throw new IllegalArgumentException();
         
-        // Calculate the default precision.
-        // Java's doubles are IEEE double precision floating points,
-        // so they have 53 bit mantissa's (with 52 bits explicitly stored).
-        // Therefore, it takes
-        //
-        //      53*ln(2) / ln(N) 
-        //
-        // base-N digits to express the mantissa completely.
+        // Set the number system
+        this.numberSystem = numsys;
         
-        int defaultPrecision = (int) Math.ceil(
-            (53.0*Math.log(2.0)) / Math.log(numberSystem.base)
-        ); // ceil()
-        
-        // Forward the call with the newly calculated precision
-        setNumberSystem(numsys, defaultPrecision);
+        // If the base has been set in the number system,
+        // use default precision. Otherwise, reset the precision to
+        // uninitialized state.
+        if (numsys.base != NumberSystem.BASE_UNSET) {
+            setDefaultPrecision();
+        } else {
+            precision = PRECISION_UNSET;
+        }
     } // setNumberSystem()
     
     /**
@@ -199,6 +202,35 @@ public class NumberFormatter {
     public void setPrecision(int newPrecision) {
         if (newPrecision < 1) throw new IllegalArgumentException();
         this.precision = newPrecision;
+    }
+    
+    /**
+     * Set the precision used by the formatter to a default value.
+     * The default value is calculated from the number system's base.
+     * Therefore, the number system must be initialized prior to this.
+     */
+    public void setDefaultPrecision() {
+        if (numberSystem == null) {
+            throw new RuntimeException("No number system set");
+        }
+        if (numberSystem.base == NumberSystem.BASE_UNSET) {
+            throw new RuntimeException(
+                "The number system base is unset");
+        }
+        // Calculate the default precision.
+        // Java's doubles are IEEE double precision floating points,
+        // so they have 53 bit mantissa's (with 52 bits explicitly stored).
+        // Therefore, it takes
+        //
+        //      53*ln(2) / ln(N) 
+        //
+        // base-N digits to express the mantissa completely.
+        
+        int defaultPrecision = (int) Math.ceil(
+            (53.0*Math.log(2.0)) / Math.log(numberSystem.base)
+        ); // ceil()
+        
+        precision = defaultPrecision;
     }
     
     /**
@@ -367,20 +399,26 @@ public class NumberFormatter {
             // 0 <= value < base
             value = value / Math.pow(base, exp);
             
-            // NOTE: There is a slight possibility that Math.log() returned
-            // a bigger value than it should have. 
+            // NOTE 1:: There is a slight possibility that Math.log() 
+            // returned a bigger value than it should have. 
             // For example, for double=656099999999.9994 the Math.Log() 
             // for base=30 gives exactly 8.0, which will cause the value 
             // to become less than 1 in the division above.
+            // NOTE 2: Math.log() may also return a smaller value than it
+            // should. For example, with base=10, double=1000.0 returns
+            // 2.99999999999999960 which is then floored to 2.0
             //
             // Therefore, this is a dirty hack xxxx for asserting
-            // that the first digit is never zero.
+            // that the first digit is never zero or >= base
             //
             // TODO: Searching the log() value from a lookup table with 
             // comparision would avoid this.
             if (value < 1.0) {
                 value *= base;
                 exp--;
+            } else if (value >= base) {
+                value /= base;
+                exp++;
             }
             
             
@@ -403,6 +441,8 @@ public class NumberFormatter {
             
         } else {
             // Use BigDecimals
+            // TODO TODO TODO TODO TODO TODO 
+            // TODO TODO TODO TODO TODO TODO
         } // if-else
         
         // Save the remainder into a member variable for debugging

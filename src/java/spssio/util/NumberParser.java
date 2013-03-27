@@ -240,6 +240,16 @@ public class NumberParser
         mctx = context;
     }
     
+    /**
+     * Get the currently used settings for {@code BigDecimal}s.
+     *
+     * @return The currently used {@code} MathContext object, 
+     *      or {@code null} if none.
+     */
+    public MathContext getMathContext() {
+        return mctx;
+    }
+    
     // ERROR INTERROGATION
     //=====================
     

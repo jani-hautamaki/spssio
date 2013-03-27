@@ -17,7 +17,10 @@
 
 package spssio.util;
 
-// for testing
+// for locale-independent formatting
+import java.util.Locale;
+
+// for stdin/stdout handling
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
@@ -30,6 +33,7 @@ import java.math.RoundingMode;
 // spssio utils
 import spssio.util.NumberSystem;
 import spssio.util.NumberParser;
+import spssio.util.NumberFormatter;
 
 /**
  * Test application for the number system related classes.
@@ -38,25 +42,52 @@ import spssio.util.NumberParser;
  */
 public class NumberSystemTool {
     
+    // CONSTANTS
+    //===========
+    
+    private static final int INPUT_NUMPARSER            = 0;
+    private static final int INPUT_JAVA_BUILTIN         = 1;
+    private static final int INPUT_HEX                  = 2;
+    private static final int INPUT_RESHAPE              = 3;
+    
+    private static final int OUTPUT_NUMFORMATTER        = 0;
+    private static final int OUTPUT_JAVA_FORMAT         = 1;
+    private static final int OUTPUT_JAVA_TOSTRING       = 2;
+    
     // MEMBER VARIABLES
     //==================
     
     private boolean quit = false;
-    private NumberSystem sys = null;
+    private NumberSystem sysin = null;
+    private NumberSystem sysout = null;
     private NumberParser parser = null;
+    private NumberFormatter formatter = null;
     
+    
+    private int inputMode  = INPUT_NUMPARSER;
+    private int outputMode = OUTPUT_NUMFORMATTER;
+    
+    private String inputMathContextName = null;
+    private String outputMathContextName = null;
+    
+    private String outputFormat = null;
     private boolean show_double_bits = false;
-    private boolean use_builtin_parser = false;
-    private String ctx = null;
+    private int lastPromptLength = 0;
+    
     
     // CONSTRUCTORS
     //==============
     
     public NumberSystemTool() {
-        sys = new NumberSystem();
+        sysin = new NumberSystem();
+        sysout = new NumberSystem();
+        
         parser = new NumberParser();
-        // Associate number system with the parser
-        parser.setNumberSystem(sys);
+        formatter = new NumberFormatter();
+        
+        // Associate number system with the parser and with the formatter.
+        parser.setNumberSystem(sysin);
+        formatter.setNumberSystem(sysout);
     } // ctor
     
     // OTHER METHODS
@@ -72,7 +103,10 @@ public class NumberSystemTool {
         } // try-catch
 
         // Initialize number system to base 10.
-        sys.setBase(10);
+        sysin.setBase(10);
+        sysout.setBase(10);
+        formatter.setDefaultPrecision();
+        outputFormat = "%.18g";
         
         // Show number system details at the beginning.
         printLimits();
@@ -80,28 +114,55 @@ public class NumberSystemTool {
         quit = false;
         do {
             String line = null;
+            String prompt = null;
             
-            if (use_builtin_parser == false) {
-                if (ctx == null) {
-                    System.out.printf("b=%d>> ", sys.getBase());
+            // Display prompt
+            if (inputMode == INPUT_NUMPARSER) {
+                if (inputMathContextName != null) {
+                    prompt = String.format("b=%d:tool:m=%s >> ", 
+                        sysin.getBase(), inputMathContextName);
                 } else {
-                    System.out.printf("b=%d|m=%s>> ", sys.getBase(), ctx);
-                }
+                    prompt = String.format("b=%d:tool >> ", 
+                        sysin.getBase());
+                } // if-else: math context set
+            } else if (inputMode == INPUT_JAVA_BUILTIN) {
+                prompt = String.format("b=10:java >> ");
+            } else if (inputMode == INPUT_HEX) {
+                prompt = String.format("b=16:hex >> ");
+            } else if (inputMode == INPUT_RESHAPE) {
+                if (outputMathContextName != null) {
+                    prompt = String.format("b=%d:reshape=%d:m=%s >> ", 
+                        sysout.getBase(), 
+                        formatter.getPrecision(),
+                        outputMathContextName
+                    ); // format()
+                } else {
+                    prompt = String.format("b=%d:reshape=%d >> ", 
+                        sysout.getBase(),
+                        formatter.getPrecision()
+                    ); // format()
+                } // if-else: math context set
             } else {
-                System.out.printf("java >> ");
-            } // if-else
+                error("Unexpected input mode (this is a bug)");
+            }
             
             try {
+                // Output command prompt
+                System.out.printf("\n");
+                System.out.printf(prompt);
+                lastPromptLength = prompt.length();
+                // Read command
                 line = br.readLine();
             } catch(IOException ex) {
                 error("BufferedReader.readLine() raised an exception");
             } // try-catch
             
+            // split into arguments
             String[] args = line.split(" ");
             try {
                 parseCommand(args);
             } catch(Exception ex) {
-                System.out.printf("%s\n", ex.getMessage());
+                System.out.printf("Error: %s\n", ex.getMessage());
             } // try-catch
             
         } while (!quit);
@@ -125,43 +186,86 @@ public class NumberSystemTool {
             printLimits();
         }
         else if (carg.equals("\\base")) {
+            if (args.length == 1) {
+                printBase();
+            } else if (args.length == 2) {
+                doSetBase(null, args[1]);
+            } else if (args.length == 3) {
+                doSetBase(args[1], args[2]);
+            } else {
+                error("Too many arguments");
+            }
+        }
+        else if (carg.equals("\\precision")) {
+            if (args.length == 1) {
+                printPrecision();
+            } else if (args.length == 2) {
+                doSetPrecision(args[1]);
+            } else {
+                error("Too many arguments");
+            }
+        }
+        else if (carg.equals("\\in")) {
             expectArgs(args, 2);
-            doSetBase(args[1]);
+            doSetInputMode(args[1]);
+        }
+        else if (carg.equals("\\out")) {
+            expectArgs(args, 2);
+            doSetOutputMode(args[1]);
+        }
+        else if (carg.equals("\\format")) {
+            doSetOutputFormat(args);
+        }
+        else if (carg.equals("\\context")) {
+            doSetMathContext(args);
         }
         else if (carg.equals("\\bits")) {
             expectArgs(args, 1);
             toggleShowDoubleBits();
         }
-        else if (carg.equals("\\java")) {
-            expectArgs(args, 1);
-            toggleBuiltinParser();
-        }
         else if (carg.equals("\\trig")) {
             // Shortcut to trigesimals
             expectArgs(args, 1);
-            System.out.printf("Using trigesimals\n");
-            sys.setBase(30);
+            doSetBase(null, "30");
         }
         else if (carg.equals("\\dec")) {
             // Shortcut to decimals
             expectArgs(args, 1);
-            System.out.printf("Using decimals\n");
-            sys.setBase(10);
+            doSetBase(null, "10");
         }
-        else if (carg.equals("\\mode")) {
-            if (args.length == 2) {
-                doSetMode(args[1]);
-            } else {
-                expectArgs(args, 3);
-                doSetMode(args[1], args[2]);
-            } // if-else
+        else if (carg.equals("\\dec2trig")) {
+            sysin.setBase(10);
+            sysout.setBase(30);
+            inputMode = INPUT_JAVA_BUILTIN;
+            outputMode = OUTPUT_NUMFORMATTER;
+            printBase();
+        }
+        else if (carg.equals("\\trig2dec")) {
+            sysin.setBase(30);
+            sysout.setBase(10);
+            inputMode = INPUT_NUMPARSER;
+            outputMode = OUTPUT_JAVA_TOSTRING;
+            printBase();
+        }
+        else if (carg.equals("\\dec2hex")) {
+            sysin.setBase(10);
+            sysout.setBase(16);
+            inputMode = INPUT_JAVA_BUILTIN;
+            outputMode = OUTPUT_NUMFORMATTER;
+            printBase();
+        }
+        else if (carg.equals("\\hex2dec")) {
+            sysin.setBase(16);
+            sysout.setBase(10);
+            inputMode = INPUT_NUMPARSER;
+            outputMode = OUTPUT_JAVA_TOSTRING;
+            printBase();
         }
         else if (args.length > 1) {
             error("Syntax error");
         } 
         else {
             // Otherwise assume it is a number
-            System.out.printf("Parser input: \"%s\"\n", carg);
             parseNumber(carg);
         } // if-else
     } // parse()
@@ -169,32 +273,63 @@ public class NumberSystemTool {
     private void printHelp() {
         System.out.printf("Commands:\n");
         System.out.printf("\n");
-        System.out.printf("\\l                  show number system limits and details\n");
-        System.out.printf("\\base <int>         set the radix/base of the number system\n");
-        System.out.printf("\\tri                shortcut for trigesimals, ie. \\base 30\n");
-        System.out.printf("\\dec                shortcut for decimals, ie. \\base 10\n");
-        System.out.printf("\\bits               toggle bit-level value display\n");
-        System.out.printf("\\java               switch between Double.parseDouble() and NumberParser\n");
-        System.out.printf("\\mode <ctx>         set MathContext, ctx has to be 32, 64 or 128\n");
-        System.out.printf("\\mode <d> <rm>      set arbitrary MathContext; d=precision, rm=rounding\n");
+        System.out.printf("\\l                  Show number system limits and details\n");
+        System.out.printf("\\base [int]         Get/set number system radix\n");
+        System.out.printf("\\base <sys> <int>   get radix, sys is either \"in\" or \"out\"\n");
+        System.out.printf("\\precision [int]    Get/set output precision\n");
+        System.out.printf("\\trig               Shortcut for trigesimals, ie. \\base 30\n");
+        System.out.printf("\\dec                Shortcut for decimals, ie. \\base 10\n");
+        System.out.printf("\\bits               Toggle bit-level value display\n");
         System.out.printf("\\q                  quit\n");
+
+        System.out.printf("Shortcuts:\n");
+        System.out.printf("\\dec2trig           Decimals to trigesimals\n");
+        System.out.printf("\\trig2dec           Trigesimals to decimals\n");
+        System.out.printf("\\dec2hex            Decimals to hexadecimals\n");
+        System.out.printf("\\hex2dec            Hexadecimals to decimals\n");
+        System.out.printf("\n");
+        
+        System.out.printf("Input control:\n");
+        System.out.printf("\\in java            Use Double.parseDouble for input\n");
+        System.out.printf("\\in tool            Use NumberParser.parseDouble for input\n");
+        System.out.printf("\\in hex             Use Double.longBitsToDouble for hex input\n");
+        System.out.printf("\\in reshape         Switch into reformat/reshape mode\n");
+        System.out.printf("\n");
+        System.out.printf("Output control\n");
+        System.out.printf("\\out java           Use Double.toString for output\n");
+        System.out.printf("\\out tool           Use NumberFormatter.formatDouble for output\n");
+        System.out.printf("\\out string         Use String.format for output\n");
+        System.out.printf("\\format [fmt]       Get/et format string for String.format\n");
+        
+        System.out.printf("MathContext control for input and output:\n");
+        System.out.printf("\\context            Display current MathContext for input and output\n");
+        System.out.printf("\\context <x>        Set MathContext to DECIMAL<x>. If n==0, unset\n");
+        System.out.printf("\\context <n> <rm>   Set MathContext to precision=<n>, rounding=<rm>\n");
+        System.out.printf("\n");
+        
+        System.out.printf("As above, solely for input or output MathContext only:\n");
+        System.out.printf("\\context [in|out] <x>\n");
+        System.out.printf("\\context [in|out] <n> <rm>\n");
+        System.out.printf("\n");
+        
         System.out.printf("\n");
         System.out.printf("Every other single argument input is considered a number!\n");
         System.out.printf("\n");
     } // printHelp()
     
     private void printLimits() {
-        System.out.printf("Number system details:\n");
-        System.out.printf("Base:       %d\n", sys.getBase());
-        System.out.printf("Digits:     \"%s\"\n", sys.getDigits());
+        System.out.printf("Input number system details:\n");
+        System.out.printf("Base:       %d\n", sysin.getBase());
+        System.out.printf("Digits:     \"%s\"\n", sysin.getDigits());
         System.out.printf("\n");
-        System.out.printf("Plus char:  \'%c\'\n", sys.getPlusChar());
-        System.out.printf("Minus char: \'%c\'\n", sys.getMinusChar());
-        System.out.printf("Point char: \'%c\'\n", sys.getPointChar());
+        System.out.printf("Plus char:  \'%c\'\n", sysin.getPlusChar());
+        System.out.printf("Minus char: \'%c\'\n", sysin.getMinusChar());
+        System.out.printf("Point char: \'%c\'\n", sysin.getPointChar());
         System.out.printf("\n");
-        System.out.printf("Max double / base: %.18g\n", sys.getMaxDouble());
-        System.out.printf("Min double * base: %.18g\n", sys.getMinDouble());
+        System.out.printf("Max double / base: %.18g\n", sysin.getMaxDouble());
+        System.out.printf("Min double * base: %.18g\n", sysin.getMinDouble());
         System.out.printf("\n");
+        System.out.printf("Java double data type details:\n");
         System.out.printf("Double.MAX:        %.18g\n", Double.MAX_VALUE);
         System.out.printf("Double.MIN:        %.18g\n", Double.MIN_VALUE);
     } // printLimits()
@@ -209,29 +344,79 @@ public class NumberSystemTool {
         exponent = (exponent >> 52) - 1023; // shift and unbiasing
         double frac = ((double) mantissa) * Math.pow(2.0, -52);
 
-        System.out.printf("   double:     %.18g\n", d);
-        System.out.printf("   toLongBits: %s\n", Long.toHexString(bits));
-        System.out.printf("   toLongBits: %s\n", Long.toHexString(Double.doubleToLongBits(d)));
-        System.out.printf("   sign:       %s\n", neg != 0 ? "-" : "+");
-        System.out.printf("   exponent:   2**%d = %.0f\n", exponent, Math.pow(2.0, exponent));
-        System.out.printf("   mantissa:   %s\n", Long.toHexString(mantissa));
-        System.out.printf("   frac:       %.16g\n", frac);
+        System.out.printf("double:     %.18g\n", d);
+        System.out.printf("toLongBits: %s (normal)\n", Long.toHexString(bits));
+        System.out.printf("toLongBits: %s (raw)\n", Long.toHexString(Double.doubleToRawLongBits(d)));
+        System.out.printf("sign:       %s\n", neg != 0 ? "-" : "+");
+        System.out.printf("exponent:   2**%d = %.0f\n", exponent, Math.pow(2.0, exponent));
+        System.out.printf("mantissa:   %s\n", Long.toHexString(mantissa));
+        System.out.printf("frac:       %.16g\n", frac);
     } // printDoubleBits()
+
+    private void printBase() {
+        System.out.printf("Input base:       %d\n", sysin.getBase());
+        System.out.printf("Output base:      %d\n", sysout.getBase());
+        System.out.printf("Output precision: %d\n", formatter.getPrecision());
+    }
     
+    private void printPrecision() {
+        System.out.printf("Output precision: %d\n", formatter.getPrecision());
+    }
+    
+    private void printMathContext() {
+        MathContext mc = null;
+        
+        mc = parser.getMathContext();
+        System.out.printf("Input:\n");
+        if (mc != null) {
+            System.out.printf("   type:           BigDecimal\n");
+            System.out.printf("   precision:      %d\n", mc.getPrecision());
+            System.out.printf("   rounding mode:  %s\n", mc.getRoundingMode());
+        } else {
+            System.out.printf("   type:           double\n");
+        }
+        
+        mc = formatter.getMathContext();
+        System.out.printf("Output:\n");
+        if (mc != null) {
+            System.out.printf("   type:           BigDecimal\n");
+            System.out.printf("   precision:      %d\n", mc.getPrecision());
+            System.out.printf("   rounding mode:  %s\n", mc.getRoundingMode());
+        } else {
+            System.out.printf("   type:           double\n");
+        }
+    }
+    
+    private void printOutputFormat() {
+        System.out.printf("Output format: %s\n", outputFormat);
+    }
+    
+    
+    private void outputIndent() {
+        for (int i = 0; i < lastPromptLength; i++) {
+            System.out.printf(" ");
+        }
+    }
+    
+    private void output(String fmt, Object... args) {
+        outputIndent();
+        System.out.printf(fmt, args);
+    }
     
     private void parseNumber(String arg) {
         try {
-            double value;
+            // result value is stored here
+            double value = 0.0;
             
             // The parse result defaults to invalid
             boolean valid = false;
             
-            if (use_builtin_parser == false) {
+            if (inputMode == INPUT_NUMPARSER) {
                 // Parse using NumberParser
                 value = parser.parseDouble(arg);
-                // Pick the error code
+                
+                // Pick the error code and inspect error status
                 int errno = parser.errno();
-                // Inspect error status
                 if (errno != NumberParser.E_OK) {
                     // Error management
                     System.out.printf("Parse error: %s\n", parser.strerror());
@@ -250,20 +435,61 @@ public class NumberSystemTool {
                     // Parse success. Show results
                     valid = true;
                 } // if-else
-            } else {
+            } else if (inputMode == INPUT_JAVA_BUILTIN) {
                 // Use Java's built-in double parser.
                 value = Double.parseDouble(arg);
                 // Parse success (even though the result might be infinite)
                 valid = true;
-            } // if-else
+            } else if (inputMode == INPUT_HEX) {
+                value = parseDoubleHex(arg);
+                valid = true;
+            } else if (inputMode == INPUT_RESHAPE) {
+                int[] buffer = formatter.getBuffer();
+                int len = arg.length();
+                for (int i = 0; i < len; i++) {
+                    buffer[i] = arg.charAt(i);
+                }
+                len = formatter.reformat(
+                    buffer, len, formatter.getPrecision());
+                output("%s", new String(buffer, 0, len));
+                System.out.printf("   (reformat)\n");
+                return;
+            } else {
+                error("Unexpected input mode (this is a bug)");
+            }
             
-            if (valid) {
-                if (show_double_bits) {
-                    printDoubleBits(value);
+            if (valid == false) {
+                return;
+            }
+            
+            if (outputMode == OUTPUT_NUMFORMATTER) {
+                formatter.formatDouble(value);
+                if (outputMathContextName != null) {
+                    output("%s", formatter.getString());
+                    System.out.printf("   (b=%d:tool:m=%s)\n", 
+                        sysout.getBase(),
+                        outputMathContextName
+                    ); // printf()
                 } else {
-                    System.out.printf("Value: %.18g\n", value);
-                } // if-else: show bits
-            } // if: valid result
+                    output("%s", formatter.getString());
+                    System.out.printf("   (b=%d:tool)\n", 
+                        sysout.getBase());
+                }
+            } else if (outputMode == OUTPUT_JAVA_FORMAT) {
+                output("%s", String.format(
+                    Locale.ROOT, outputFormat, value));
+                System.out.printf("   (%s)\n", outputFormat);
+            } else if (outputMode == OUTPUT_JAVA_TOSTRING) {
+                output(Double.toString(value));
+                System.out.printf("   (Double.toString)\n");
+            } else {
+                error("Unexpected output mode (this is a bug)");
+            }
+
+            if (show_double_bits) {
+                printDoubleBits(value);
+            } 
+            
         }
         catch(NumberFormatException ex) {
             System.out.printf("ERROR: NumberFormatException: %s\n, ex.getMessage()");
@@ -274,49 +500,242 @@ public class NumberSystemTool {
         } // try-catch
     } // parseNumber()
     
-    private void doSetBase(String text) {
-        int value = 0;
-        try {
-            value = Integer.parseInt(text);
-        } catch(Exception ex) {
-            error("Cannot parse integer: \"%s\"", text);
-        } // try-catch
-        
+    private void doSetBase(String arg1, String arg2) {
+        int value = parseInt(arg2);
+
         if (value < 1) {
             error("The base must be greater than zero");
         }
         
-        System.out.printf("Setting new radix: %d\n", value);
-        sys.setBase(value);
+        if ((arg1 == null) || arg1.equals("both")) {
+            // Set input number system base
+            sysin.setBase(value);
+            
+            // Set output number system base, and update precision
+            sysout.setBase(value);
+            formatter.setDefaultPrecision();
+            
+            System.out.printf("Input and output base set\n");
+        } else if (arg1.equals("in")) {
+            sysin.setBase(value);
+            System.out.printf("Input base set\n");
+        } else if (arg1.equals("out")) {
+            sysout.setBase(value);
+            formatter.setDefaultPrecision();
+            System.out.printf("Output base set\n");
+        } else {
+            error("Expected \"in\", \"out\" or \"both\", but found: %s", arg1);
+        } // if-else
+        
+        printBase();
     } // doSetBase()
 
-    private void doSetMode(String arg) {
-        if (arg.equals("128")) {
-            System.out.printf("Using internally: MathContext.DECIMAL128\n");
-            ctx = "128";
-            parser.setMathContext(MathContext.DECIMAL128);
+    private void doSetPrecision(String arg) {
+        int value = parseInt(arg);
+        formatter.setPrecision(value);
+        printPrecision();
+    }
+
+    private void doSetInputMode(String arg) {
+        if (arg.equals("tool")) {
+            inputMode = INPUT_NUMPARSER;
+        } 
+        else if (arg.equals("java")) {
+            inputMode = INPUT_JAVA_BUILTIN;
         }
-        else if (arg.equals("64")) {
-            System.out.printf("Using internally: MathContext.DECIMAL64\n");
-            ctx = "64";
-            parser.setMathContext(MathContext.DECIMAL64);
+        else if (arg.equals("hex")) {
+            inputMode = INPUT_HEX;
         }
-        else if (arg.equals("32")) {
-            System.out.printf("Using internally: MathContext.DECIMAL32\n");
-            ctx = "32";
-            parser.setMathContext(MathContext.DECIMAL32);
-        }
-        else if (arg.equals("0")) {
-            System.out.printf("Using internally: double\n");
-            ctx = null;
-            parser.setMathContext(null);
+        else if (arg.equals("reshape")) {
+            inputMode = INPUT_RESHAPE;
         }
         else {
-            error("Unrecognized mode: \"%s\"", arg);
+            error("Unrecognized input mode: %s", arg);
         }
-    } // doSetMode()
+        System.out.printf("Input mode set.\n");
+    } // doSetInputMode
+
+    private void doSetOutputMode(String arg) {
+        if (arg.equals("tool")) {
+            outputMode = OUTPUT_NUMFORMATTER;
+        } 
+        else if (arg.equals("java")) {
+            outputMode = OUTPUT_JAVA_TOSTRING;
+        }
+        else if (arg.equals("string")) {
+            outputMode = OUTPUT_JAVA_FORMAT;
+        }
+        else {
+            error("Unrecognized output mode: %s", arg);
+        }
+        System.out.printf("Output mode set.\n");
+    } // doSetInputMode
+
+    private void doSetOutputFormat(String[] args) {
+        if (args.length == 1) {
+            printOutputFormat();
+            return;
+        }
+        
+        String fmt = args[1];
+        
+        try {
+            String.format(fmt, 0.0);
+        } catch(Exception ex) {
+            System.out.printf("Invalid format string\n");
+            return;
+        }
+        outputFormat = fmt;
+        printOutputFormat();
+    }
     
-    private void doSetMode(String arg1, String arg2) {
+    private void doSetMathContext(String[] args) {
+        Tuple<String, MathContext> context = null;
+        
+        // null: both, otherwise either "in" or "out"
+        String target = null;
+        
+        if (args.length == 1) {
+            printMathContext();
+            return;
+        } else if (args.length == 2) {
+            // assume: context <x>
+            context = parseMathContext(args[1]);
+        } else if (args.length == 3) {
+            // two possibilities:
+            // context <n> <rm>
+            // context [in/out] <x>
+            if (args[1].equals("in") || args[1].equals("out")) {
+                target = args[1];
+                context = parseMathContext(args[2]);
+            } else {
+                context = parseMathContext(args[1], args[2]);
+            }
+        } else if (args.length == 4) {
+            // assume: context [in/out] <n> <rm>
+            target = args[1];
+            context = parseMathContext(args[2], args[3]);
+        } else {
+            error("Syntax error");
+        }
+        
+        if (target == null) {
+            // set both
+            parser.setMathContext(context.b);
+            formatter.setMathContext(context.b);
+            
+            inputMathContextName = context.a;
+            outputMathContextName = context.a;
+            System.out.printf("Input and output MathContext set\n");
+        } 
+        else if (target.equals("in")) {
+            parser.setMathContext(context.b);
+            inputMathContextName = context.a;
+            System.out.printf("Input MathContext set\n");
+        }
+        else if (target.equals("out")) {
+            formatter.setMathContext(context.b);
+            outputMathContextName = context.a;
+            System.out.printf("Output MathContext set\n");
+        } else {
+            error("Unexpected target: %s (this is a bug)", target);
+        }
+        
+        printMathContext();
+        
+    } // doSetMathContext()
+    
+    
+    private int parseInt(String s) {
+        int value = 0;
+        try {
+            value = Integer.parseInt(s);
+        } catch(Exception ex) {
+            error("Cannot parse integer: \"%s\"", s);
+        } // try-catch
+        return value;
+    }
+    
+    private static double parseDoubleHex(String s) {
+        int len = s.length();
+        if (len != 16) {
+            throw new RuntimeException(
+                "Input hex string length must be exaclty 16");
+        }
+        
+        long val = 0;
+        
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            // convert c from hex char into an int
+            long nibble = 0;
+            if (('0' <= c) && (c <= '9')) {
+                nibble = c - '0';
+            } else if (('a' <= c) && (c <= 'f')) {
+                nibble = (c - 'a') + 10;
+            } else if (('A' <= c) && (c <= 'F')) {
+                nibble = (c - 'A') + 10;
+            } else {
+                throw new RuntimeException(String.format(
+                    "Position %d contains an invalid hex char: \'%c\'", 
+                    i+1, c));
+            } // if-else
+            
+            val = val | (nibble << ((15-i)*4));
+            //val = val | (nibble << (i*4));
+        } // for
+        
+        return Double.longBitsToDouble(val);
+    } // parseHexdouble()
+    
+
+    // Helper class
+    private static class Tuple<S, T> {
+        public S a;
+        public T b;
+        
+        public Tuple(S a, T b) {
+            this.a = a;
+            this.b = b;
+        }
+    } // class Tuple
+
+    private Tuple<String, MathContext> parseMathContext(
+        String arg 
+    ) {
+        Tuple<String, MathContext> rval 
+            = new Tuple<String, MathContext>(null, null);
+        
+        if (arg.equals("128")) {
+            rval.a = "128";
+            rval.b = MathContext.DECIMAL128;
+        }
+        else if (arg.equals("64")) {
+            rval.a = "64";
+            rval.b = MathContext.DECIMAL64;
+        }
+        else if (arg.equals("32")) {
+            rval.a = "32";
+            rval.b = MathContext.DECIMAL32;
+        }
+        else if (arg.equals("0")) {
+            rval.a = null;
+            rval.b = null;
+        }
+        else {
+            error("Unrecognized MathContext: \"%s\"", arg);
+        }
+        
+        return rval;
+    } // parseMathContext()
+    
+    private Tuple<String, MathContext> parseMathContext(
+        String arg1,
+        String arg2
+    ) {
+        Tuple<String, MathContext> rval 
+            = new Tuple<String, MathContext>(null, null);
+        
         int digits = 0;
         try {
             digits = Integer.parseInt(arg1);
@@ -332,9 +751,10 @@ public class NumberSystemTool {
         } // try-catch
         
         MathContext mctx = new MathContext(digits, rm);
-        parser.setMathContext(mctx);
-        ctx = String.format("%d/%s", digits, arg2);
-    } // doSetMode()
+        String name = String.format("%d/%s", digits, arg2);
+        
+        return new Tuple<String, MathContext>(name, mctx);
+    }
     
 
     private void toggleShowDoubleBits() {
@@ -346,15 +766,6 @@ public class NumberSystemTool {
         show_double_bits = !show_double_bits;
     } // toggleDoubleBits()
 
-    private void toggleBuiltinParser() {
-        if (use_builtin_parser == true) {
-            System.out.printf("Using NumberParser\n");
-        } else {
-            System.out.printf("Using Java\'s built-in Double.parseDouble()\n");
-        }
-        use_builtin_parser = !use_builtin_parser;
-    } // toggleBuiltinParser()
-    
     
     private void expectArgs(String[] args, int len) {
         if (args.length != len) {

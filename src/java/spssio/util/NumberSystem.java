@@ -39,6 +39,15 @@ package spssio.util;
 public class NumberSystem
 {
     
+    // CONSTANTS
+    //===========
+    
+    /**
+     * The initial value for the base indicating that the base hasn't
+     * been set yet.
+     */
+    public static final int BASE_UNSET = -1;
+    
     // MEMBER VARIABLES
     //==================
     
@@ -151,7 +160,7 @@ public class NumberSystem
         
         // Keep the base unset. The number system is not initialized 
         // until user explicitly requests so.
-        base = -1;
+        base = BASE_UNSET;
     } // ctor
     
     /**
