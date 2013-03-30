@@ -71,7 +71,7 @@ public class NumberSystemTool {
     private String outputMathContextName = null;
     
     private String outputFormat = null;
-    private boolean show_double_bits = false;
+    private boolean outputDoubleBits = false;
     private int lastPromptLength = 0;
     
     
@@ -337,20 +337,30 @@ public class NumberSystemTool {
     private void printDoubleBits(double d) {
         long bits = Double.doubleToLongBits(d);
         
-        long neg =      bits & 0x8000000000000000L;
+        // Extract separate parts
+        long msign =    bits & 0x8000000000000000L;
         long exponent = bits & 0x7ff0000000000000L;
-        long mantissa = (bits & 0x000fffffffffffffL) | 0x0010000000000000L; // normalized
+        long mantissa = (bits & 0x000fffffffffffffL);
 
-        exponent = (exponent >> 52) - 1023; // shift and unbiasing
+        //exponent = (exponent >> 52) - 1023; // shift and unbiasing
+        exponent = exponent >> 52; // shift
+        
+        output("dec:       %s   (Double.toString)\n", Double.toString(d));
+        output("hex:       %s   (doubleToLongBits)\n", Long.toHexString(bits));
+        output("exp/mant: %-3s %13s  abc\n", 
+            Long.toHexString(exponent), Long.toHexString(mantissa));
+        
+        exponent = exponent - 1023;      // unbiasing
+        mantissa |= 0x0010000000000000L; // normalizing
         double frac = ((double) mantissa) * Math.pow(2.0, -52);
 
-        System.out.printf("double:     %.18g\n", d);
-        System.out.printf("toLongBits: %s (normal)\n", Long.toHexString(bits));
-        System.out.printf("toLongBits: %s (raw)\n", Long.toHexString(Double.doubleToRawLongBits(d)));
-        System.out.printf("sign:       %s\n", neg != 0 ? "-" : "+");
-        System.out.printf("exponent:   2**%d = %.0f\n", exponent, Math.pow(2.0, exponent));
-        System.out.printf("mantissa:   %s\n", Long.toHexString(mantissa));
-        System.out.printf("frac:       %.16g\n", frac);
+        output("sign:      %s\n", msign != 0 ? "-" : "+");
+        if (exponent >= 0) {
+            output("exponent:  2**%d = %.0f\n", exponent, Math.pow(2.0, exponent));
+        } else {
+            output("exponent:  2**%d = 1/%.0f\n", exponent, Math.pow(2.0, -exponent));
+        }
+        output("mantissa:  %s\n", Double.toString(frac));
     } // printDoubleBits()
 
     private void printBase() {
@@ -402,6 +412,17 @@ public class NumberSystemTool {
         outputIndent();
         System.out.printf(fmt, args);
     }
+    
+    private void output2(String prefix, String fmt, Object... args) {
+        int indentLength = lastPromptLength - prefix.length();
+        for (int i = 0; i < indentLength; i++) {
+            System.out.printf(" ");
+        }
+        
+        System.out.printf(prefix);
+        System.out.printf(fmt, args);
+    }
+    
     
     private void parseNumber(String arg) {
         try {
@@ -462,6 +483,21 @@ public class NumberSystemTool {
                 return;
             }
             
+            // If succesfully parsed, output the value
+            // in hexadecimal and in decimal.
+            if (outputDoubleBits == false) {
+                output("hex: %s\n",
+                    Long.toHexString(Double.doubleToRawLongBits(value))
+                );
+                output("dec: %s   (Double.toString)\n", 
+                    Double.toString(value)
+                );
+            } else {
+                printDoubleBits(value);
+            } 
+            
+            
+            
             if (outputMode == OUTPUT_NUMFORMATTER) {
                 formatter.formatDouble(value);
                 if (outputMathContextName != null) {
@@ -486,9 +522,6 @@ public class NumberSystemTool {
                 error("Unexpected output mode (this is a bug)");
             }
 
-            if (show_double_bits) {
-                printDoubleBits(value);
-            } 
             
         }
         catch(NumberFormatException ex) {
@@ -758,12 +791,12 @@ public class NumberSystemTool {
     
 
     private void toggleShowDoubleBits() {
-        if (show_double_bits == true) {
+        if (outputDoubleBits == true) {
             System.out.printf("Turning off double bit-level information\n");
         } else {
             System.out.printf("Turning on double bit-level information\n");
         }
-        show_double_bits = !show_double_bits;
+        outputDoubleBits = !outputDoubleBits;
     } // toggleDoubleBits()
 
     
@@ -843,4 +876,21 @@ public class NumberSystemTool {
     // Numeric limits in base-10:
     // Max double: 5.99231044954105300e+306
     // Min double: 1.50000000000000000e-322
+    
+    
+    /*
+     * Some examples. First, converting IEEE 64-bit floating points into
+     * base-30 string representations:
+     * "27 23 f7 0c 92 52 93 3f" results in "GTECSL0R001-C"
+     * "26 23 f7 0c 92 52 93 3f" results in "GTECSL0QTTT-C"
+     */
+    /* 
+     *                    0.623560537            => IL6411E5L01-B
+     *  .IL6411E5L01    = 0.623560536999999900   => IL6411E5KTT-B
+     * 1.FBOP0S65C      = 1.51314201400000000    => 1FBOP0S65C-9
+     * MJD8FEMNTTT-C    = 0.0251645480000000020  => MJD8FEMO001-C
+     * 4JGBA84O-9       = 0.00516836800000000040 => (ok)
+     *
+     */
+    
 } // class NumberSystemTool
