@@ -347,7 +347,7 @@ public class NumberSystemTool {
         
         output("dec:       %s   (Double.toString)\n", Double.toString(d));
         output("hex:       %s   (doubleToLongBits)\n", Long.toHexString(bits));
-        output("exp/mant: %-3s %13s  abc\n", 
+        output("exp/mant: %-3s %13s\n", 
             Long.toHexString(exponent), Long.toHexString(mantissa));
         
         exponent = exponent - 1023;      // unbiasing
@@ -358,7 +358,7 @@ public class NumberSystemTool {
         if (exponent >= 0) {
             output("exponent:  2**%d = %.0f\n", exponent, Math.pow(2.0, exponent));
         } else {
-            output("exponent:  2**%d = 1/%.0f\n", exponent, Math.pow(2.0, -exponent));
+            output("exponent:  2**(%d) = 1/%.0f\n", exponent, Math.pow(2.0, -exponent));
         }
         output("mantissa:  %s\n", Double.toString(frac));
     } // printDoubleBits()

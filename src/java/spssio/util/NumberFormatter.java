@@ -491,6 +491,7 @@ public class NumberFormatter {
         // Location of the "decimal point"
         int pointpos = -1;
         
+        //System.out.printf("exp: %d, dlen: %d\n", exp, dlen);
         // Determine the "decimal point" location and exponent value.
         if ((exp >= -1) && (exp < dlen)) {
             // Insert a point, and no exponent.

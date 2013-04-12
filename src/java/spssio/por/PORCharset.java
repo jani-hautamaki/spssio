@@ -443,11 +443,69 @@ public class PORCharset
                 continue;
             }
             
+            // TODO: outchar can be -1. It is probably okay?
+            
             // Otherwise, set the corresponding output char
             dectab[inbyte] = outchar;
         } // for
     } // computeDecodingTable()
-    
-} // class PORCharset
 
+
+    /**
+     * Computes an encoding table for the given charset.
+     *
+     * @param enctab
+     *      [out] The encoding table to populate.
+     *      The array must have a size of 256 elements.
+     * @param charset
+     *      [in] The charset for which the decoding table is computed.
+     */
+    public static void computeEncodingTable(int[] enctab, byte[] charset) {
+        // NullPointerExceptions are implied:
+        if ((enctab.length != 256) || (charset.length != 256)) {
+            throw new IllegalArgumentException(
+                "ComputeEncodingTable(): incorrect array length (internal error)");
+        } // if
+        
+
+        // Get the default charset. This is used as reference.
+        final int[] default_charset = getDefaultCharset();
+        
+        // Set all entries to invalid value
+        for (int i = 0; i < enctab.length; i++) {
+            enctab[i] = -1;
+        }
+
+        // In portable files, unused entries are marked with the zero.
+        // Therefore, the code for zero must be picked
+        int outzero = charset[DIGIT_0];
+        
+        // The entry for zero in the decoding table gets skipped
+        // in the following loop. It mut be set manually instead:
+        enctab[outzero] = '0';
+
+        for (int code = 0; code < charset.length; code++) {
+            // When a byte charset[code] is read from a portable file,
+            // it should be interpreted as a character default_charset[code]
+            // (which is the UTF-8 character for code SPSS symbol code "code").
+            
+            int outbyte = ((int) charset[code]) & 0xff;
+            int inchar = default_charset[code];
+            
+            if (outbyte == outzero) {
+                // the input table entry has been marked with zero,
+                // so skip this entry.
+                // Make it passthrough:
+                // TODO: 
+                // This should be: enctab[inchar] = inchar?
+                //enctab[code] = code;
+                enctab[inchar] = inchar;
+                continue;
+            }
+            
+            // Otherwise, set the corresponding output char
+            enctab[inchar] = outbyte;
+        } // for
+    } // computeEncodingTable()
+} // class PORCharset
 
