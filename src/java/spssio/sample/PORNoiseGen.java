@@ -34,6 +34,7 @@ import java.lang.management.MemoryUsage;
 
 // spssio
 import spssio.por.output.PORWriter;
+import spssio.por.PORFile;
 
 /**
  * Portable file noise generator.
@@ -144,7 +145,7 @@ public class PORNoiseGen {
      * Serialize Portable file to {@code OutputStream} 
      * according to {@code Options}.
      */
-    protected static void outputPortable(
+    public static void outputPortable(
         OutputStream os,
         Options opt
     ) 
@@ -288,6 +289,16 @@ public class PORNoiseGen {
         
         // Write end-of-file
         writer.outputEofMarkers();
+    } // outputPortable()
+    
+    public static void outputPortable2(
+        OutputStream os,
+        Options opt
+    ) 
+        throws IOException
+    {
+        // Through PORFile object
+        PORFile por = new PORFile();
         
     }
     

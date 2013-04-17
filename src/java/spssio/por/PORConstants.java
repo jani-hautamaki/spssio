@@ -30,6 +30,10 @@ public class PORConstants
     
     /**
      * Text row width for Portable files (bytes).
+     * The row length is used during both reading and writing of
+     * a Portable file. During reading the lines having length less
+     * than this value are expanded with whitespaces to the specified
+     * length. During writing the lines wrapped at the specified length.
      */
     public static final int ROW_LENGTH = 80;
     
@@ -37,22 +41,56 @@ public class PORConstants
     /**
      * Maximum length of a data element (bytes).
      * A data element is either a single number field or string contents.
+     * TODO: Where is this value used? The description doesn't reveal.
      */
     public static final int MAX_DATA_ELEMENT_LENGTH = 1024;
     
     
     // THESE ARE TODO (Note: they dont have "final" qualifier)
     
+    /**
+     * Software maximum length.
+     */
     public static int MAX_SOFTWARE_LENGTH = 255;
     
+    /**
+     * Author maximum length.
+     */
     public static int MAX_AUTHOR_LENGTH = 255;
     
+    /**
+     * Title maximum length.
+     */
     public static int MAX_TITLE_LENGTH = 255;
     
+    /**
+     * Variable name maximum length.
+     */
     public static int MAX_VARNAME_LENGTH = 8;
     
+    /**
+     * Variable label maximum length.
+     */
     public static int MAX_VARLABEL_LENGTH = 255;
+
+
     
+    /**
+     * The signature string length.
+     */
+    public static final int SIGNATURE_LENGTH        = 8;
+    
+    /**
+     * The creation date string length.
+     */
+    public static final int DATE_LENGTH             = 8;
+
+    /**
+     * The creation time string length.
+     */
+    public static final int TIME_LENGTH             = 6;
+
+
     
     /**
      * File format signature

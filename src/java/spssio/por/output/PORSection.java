@@ -150,42 +150,60 @@ public class PORSection
     // CONSTRUCTORS
     //==============
     
-    public PORSection(int tag_code, Object obj) {
-        this.tag = tag_code;
+    public PORSection(int tag, Object obj) {
+        this.tag = tag;
         this.obj = obj;
     }
     
     // OTHER METHODS
     //===============
+
+    /*
+    public int getTag() {
+        return tag;
+    }
     
-    public static PORSection software(String software) {
+    public Object getObject() {
+        return obj;
+    }
+    */
+    
+    // FACTORY METHODS
+    //=================
+    
+    public static PORSection newSoftware(String software) {
         return new PORSection(TAG_SOFTWARE, software);
     }
     
-    public static PORSection author(String author) {
+    public static PORSection newAuthor(String author) {
         return new PORSection(TAG_AUTHOR, author);
     }
     
-    public static PORSection title(String title) {
+    public static PORSection newTitle(String title) {
         return new PORSection(TAG_TITLE, title);
     }
     
-    public static PORSection variable_count(int count) {
+    public static PORSection newVariableCount(int count) {
         return new PORSection(TAG_VARIABLE_COUNT, new Integer(count));
     }
     
-    public static PORSection precision(int precision) {
+    public static PORSection newPrecision(int precision) {
         return new PORSection(TAG_PRECISION, precision);
     }
-    public static PORSection weight_variable(String name) {
+    
+    public static PORSection newWeightVarName(String name) {
         return new PORSection(TAG_WEIGHT_VARIABLE, name);
     }
-    public static PORSection variable_record(PORVariable pvar) {
-        return new PORSection(TAG_VARIABLE_RECORD, pvar);
+    
+    public static PORSection newVariableRecord(PORVariable v) {
+        return new PORSection(TAG_VARIABLE_RECORD, v);
     }
-    public static PORSection missing_value(PORMissingValue miss) {
-        // This is a bit more complicated. The actual tag code
-        // depends on the sub-type of the parameter
+    
+    public static PORSection newMissingValueRecord(
+        PORMissingValue miss
+    ) {
+        // This is a bit more complicated. 
+        // The actual tag code depends on the sub-type of the parameter.
         switch(miss.type) {
             case PORMissingValue.TYPE_DISCRETE_VALUE:
                 return new PORSection(TAG_MISSING_DISCRETE, miss);
@@ -201,14 +219,14 @@ public class PORSection
         // never reached
     }
     
-    public static PORSection variable_label(String label) {
+    public static PORSection newVariableLabel(String label) {
         return new PORSection(TAG_VARIABLE_LABEL, label);
     }
 
-    public static PORSection value_labels(PORValueLabels vallabels) {
+    public static PORSection newValueLabelsRecord(
+        PORValueLabels vallabels
+    ) {
         return new PORSection(TAG_VALUE_LABELS, vallabels);
     }
-    
-    
     
 } // class PORWriter

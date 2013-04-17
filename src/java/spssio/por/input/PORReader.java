@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.File; // for size
 
-
 // spssio portable
 import spssio.por.PORFile;
 import spssio.por.PORCharset;
@@ -36,6 +35,7 @@ import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORHeader;
 import spssio.por.PORMatrix;
+import spssio.por.PORRawMatrix;
 import spssio.por.PORConstants;
 
 // spssio common
@@ -44,6 +44,7 @@ import spssio.common.SPSSFormat;
 // spssio utils
 import spssio.util.NumberSystem;
 import spssio.util.NumberParser;
+import spssio.util.SequentialByteArray;
 
 /*
  *
@@ -63,17 +64,18 @@ public class PORReader
     //==================
     
     /**
-     * Configuration variable; the size of the buffer to create.
-     * Initialized to the default value.
+     * Configuration variable; controls buffer size parameter of
+     * {@code BufferedInputStream}'s constructor. Initialized to
+     * the default value, {@link #DEFAULT_BUFFER_SIZE}.
      */
     private int buffer_size;
 
     /** 
      * Configuration variable; determines the length of the rows.
      * If a row is longer than this, it is an error. If a row is shorter,
-     * then it is internally widened into this length by spaces. */
+     * then it is internally widened into this length by spaces. 
+     */
     private int row_length;
-
 
     /** 
      * The input stream
@@ -91,7 +93,9 @@ public class PORReader
     private long fpos;
     
 
-    /** Number of the current row. */
+    /** 
+     * Number of the current row. 
+     */
     private int row;
 
     /** 
@@ -612,14 +616,20 @@ public class PORReader
     protected void parseDataMatrixRecord() {
         //System.out.printf("File position: %d / %d\n", fpos, fsize);
         
-        // Pick to a local variable for convenience
-        PORMatrix dm = por.data;
+        // Create a PORMatrix intance suitable for recording verbatim
+        // source data.
         
+        SequentialByteArray array = new SequentialByteArray();
+        PORMatrixParser matrixParser = new PORMatrixParser();
+        
+        // Put these into a newly-created matrix
+        por.data = new PORRawMatrix(array, matrixParser);
+
         // Calculate the number of bytes left to read.
         int size = (int) (fsize-fpos);
         
         // Allocate the calculated amount of memory.
-        dm.allocate(size);
+        array.allocate(size);
         
         // Setup the column data types
         int[] coltype = new int[por.variables.size()];
@@ -628,24 +638,23 @@ public class PORReader
                 PORValue.TYPE_NUMERIC : PORValue.TYPE_STRING;
         } // for
         
-        dm.setDataColumnTypes(coltype);
-        dm.setTextColumn0(col);
+        matrixParser.setDataColumnTypes(coltype);
+        matrixParser.setTextColumn0(col);
         
         try {
             int c;
             
-            // Read the next character
+            // Read next char while not eof
             while ((c = istream.read()) != -1) {
 
-                // decode the input byte
+                // Decode the input byte
                 c = dectab[c];
                 
                 // Increase binary position
                 fpos++;
-                // Increase column number
-                col++;
                 
-                // Track column and row
+                // Maintain the text row/col counter of the PORReader.
+                col++;
                 if (c == '\n') {
                     row++;
                     col = 0;
@@ -654,24 +663,22 @@ public class PORReader
                     col--;
                 }
                 
-                // Write
-                dm.write(c);
+                // Write to the array
+                array.write(c);
                 
-                // Send to parser
-                dm.consume(c);
+                // Send to the parser
+                matrixParser.consume(c);
                 
-                if (dm.errno() == PORMatrix.E_REJECTED) {
-                    error_cell(dm.getx(), dm.gety(), dm.strerror());
+                // If an error occurred in parsing, throw an exception
+                if (matrixParser.errno() == PORMatrixParser.E_REJECTED) {
+                    error_cell(matrixParser.getX(), matrixParser.getY(),
+                        matrixParser.strerror());
                 }
             } // while
-            
-            // TODO:
-            // send end-of-file marker to dm
-            dm.debug();
-            
         } catch(IOException ex) {
             error_io("BufferedInputStream.read()", ex);
         } // try-catch
+        
     } // parse_data_matrix()
 
 
@@ -943,7 +950,7 @@ public class PORReader
         col++;
         if (col > row_length) {
             throw new RuntimeException(String.format(
-                "row %d is too long (more than %d chars)", row, row_length));
+                "row is too long (more than %d chars)", row, row_length));
         }
         //System.out.printf("%c", rval);
         
@@ -1000,11 +1007,3 @@ public class PORReader
     }
     
 } // class PORReader
-
-
-
-
-
-
-
-

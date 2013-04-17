@@ -29,6 +29,7 @@ import java.util.Date;
 // spssio
 import spssio.util.NumberSystem;
 import spssio.util.NumberFormatter;
+import spssio.util.SequentialByteArray;
 import spssio.por.PORCharset;
 import spssio.por.PORFile;
 import spssio.por.PORVariable;
@@ -36,6 +37,7 @@ import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORValue;
 import spssio.por.PORMatrix;
+import spssio.por.PORRawMatrix;
 import spssio.por.PORConstants;
 
 
@@ -283,6 +285,7 @@ public class PORWriter
         throws IOException
     {
         // Pass-forward
+        //outputSection(section.getTag(), section.getObject());
         outputSection(section.tag, section.obj);
     }
     
@@ -967,7 +970,6 @@ public class PORWriter
      *
      * At the end, eliminate trailing zeros. If the dot's position
      * is crossed, then the exponent needs to be increased as well.
-     
      *
      * NOTE!!! When rounding upwards occurs, there's a possiblity
      * that the rounded value exceeds numeric limits.
@@ -977,7 +979,26 @@ public class PORWriter
     public void outputDataMatrixRecord(PORMatrix data) 
         throws IOException
     {
+        // Select serialization method
+        if (data instanceof PORRawMatrix) {
+            PORRawMatrix rawMatrix = (PORRawMatrix) data;
+            outputRawMatrixRecord(rawMatrix);
+            
+        } else {
+            throw new RuntimeException(String.format(
+                "Serialization of PORMatrix with dynamic type %s not implemented yet",
+                data.getClass().getName()));
+        }
+        
+    }
+    
+    protected void outputRawMatrixRecord(PORRawMatrix rawMatrix) 
+        throws IOException
+    {
         outputTag(PORSection.TAG_DATA_MATRIX);
+        
+        // Retrieve the raw SequentialByteArray object
+        SequentialByteArray data = rawMatrix.getRawArray();
         
         // This is a bit dirty hack for finding out the end-marker 'Z'.
         // Anyway, if the lines are at most 80 chars wide, then 
@@ -1063,7 +1084,7 @@ public class PORWriter
         }
         
         // and we are done!
-    } // output_data_matrix()
+    }
     
     public void outputDataMatrixRecord2(PORMatrix data) 
         throws IOException

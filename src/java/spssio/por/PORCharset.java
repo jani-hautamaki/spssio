@@ -404,7 +404,6 @@ public class PORCharset
      *      [in] The charset for which the decoding table is computed.
      */
     public static void computeDecodingTable(int[] dectab, byte[] charset) {
-        // NullPointerExceptions are implied:
         if ((dectab.length != 256) || (charset.length != 256)) {
             throw new IllegalArgumentException(
                 "ComputeDecodingTable(): incorrect array length (internal error)");
@@ -461,7 +460,6 @@ public class PORCharset
      *      [in] The charset for which the decoding table is computed.
      */
     public static void computeEncodingTable(int[] enctab, byte[] charset) {
-        // NullPointerExceptions are implied:
         if ((enctab.length != 256) || (charset.length != 256)) {
             throw new IllegalArgumentException(
                 "ComputeEncodingTable(): incorrect array length (internal error)");

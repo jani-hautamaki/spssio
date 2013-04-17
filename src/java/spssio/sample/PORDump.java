@@ -270,12 +270,12 @@ public class PORDump {
 
         System.out.printf("\n");
         System.out.printf("Data matrix overview:\n");
-        System.out.printf("Dimensions:          %d x %d (cases x variables)\n", por.data.sizey(), por.data.sizex());
-        System.out.printf("Size:                %d bytes\n", por.data.size());
+        System.out.printf("Dimensions:          %d x %d (cases x variables)\n", por.data.sizeY(), por.data.sizeX());
+        System.out.printf("Size:                %d bytes\n", por.data.sizeBytes());
 
         // Count the data types
         
-        int[] types = por.data.getDataColumnTypes();
+        int[] types = por.data.getColumnLayout();
         int numeric_columns = 0;
         int string_columns = 0;
         for (int i = 0; i < types.length; i++) {
@@ -397,8 +397,8 @@ public class PORDump {
             // Write header as usual
             writeHeader(out, por);
                 
-            int xdim = por.data.sizex();
-            int ydim = por.data.sizey();
+            int xdim = por.data.sizeX();
+            int ydim = por.data.sizeY();
             // Pop the array out of the converter.
             Object[] array = converter.popArray();
             
@@ -590,7 +590,7 @@ public class PORDump {
                 System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
             } catch(Exception ex) {
                 // Parse error. Display more detailed error message
-                System.out.printf("%s:%d:%d: %s", 
+                System.out.printf("%s:%d:%d: %s\n", 
                     fname, preader.getRow(), preader.getColumn(),
                     ex.getMessage());
                 
