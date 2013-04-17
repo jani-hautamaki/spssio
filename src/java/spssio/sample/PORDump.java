@@ -33,6 +33,7 @@ import java.io.FileWriter;
 import java.io.OutputStreamWriter;
 
 // spssio por
+import spssio.por.PORSection;
 import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
 import spssio.por.PORVariable;
@@ -77,6 +78,7 @@ public class PORDump {
         public boolean header_details_flag              = true;
         public boolean variable_details_flag            = false;
         public boolean value_details_flag               = false;
+        public boolean section_details_flag             = false;
         
         public Vector<String> input_filenames 
             = new Vector<String>();
@@ -126,6 +128,7 @@ public class PORDump {
 
         // Weight variable name is optional
         System.out.printf("Weight variable:     %s\n", val2str(header.weight_var_name));
+        
     } // printHeader()
     
     public static void printVariables(Vector<PORVariable> variables) {
@@ -260,6 +263,74 @@ public class PORDump {
         } // for: each mapping
     } // printPORValueLabels()
     
+    public static void printSections(Vector<PORSection> sections) {
+        System.out.printf("Portable file structure / sections:\n");
+        int count = 0;
+        String summary = null;
+        System.out.printf("      #         tag summary\n");
+        for (PORSection section : sections) {
+            int tag = section.tag;
+            switch(tag) {
+                case PORSection.TAG_SOFTWARE:
+                    summary = "Software";
+                    break;
+                case PORSection.TAG_AUTHOR:
+                    summary = "Author";
+                    break;
+                case PORSection.TAG_TITLE:
+                    summary = "Title";
+                    break;
+                case PORSection.TAG_VARIABLE_COUNT:
+                    summary = "Variable count";
+                    break;
+                case PORSection.TAG_PRECISION:
+                    summary = "Precision";
+                    break;
+                case PORSection.TAG_WEIGHT_VARIABLE:
+                    summary = "Weight variable name";
+                    break;
+                case PORSection.TAG_VARIABLE_RECORD:
+                    summary = String.format("Variable record: %s",
+                        ((PORVariable) section.obj).getName());
+                    break;
+                case PORSection.TAG_MISSING_DISCRETE:
+                    summary = "Missing value; discrete";
+                    break;
+                case PORSection.TAG_MISSING_OPEN_LO:
+                    summary = "Missing value; open range low";
+                    break;
+                case PORSection.TAG_MISSING_OPEN_HI:
+                    summary = "Missing value; open range high";
+                    break;
+                case PORSection.TAG_MISSING_RANGE:
+                    summary = "Missing value; closed range";
+                    break;
+                case PORSection.TAG_VARIABLE_LABEL:
+                    summary = "Variable label";
+                    break;
+                case PORSection.TAG_VALUE_LABELS:
+                    summary = String.format("Value-label mappings: %d variables, %d pairs",
+                        ((PORValueLabels) section.obj).vars.size(),
+                        ((PORValueLabels) section.obj).mappings.size()
+                    );
+                    break;
+                case PORSection.TAG_DOCUMENTS_RECORD:
+                    summary = "Documents record";
+                    break;
+                case PORSection.TAG_DATA_MATRIX:
+                    summary = "Data matrix";
+                    break;
+                default:
+                    summary = "UNKNOWN";
+                    break;
+            }
+            
+            count++;
+            System.out.printf("   %4d           %c %s\n",
+                count, section.tag, summary);
+        }
+    }
+    
     public static void printOverview(PORFile por) {
         PORHeader header = por.header;
         System.out.printf("Portable file contents\n");
@@ -289,6 +360,7 @@ public class PORDump {
         } // for
         System.out.printf("Numeric variables:   %d\n", numeric_columns);
         System.out.printf("String variables:    %d\n", string_columns);
+        System.out.printf("\n");
     } // printHeader
     
     public static void printPortable(PORFile por) {
@@ -446,17 +518,22 @@ public class PORDump {
                 opt.header_details_flag     = false;
                 opt.variable_details_flag   = false;
                 opt.value_details_flag      = false;
+                opt.section_details_flag    = false;
             }
             else if (carg.equals("-all")) {
                 opt.header_details_flag     = true;
                 opt.variable_details_flag   = true;
                 opt.value_details_flag      = true;
+                opt.section_details_flag    = true;
             }
             else if (carg.equals("-vars")) {
                 opt.variable_details_flag   = true;
             }
             else if (carg.equals("-labels")) {
                 opt.value_details_flag      = true;
+            }
+            else if (carg.equals("-sections")) {
+                opt.section_details_flag    = true;
             }
             else if (carg.startsWith("-output=")) {
                 String s = carg.substring(carg.indexOf('=')+1);
@@ -523,8 +600,9 @@ public class PORDump {
         System.out.printf("     -silent             Do not display any details\n");
         System.out.printf("     -vars               Display variable details\n");
         System.out.printf("     -labels             Display value-label details\n");
-        System.out.printf("     -all                Display all details\n");      
-        System.out.printf("     -ysteps=<int>       If method=object, display status <int> times\n");
+        System.out.printf("     -sections           Display parsed sections in order\n");
+        System.out.printf("     -all                Display all details\n");
+        System.out.printf("     -ysteps=<int>       If -output, display status <int> times\n");
         System.out.printf("  Data output:\n");
         System.out.printf("     -output=<dest>      Write data matrix into <dest>\n");
         System.out.printf("     -method=<meth>      Visitor method used for writing\n");
@@ -612,6 +690,9 @@ public class PORDump {
             }
             if (opt.value_details_flag) {
                 printValueLabels(por.labels);
+            }
+            if (opt.section_details_flag) {
+                printSections(por.sections);
             }
         } // for: input files
         

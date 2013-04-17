@@ -89,4 +89,8 @@ public class PORVariable {
         label = null;
     } // ctor
     
+    public String getName() {
+        return name;
+    }
+    
 } // class PORVariable

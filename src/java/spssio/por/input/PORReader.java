@@ -37,6 +37,7 @@ import spssio.por.PORHeader;
 import spssio.por.PORMatrix;
 import spssio.por.PORRawMatrix;
 import spssio.por.PORConstants;
+import spssio.por.PORSection;
 
 // spssio common
 import spssio.common.SPSSFormat;
@@ -270,63 +271,63 @@ public class PORReader
             
             // Parse the incoming input according to the tag code
             switch(tag) {
-                case '1':
+                case PORSection.TAG_SOFTWARE:           // '1'
                     parseSoftware();
                     break;
                 
-                case '2':
+                case PORSection.TAG_AUTHOR:             // '2'
                     parseAuthor();
                     break;
                 
-                case '3':
+                case PORSection.TAG_TITLE:              // '3'
                     parseTitle();
                     break;
                 
-                case '4':
+                case PORSection.TAG_VARIABLE_COUNT:     // '4';
                     parseVariableCount();
                     break;
                 
-                case '5':
+                case PORSection.TAG_PRECISION:          // '5'
                     parseNumericPrecision();
                     break;
                 
-                case '6':
+                case PORSection.TAG_WEIGHT_VARIABLE:    // '6'
                     parseWeightVariable();
                     break;
                     
-                case '7':
+                case PORSection.TAG_VARIABLE_RECORD:    // '7'
                     parseVariableRecord();
                     break;
                 
-                case '8':
+                case PORSection.TAG_MISSING_DISCRETE:   // '8'
                     parseMissingDiscrete();
                     break;
             
-                case '9':
+                case PORSection.TAG_MISSING_OPEN_LO:    // '9'
                     parseMissingRangeOpenLo();
                     break;
                 
-                case 'A':
+                case PORSection.TAG_MISSING_OPEN_HI:    // 'A'
                     parseMissingRangeOpenHi();
                     break;
                 
-                case 'B':
+                case PORSection.TAG_MISSING_RANGE:      // 'B'
                     parseMissingRangeClosed();
                     break;
                 
-                case 'C':
+                case PORSection.TAG_VARIABLE_LABEL:     // 'C'
                     parseVariableLabel();
                     break;
                 
-                case 'D':
+                case PORSection.TAG_VALUE_LABELS:       // 'D'
                     parseValueLabelsRecord();
                     break;
                 
-                case 'E':
+                case PORSection.TAG_DOCUMENTS_RECORD:   // 'E'
                     parseDocumentsRecord();
                     break;
                 
-                case 'F':
+                case PORSection.TAG_DATA_MATRIX:        // 'F'
                     // Terminate the loop.
                     // The data itself is always at the end of the file.
                     break;
@@ -342,6 +343,10 @@ public class PORReader
         // Parse the data matrix
         parseDataMatrixRecord();
     } // parse()
+    
+    
+    // HEADER FIELDS
+    //===============
     
     protected void parseSplashStrings() {
         // Allocate a byte array for the splash strings.
@@ -415,29 +420,49 @@ public class PORReader
         por.header.time = parseString();
     }
 
+    // TAG RECORDS
+    //=============
     
     protected void parseSoftware() {
         por.header.software = parseString();
+        
+        por.sections.add(PORSection.newSoftware(
+            por.header.software));
     }
     
     protected void parseAuthor() {
         por.header.author = parseString();
+
+        por.sections.add(PORSection.newAuthor(
+            por.header.author));
     }
     
     protected void parseTitle() {
         por.header.title = parseString();
+
+        por.sections.add(PORSection.newTitle(
+            por.header.title));
     }
     
     protected void parseVariableCount() {
         por.header.nvariables = parseIntU();
+        
+        por.sections.add(PORSection.newVariableCount(
+            por.header.nvariables));
     }
     
     protected void parseNumericPrecision() {
         por.header.precision = parseIntU();
+        
+        por.sections.add(PORSection.newPrecision(
+            por.header.precision));
     }
     
     protected void parseWeightVariable() {
         por.header.weight_var_name = parseString();
+
+        por.sections.add(PORSection.newWeightVarName(
+            por.header.weight_var_name));
     }
     
     protected void parseVariableRecord() {
@@ -468,7 +493,10 @@ public class PORReader
         fmt.decimals = parseIntU();
         // TODO: Validate numeric values
         lastvar.writefmt = fmt;
-        
+
+        por.sections.add(PORSection.newVariableRecord(
+            lastvar));
+
     } // parse_variable_record()
                 
     protected void parseMissingDiscrete() {
@@ -485,6 +513,8 @@ public class PORReader
         
         // Parse the value
         miss.values[0] = parseValue(lastvar);
+        
+        por.sections.add(PORSection.newMissingValueRecord(miss));
     } // parse_missing_discrete()
     
             
@@ -502,6 +532,8 @@ public class PORReader
         
         // Parse the value
         miss.values[0] = parseValue(lastvar);
+        
+        por.sections.add(PORSection.newMissingValueRecord(miss));
     } // parse_missing_open_lo()
     
     protected void parseMissingRangeOpenHi() {
@@ -518,6 +550,8 @@ public class PORReader
         
         // Parse the value
         miss.values[0] = parseValue(lastvar);
+        
+        por.sections.add(PORSection.newMissingValueRecord(miss));
     } // parse_missing_open_hi()
     
     protected void parseMissingRangeClosed() {
@@ -535,6 +569,8 @@ public class PORReader
         // Parse the values
         miss.values[0] = parseValue(lastvar);
         miss.values[1] = parseValue(lastvar);
+
+        por.sections.add(PORSection.newMissingValueRecord(miss));
     } // parse_missing_closed()
     
     protected void parseVariableLabel() {
@@ -543,6 +579,8 @@ public class PORReader
         }
         
         lastvar.label = parseString();
+        
+        por.sections.add(PORSection.newVariableLabel(lastvar.label));
     } // parse_variable_label()
     
     /**
@@ -606,6 +644,8 @@ public class PORReader
         
         // Add to PORFile object
         por.labels.add(valuelabels);
+        
+        por.sections.add(PORSection.newValueLabelsRecord(valuelabels));
     } // parse_value_labels()
                 
     protected void parseDocumentsRecord() {
@@ -616,11 +656,10 @@ public class PORReader
     protected void parseDataMatrixRecord() {
         //System.out.printf("File position: %d / %d\n", fpos, fsize);
         
-        // Create a PORMatrix intance suitable for recording verbatim
-        // source data.
-        
+        // Create the backend data container
         SequentialByteArray array = new SequentialByteArray();
-        PORMatrixParser matrixParser = new PORMatrixParser();
+        // Create a parser, and reuse the NumberParser of this object.
+        PORMatrixParser matrixParser = new PORMatrixParser(numparser);
         
         // Put these into a newly-created matrix
         por.data = new PORRawMatrix(array, matrixParser);
@@ -679,6 +718,7 @@ public class PORReader
             error_io("BufferedInputStream.read()", ex);
         } // try-catch
         
+        por.sections.add(PORSection.newDataMatrix(por.data));
     } // parse_data_matrix()
 
 

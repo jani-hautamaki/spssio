@@ -208,16 +208,19 @@ public class PORMatrixParser
     // CONSTRUCTORS
     //==============
     
-    public PORMatrixParser() {
-
+    public PORMatrixParser(NumberParser numParser) {
         // Allocate a buffer to use as temporary space for the cell data.
         vbuffer = new byte[DEFAULT_CELL_BUFFER_SIZE];
         // Reset buffer pointers
         vhead = 0;
         vbase = 0;
         
-        // Allocate a NumberParser for parsing the base-30 numbers
-        numberParser = new NumberParser(new NumberSystem(30, null));
+        if (numParser == null) {
+            // Create a default parser for base-30 numbers.
+            numParser = new NumberParser(new NumberSystem(30, null));
+        }
+        
+        numberParser = numParser;
         
         xdim = 0;
         ydim = 0;
@@ -236,11 +239,18 @@ public class PORMatrixParser
         row_length = DEFAULT_ROW_WIDTH;
         
         visitor = null;
+    }
+    
+    public PORMatrixParser() {
+        this(null); // Redirect the creation..
     } // ctor
     
     // OVERRIDE
     //==========
     
+    /*
+     * TODO: What should this method really do?
+     */
     public void clear() {
         // Reset the SPSS/PSPP cell level data
         ydim = 0;

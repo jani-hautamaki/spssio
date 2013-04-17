@@ -16,7 +16,7 @@
 //
 //********************************{end:header}*******************************//
 
-package spssio.por.output;
+package spssio.por;
 
 // core java
 import java.util.Vector;
@@ -227,6 +227,10 @@ public class PORSection
         PORValueLabels vallabels
     ) {
         return new PORSection(TAG_VALUE_LABELS, vallabels);
+    }
+    
+    public static PORSection newDataMatrix(PORMatrix matrix) {
+        return new PORSection(TAG_DATA_MATRIX, matrix);
     }
     
 } // class PORWriter

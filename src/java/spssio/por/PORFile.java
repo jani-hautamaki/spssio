@@ -67,7 +67,13 @@ public class PORFile {
      * Data record (tag 'F', sequence of floating-point and string fields)
      */
     public PORMatrix data;
-    
+   
+
+    /**
+     * Sections of the Portable file in the order they were parsed.
+     */
+    public Vector<PORSection> sections;
+
     // CONSTRUCTORS
     //==============
     
@@ -75,6 +81,7 @@ public class PORFile {
         header = new PORHeader();
         variables = new Vector<PORVariable>();
         labels = new Vector<PORValueLabels>();
+        sections = new Vector<PORSection>();
         data = null;
     } // ctor
     
