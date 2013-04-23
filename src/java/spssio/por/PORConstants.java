@@ -102,22 +102,38 @@ public class PORConstants
      */
     public static final int FORMAT_VERSION          = 'A';
     
+    /**
+     * Whitespace character.<p>
+     *
+     * This character is used for two different purposes:
+     * a) to fill incomplete lines to the required length; and
+     * b) to prepend numbers with ignorable content.
+     *
+     */
+    public static final int WHITESPACE              = ' ';
     
     /**
-     * Number separator
+     * Number separator.
      */
     public static final int NUMBER_SEPARATOR        = '/';
     
     /**
-     * SYSMISS missing value marker
+     * SYSMISS missing value marker.
      */
     public static final int SYSMISS_MARKER          = '*';
     
     /**
-     * Separator after SYSMISS missing value
+     * Separator after SYSMISS missing value.
      */
     public static final int SYSMISS_SEPARATOR       = '.';
     
+    /**
+     * End-of-File marker.<p>
+     *
+     * This character must be different than any base-30 digit
+     * or any tag code.
+     */
+    public static final int EOF_MARKER              = 'Z';
     
     // DEFAULT SPLASH STRINGS
     //========================
@@ -154,7 +170,7 @@ public class PORConstants
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 
     };
     
-    // i=4; "20200002'220'&)3000#000000000000000000000" (Honeywell 6-bit ASCII)
+    // i=4; "0200002'220'&)3000#000000000000000000000" (Honeywell 6-bit ASCII)
     public static final int[] SPLASH5_HONEYWELL_ASCII_6BIT = {
         0x30, 0x32, 0x30, 0x30, 0x30, 0x30, 0x32, 0x27, 0x32, 0x32, 
         0x30, 0x27, 0x26, 0x29, 0x33, 0x30, 0x30, 0x30, 0x23, 0x30, 

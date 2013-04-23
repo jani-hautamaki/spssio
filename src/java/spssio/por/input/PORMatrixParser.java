@@ -20,6 +20,7 @@ package spssio.por.input;
 // spssio
 import spssio.por.PORMatrixVisitor;
 import spssio.por.PORValue;
+import spssio.por.PORConstants;
 import spssio.util.NumberParser;
 import spssio.util.NumberSystem;
 
@@ -49,10 +50,6 @@ public class PORMatrixParser
     
     public static final int DEFAULT_ROW_WIDTH                   = 80;
     public static final int DEFAULT_CELL_BUFFER_SIZE            = 4096;
-    
-    public static final int CHAR_WHITESPACE                     = ' ';
-    public static final int CHAR_ASTERISK                       = '*';
-    public static final int CHAR_SLASH                          = '/';
     
     // Status codes
     
@@ -365,7 +362,7 @@ public class PORMatrixParser
             
             // Fill the end of the current row with whitespaces
             for (int i = 0; i < skip; i++) {
-                eat(CHAR_WHITESPACE);
+                eat(PORConstants.WHITESPACE);
             } // for: skip
             
             // Reset column number
@@ -414,7 +411,7 @@ public class PORMatrixParser
                 case S_NEW_ROW:
                     // allow end-of-data sign
                     eps = true;
-                    if (c == 'Z') {
+                    if (c == PORConstants.EOF_MARKER) { // 'Z'
                         // Pick up the data matrix y size
                         ydim = ycur;
                         // Accept; further input is ignored.
@@ -454,7 +451,7 @@ public class PORMatrixParser
                 
                 case S_NUMERIC_EMPTY:
                     // Skip leading spaces
-                    if (c == CHAR_WHITESPACE) { // ' '
+                    if (c == PORConstants.WHITESPACE) { // ' '
                         // Whitespaces are consumed silently.
                         // Reset writing position
                         vhead = 0;
@@ -463,7 +460,7 @@ public class PORMatrixParser
                         // since they render the data unreproducible.
                         // This event should be signaled somehow.
                     }
-                    else if (c == CHAR_ASTERISK) { // '*'
+                    else if (c == PORConstants.SYSMISS_MARKER) { // '*'
                         // System missing value. 
                         // This is allowed only for NUMERIC data type.
                         if (xtype[xcur] != PORValue.TYPE_NUMERIC) {
@@ -474,7 +471,7 @@ public class PORMatrixParser
                             state = S_SYSMISS_DUMMY;
                             vbase = 0;
                         }
-                    } else if (c == CHAR_SLASH) { // '/'
+                    } else if (c == PORConstants.NUMBER_SEPARATOR) { // '/'
                         // ERROR. Empty numbers are not allowed.
                         strerror = String.format("A number must have at least one digit");
                         state = S_ERROR;
@@ -485,7 +482,7 @@ public class PORMatrixParser
                     break;
                     
                 case S_NUMERIC_UNEMPTY:
-                    if (c != CHAR_SLASH) { // '/'
+                    if (c != PORConstants.NUMBER_SEPARATOR) { // '/'
                         // Send to parser
                         numberParser.consume(c);
                     }

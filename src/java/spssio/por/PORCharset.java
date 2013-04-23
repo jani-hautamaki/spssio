@@ -369,11 +369,8 @@ public class PORCharset
         int len = DEFAULT_MAPPING.length / 2;
         
         for (int i = 0; i < len; i++) {
-            // Calculate offset
             int offset = i*2;
-            // Get the index
             int index = DEFAULT_MAPPING[offset+0];
-            // Get the value
             int value = DEFAULT_MAPPING[offset+1];
             
             // if the value is -1, then skip this

@@ -114,7 +114,7 @@ public class PORRawMatrix
      *
      * @param visitor The visitor.
      */
-    public void visit(PORMatrixVisitor visitor) {
+    public void accept(PORMatrixVisitor visitor) {
         // Seek to the beginning of the array
         array.seek(0);
         

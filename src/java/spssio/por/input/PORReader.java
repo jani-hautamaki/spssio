@@ -262,6 +262,9 @@ public class PORReader
         
         // Reads the 8-byte creation date, and the 6-byte creation time.
         parseCreationTimestamp();
+
+        // Add a header section
+        por.sections.add(PORSection.newHeader(por.header));
         
         // from this point on, read "tag" and switch until tag='F' is met.
         int tag;
@@ -338,7 +341,7 @@ public class PORReader
                     // never reached
                 
             } // switch
-        } while (tag != 'F');
+        } while (tag != PORSection.TAG_DATA_MATRIX);
         
         // Parse the data matrix
         parseDataMatrixRecord();
@@ -394,7 +397,8 @@ public class PORReader
         String signature = new String(array);
         
         // Finally, assert that the file is SPSS Portable file
-        if (signature.equals("SPSSPORT") == false) {
+        // (Format signature is 'SPSSPORT')
+        if (signature.equals(PORConstants.FORMAT_SIGNATURE) == false) {
             throw new RuntimeException(String.format(
                 "Unexpected file signature \"%s\"",  signature));
         }
@@ -422,47 +426,69 @@ public class PORReader
 
     // TAG RECORDS
     //=============
+
+    /*
+    protected void parseHeader() {
+        // Read the 200-byte header
+        parseSplashStrings();
+        
+        // Read the 256-byte characte set mapping
+        parseCharset();
+        
+        // Reads the 8-byte signature
+        parseFormatSignature();
+        
+        // reads the 1-byte format identifier
+        parseFormatVersion();
+        
+        // Reads the 8-byte creation date, and the 6-byte creation time.
+        parseCreationTimestamp();
+        
+        por.sections.add(PORSection.newHeader(
+            por.heaer));
+    }
+    */
     
     protected void parseSoftware() {
-        por.header.software = parseString();
+        por.software = parseString();
         
         por.sections.add(PORSection.newSoftware(
-            por.header.software));
+            por.software));
     }
     
     protected void parseAuthor() {
-        por.header.author = parseString();
+        por.author = parseString();
 
         por.sections.add(PORSection.newAuthor(
-            por.header.author));
+            por.author));
     }
     
     protected void parseTitle() {
-        por.header.title = parseString();
+        por.title = parseString();
 
         por.sections.add(PORSection.newTitle(
-            por.header.title));
+            por.title));
     }
     
     protected void parseVariableCount() {
-        por.header.nvariables = parseIntU();
+        por.nvariables = parseIntU();
         
         por.sections.add(PORSection.newVariableCount(
-            por.header.nvariables));
+            por.nvariables));
     }
     
     protected void parseNumericPrecision() {
-        por.header.precision = parseIntU();
+        por.precision = parseIntU();
         
         por.sections.add(PORSection.newPrecision(
-            por.header.precision));
+            por.precision));
     }
     
     protected void parseWeightVariable() {
-        por.header.weight_var_name = parseString();
+        por.weight_var_name = parseString();
 
         por.sections.add(PORSection.newWeightVarName(
-            por.header.weight_var_name));
+            por.weight_var_name));
     }
     
     protected void parseVariableRecord() {
@@ -790,14 +816,14 @@ public class PORReader
         
         c = readc();
         // TODO: decode
-        while (c == ' ') {
+        while (c == PORConstants.WHITESPACE) { // ' '
             sb.append((char) c);
             
             c = readc();
             // TODO: decode
         } // while
         
-        if (c == '*') {
+        if (c == PORConstants.SYSMISS_MARKER) { // '*'
             // This is a missing value.
             
             sb.append((char) c);
@@ -808,7 +834,7 @@ public class PORReader
             sb.append((char) c);
         } else {
             // Emit to parser until a slash is found.
-            while (c != '/') {
+            while (c != PORConstants.NUMBER_SEPARATOR) { // '/'
                 numparser.consume(c);
                 sb.append((char) c);
                 c = readc();
@@ -835,14 +861,14 @@ public class PORReader
         numparser.reset();
         
         // Eat up leading whitespaces
-        while ((c = readc()) == ' ');
+        while ((c = readc()) == PORConstants.WHITESPACE); 
         
-        if (c == '*') {
+        if (c == PORConstants.SYSMISS_MARKER) { // '*'
             // This is a missing value.
             readc(); // consume the succeeding dot.
         }
         // Emit to parser until a slash is found.
-        while (c != '/') {
+        while (c != PORConstants.NUMBER_SEPARATOR) { // '/'
             numparser.consume(c);
             c = readc();
         }

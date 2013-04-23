@@ -106,28 +106,28 @@ public class PORDump {
     /**
      * Prints Portable file's header information
      */
-    public static void printPORHeader(PORHeader header) {
+    public static void printPORHeader(PORFile por) {
         String s = null;
         
         // These are mandatory
-        System.out.printf("Signature:           \"%s\"\n", header.signature);
-        System.out.printf("Version:             \'%c\'\n", header.version);
-        System.out.printf("Creation date:       \"%s\"\n", header.date);
-        System.out.printf("Creation time:       \"%s\"\n", header.time);
+        System.out.printf("Signature:           \"%s\"\n", por.header.signature);
+        System.out.printf("Version:             \'%c\'\n", por.header.version);
+        System.out.printf("Creation date:       \"%s\"\n", por.header.date);
+        System.out.printf("Creation time:       \"%s\"\n", por.header.time);
         
         // Software field is optional
-        System.out.printf("Software:            %s\n", val2str(header.software));
+        System.out.printf("Software:            %s\n", val2str(por.software));
         // Author field is optional
-        System.out.printf("Author:              %s\n", val2str(header.author));
+        System.out.printf("Author:              %s\n", val2str(por.author));
         // Title field is optional
-        System.out.printf("Title:               %s\n", val2str(header.title));
+        System.out.printf("Title:               %s\n", val2str(por.title));
         
         // These are mandatory, but in theory they could be missing.
-        System.out.printf("# of variables:      %d\n", header.nvariables);
-        System.out.printf("Precision:           %d base-30 digits\n", header.precision);
+        System.out.printf("# of variables:      %d\n", por.nvariables);
+        System.out.printf("Precision:           %d base-30 digits\n", por.precision);
 
         // Weight variable name is optional
-        System.out.printf("Weight variable:     %s\n", val2str(header.weight_var_name));
+        System.out.printf("Weight variable:     %s\n", val2str(por.weight_var_name));
         
     } // printHeader()
     
@@ -328,8 +328,8 @@ public class PORDump {
             count++;
             System.out.printf("   %4d           %c %s\n",
                 count, section.tag, summary);
-        }
-    }
+        } // for: each section
+    } // printSections()
     
     public static void printOverview(PORFile por) {
         PORHeader header = por.header;
@@ -337,7 +337,7 @@ public class PORDump {
 
         System.out.printf("\n");
         System.out.printf("Header:\n");
-        printPORHeader(por.header);
+        printPORHeader(por);
 
         System.out.printf("\n");
         System.out.printf("Data matrix overview:\n");
@@ -421,7 +421,7 @@ public class PORDump {
         long startTime = System.nanoTime();
         
         // ========== VISIT ==========
-        por.data.visit(visitor);
+        por.data.accept(visitor);
         // ===========================
         
         // Stop timing
@@ -450,7 +450,7 @@ public class PORDump {
         long startTime = System.nanoTime();
         
         // ========== VISIT ==========
-        por.data.visit(converter);
+        por.data.accept(converter);
         // ===========================
         
         // Stop timing

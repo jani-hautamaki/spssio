@@ -47,7 +47,8 @@ public class PORVariable {
     public int width;
     
     /**
-     * Short name of the variable. 1-8 characters long. Must be in all capitals. 
+     * Short name of the variable. 1-8 characters long. 
+     * Must be in all capitals. 
      */
     public String name;
     

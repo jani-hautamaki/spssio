@@ -21,7 +21,32 @@ package spssio.por;
 import java.util.Vector;
 
 /**
- * Represents SPSS/PSPP's Portable file.
+ * Represents SPSS/PSPP's Portable file.<p>
+ *
+ * Relevant documentation:
+ * <ul>
+ *   <li>
+ *      <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Portable-File-Header.html#Portable-File-Header">
+ *         A.3 Portable File Header
+ *      </a>
+ *   <li>
+ *      <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Version-and-Date-Info-Record.html#Version-and-Date-Info-Record">
+ *         A.4 Version and Date Info Record
+ *      </a>
+ *   <li>
+ *      <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Identification-Records.html#Identification-Records">
+ *         A.5 Identification Records
+ *      </a>
+ *   <li>
+ *      <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Variable-Count-Record.html#Variable-Count-Record">
+ *         A.6 Variable Count Record
+ *      </a>
+ *   <li>
+ *      <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Case-Weight-Variable-Record.html#Case-Weight-Variable-Record">
+ *         A.7 Case Weight Variable Record
+ *      </a>
+ * </ul>
+ *
  */
 public class PORFile {
     
@@ -30,24 +55,72 @@ public class PORFile {
     
     /**
      * Portable file header. 
-     * The header contains fields for the following tag codes:
-     * <ul>
-     *    <li>'1' (product)
-     *    <li>'2' (author)
-     *    <li>'3' (file label)
-     *    <li>'4' (variable count)
-     *    <li>'5' (precision)
-     *    <li>'6' (case weight variable)
-     * </ul>
+     *
      */
     public PORHeader header;
+    
+    // Identification records
+    //========================
+    
+    /**
+     * Tag code '1', the product that wrote the portable file (mandatory?).
+     * Portable file max 255 chars, while System file max 60 chars.
+     */
+    public String software;
+    
+    /**
+     * Tag code '2', the name of the person who caused the portable file 
+     * to be written (optional). Portable file max 255 chars, System files 
+     * don't have author information in the header. If the field is not
+     * present, this is set to {@code null}.
+     */
+    public String author;
+    
+    /**
+     * Tag code '3', the file label (optional). Portable file max 255 chars, 
+     * System files max 64 chars. PSPP calls this field as "subproduct 
+     * identification" in Portable files, but in System files this is file label.
+     * If the field is not present, this is set to {@code null}.
+     */
+    public String title;
+    
+    /**
+     * Tag code '4', the number of variables in the file dictionary (mandatory).
+     */
+    public int nvariables;
+    // TBC: Rename into numberOfVariables
+    
+    /**
+     * Tag code '5', the precision used for Portable file base-30 floating point
+     * numbers (mandatory). No equivalent in the System file, and PSPP has not 
+     * documented this field. Typical value is 11.
+     */
+    public int precision;
+    
+    /**
+     * Tag code '6', the case weight variable's index number (optional).
+     * If the cases are unweighted, this is set to -1. In Portable file this 
+     * is actually given as a string containing the name of the variable. 
+     * Translation is done by the parser after the variables have been read.
+     */
+    public int weight_var_index;
+    
+    /** 
+     * The actual weight variable name found from the Portable file. 
+     */
+    public String weight_var_name;
+    // TBC: weightName;
+    
     
     /**
      * Sequence of variable records (tag code '7', struct).
      * The variable records contains the following tag codes:
      * <ul>
      *    <li>'7' (the variable record itself)
-     *    <li>'8', '9', 'A' and 'B' (missing value specifications)
+     *    <li>'8' (missing discrete value)
+     *    <li>'9' (missing open range lo)
+     *    <li>'A' (missing open range hi)
+     *    <li 'B' (missing closed range)
      *    <li>'C' (variable label)
      * </ul>
      */
@@ -78,10 +151,28 @@ public class PORFile {
     //==============
     
     public PORFile() {
+        // Header
         header = new PORHeader();
+        
+        // Identification records
+        software = null;
+        author = null;
+        title = null;
+        nvariables = 0;
+        precision = 0;
+        weight_var_index = -1;
+        weight_var_name = null;
+        
+        // Variables
         variables = new Vector<PORVariable>();
+        
+        // Value labels
         labels = new Vector<PORValueLabels>();
+        
+        // Sections
         sections = new Vector<PORSection>();
+        
+        // Data matrix
         data = null;
     } // ctor
     
@@ -179,27 +270,27 @@ public class PORFile {
     //================
     
     public String getSoftware() {
-        return header.software;
+        return software;
     }
     
     public String getAuthor() {
-        return header.author;
+        return author;
     }
     
     public String getTitle() {
-        return header.title;
+        return title;
     }
     
     public int getNumberOfVariables() {
-        return header.nvariables;
+        return nvariables;
     }
     
     public int getPrecision() {
-        return header.precision;
+        return precision;
     }
     
     public String getWeightVarName() {
-        return header.weight_var_name;
+        return weight_var_name;
     }
     
     public void setSoftware(String software) {
@@ -212,7 +303,7 @@ public class PORFile {
         }
         
         // Set software (can be null)
-        header.software = software;
+        this.software = software;
     }
     
     public void setAuthor(String author) {
@@ -225,7 +316,7 @@ public class PORFile {
         }
         
         // Set author (can be null)
-        header.author = author;
+        this.author = author;
     }
     
     public void setTitle(String title) {
@@ -238,7 +329,7 @@ public class PORFile {
         }
         
         // Set title (can be null)
-        header.title = title;
+        this.title = title;
     }
     
     public void setNumberOfVariables(int nVariables) {
@@ -249,7 +340,7 @@ public class PORFile {
         
         // Set number of variables.
         // This may differ from the actual value. Also, it could be zero.
-        header.nvariables = nVariables;
+        nvariables = nVariables;
     }
 
     public void setPrecision(int precision) {
@@ -259,10 +350,11 @@ public class PORFile {
         }
         
         // Can be zero
-        header.precision = precision;
+        this.precision = precision;
     }
 
     /*
+    public void setWeightVariable(String weightName) {
     public void setWeightVarName(String weightName) {
         header.weight_var_name = weightName;
     }
@@ -294,4 +386,3 @@ public class PORFile {
     
     
 } // class PORFile
-

@@ -22,6 +22,7 @@ package spssio.por;
 import java.util.Vector;
 
 // spssio
+import spssio.por.PORHeader;
 import spssio.por.PORVariable;
 import spssio.por.PORMissingValue;
 import spssio.por.PORValueLabels;
@@ -36,6 +37,7 @@ public class PORSection
     // Quick summary:
     
     /*
+    0: header:          STRUCT
     1: software:        string
     2: author:          string
     3: title:           string
@@ -56,6 +58,12 @@ public class PORSection
     // CONSTANTS
     //===========
 
+    /**
+     * obj is PORHeader. 
+     * This is a pseudo-tag code used only by this program.
+     */
+    public static final int TAG_HEADER                  = '0';
+     
     /**
      * obj is String.
      */
@@ -170,6 +178,10 @@ public class PORSection
     
     // FACTORY METHODS
     //=================
+
+    public static PORSection newHeader(PORHeader header) {
+        return new PORSection(TAG_HEADER, header);
+    }
     
     public static PORSection newSoftware(String software) {
         return new PORSection(TAG_SOFTWARE, software);

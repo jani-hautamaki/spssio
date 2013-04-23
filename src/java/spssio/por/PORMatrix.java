@@ -38,6 +38,6 @@ public interface PORMatrix {
      *
      * @param visitor The visitor.
      */
-    public void visit(PORMatrixVisitor visitor);
+    public void accept(PORMatrixVisitor visitor);
     
 } // PORMatrix

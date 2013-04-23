@@ -165,11 +165,11 @@ public class PORNoiseGen {
             null  // time
         );
 
-        // Author
-        writer.outputAuthor("John Doe");
-
         // Software
         writer.outputSoftware("PORNoiseGen");
+        
+        // Author
+        writer.outputAuthor("John Doe");
         
         // Title
         writer.outputTitle(String.format(
@@ -277,7 +277,7 @@ public class PORNoiseGen {
         for (int y = 0; y < opt.rows; y++) {
             for (int x = 0;  x < opt.cols; x++) {
                 //writer.outputInt(x);
-                writer.outputNumeric(810000 + y*opt.cols+x);
+                writer.outputDouble(810000 + y*opt.cols+x);
             } // for: each col
             if (y > ynext) {
                 ynext += ystep;
