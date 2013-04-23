@@ -123,7 +123,7 @@ public class PORDump {
         System.out.printf("Title:               %s\n", val2str(por.title));
         
         // These are mandatory, but in theory they could be missing.
-        System.out.printf("# of variables:      %d\n", por.nvariables);
+        System.out.printf("Variable count:      %d\n", por.variableCount);
         System.out.printf("Precision:           %d base-30 digits\n", por.precision);
 
         // Weight variable name is optional

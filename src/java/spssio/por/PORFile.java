@@ -85,10 +85,10 @@ public class PORFile {
     public String title;
     
     /**
-     * Tag code '4', the number of variables in the file dictionary (mandatory).
+     * Tag code '4', the number of variables in the file 
+     * dictionary (mandatory).
      */
-    public int nvariables;
-    // TBC: Rename into numberOfVariables
+    public int variableCount;
     
     /**
      * Tag code '5', the precision used for Portable file base-30 floating point
@@ -158,7 +158,7 @@ public class PORFile {
         software = null;
         author = null;
         title = null;
-        nvariables = 0;
+        variableCount = 0;
         precision = 0;
         weight_var_index = -1;
         weight_var_name = null;
@@ -281,8 +281,8 @@ public class PORFile {
         return title;
     }
     
-    public int getNumberOfVariables() {
-        return nvariables;
+    public int getVariableCount() {
+        return variableCount;
     }
     
     public int getPrecision() {
@@ -332,15 +332,15 @@ public class PORFile {
         this.title = title;
     }
     
-    public void setNumberOfVariables(int nVariables) {
-        if (nVariables < 0) {
+    public void setVariableCount(int vcount) {
+        if (vcount < 0) {
             throw new IllegalArgumentException(String.format(
-                "Number of variables must be greather than or equal to 0"));
+                "Variable count must be greather than or equal to 0"));
         }
         
-        // Set number of variables.
-        // This may differ from the actual value. Also, it could be zero.
-        nvariables = nVariables;
+        // Set variable count; the value may differ from the actual
+        // number of variables. It could be zero, too.
+        variableCount = vcount;
     }
 
     public void setPrecision(int precision) {
@@ -362,6 +362,10 @@ public class PORFile {
     
     // VARIABLE RECORDS
     //==================
+    
+    public int numberOfVariables() {
+        return variables.size();
+    }
     
     
     /**

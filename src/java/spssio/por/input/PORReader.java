@@ -471,10 +471,10 @@ public class PORReader
     }
     
     protected void parseVariableCount() {
-        por.nvariables = parseIntU();
+        por.variableCount = parseIntU();
         
         por.sections.add(PORSection.newVariableCount(
-            por.nvariables));
+            por.variableCount));
     }
     
     protected void parseNumericPrecision() {
