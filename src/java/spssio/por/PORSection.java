@@ -203,8 +203,8 @@ public class PORSection
         return new PORSection(TAG_PRECISION, precision);
     }
     
-    public static PORSection newWeightVarName(String name) {
-        return new PORSection(TAG_WEIGHT_VARIABLE, name);
+    public static PORSection newWeightVariable(String variableName) {
+        return new PORSection(TAG_WEIGHT_VARIABLE, variableName);
     }
     
     public static PORSection newVariableRecord(PORVariable v) {

@@ -485,10 +485,10 @@ public class PORReader
     }
     
     protected void parseWeightVariable() {
-        por.weight_var_name = parseString();
+        por.weightVariableName = parseString();
 
-        por.sections.add(PORSection.newWeightVarName(
-            por.weight_var_name));
+        por.sections.add(PORSection.newWeightVariable(
+            por.weightVariableName));
     }
     
     protected void parseVariableRecord() {

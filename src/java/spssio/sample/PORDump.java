@@ -127,7 +127,7 @@ public class PORDump {
         System.out.printf("Precision:           %d base-30 digits\n", por.precision);
 
         // Weight variable name is optional
-        System.out.printf("Weight variable:     %s\n", val2str(por.weight_var_name));
+        System.out.printf("Weight variable:     %s\n", val2str(por.weightVariableName));
         
     } // printHeader()
     

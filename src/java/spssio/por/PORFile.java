@@ -103,14 +103,12 @@ public class PORFile {
      * is actually given as a string containing the name of the variable. 
      * Translation is done by the parser after the variables have been read.
      */
-    public int weight_var_index;
+    public PORVariable weightVariable;
     
     /** 
      * The actual weight variable name found from the Portable file. 
      */
-    public String weight_var_name;
-    // TBC: weightName;
-    
+    public String weightVariableName;
     
     /**
      * Sequence of variable records (tag code '7', struct).
@@ -160,8 +158,8 @@ public class PORFile {
         title = null;
         variableCount = 0;
         precision = 0;
-        weight_var_index = -1;
-        weight_var_name = null;
+        weightVariable = null;
+        weightVariableName = null;
         
         // Variables
         variables = new Vector<PORVariable>();
@@ -289,8 +287,19 @@ public class PORFile {
         return precision;
     }
     
-    public String getWeightVarName() {
-        return weight_var_name;
+    public String getWeightVariableName() {
+        String name = null;
+        
+        if (weightVariable != null) {
+            name = weightVariable.name;
+        } else {
+            name = weightVariableName;
+        }
+        return name;
+    }
+    
+    public PORVariable getWeightVariable() {
+        return weightVariable;
     }
     
     public void setSoftware(String software) {
@@ -352,35 +361,55 @@ public class PORFile {
         // Can be zero
         this.precision = precision;
     }
-
-    /*
-    public void setWeightVariable(String weightName) {
-    public void setWeightVarName(String weightName) {
-        header.weight_var_name = weightName;
+    
+    public void setWeightVariableName(String name) {
+        // Attempt resolving the name
+        weightVariable = getVariable(name);
+        
+        // Inspect the result
+        if (weightVariable == null) {
+            // No match. Resort to using plain name
+            weightVariableName = name;
+        } else {
+            // Match. Rely on the actual variable
+            weightVariableName = null;
+        }
     }
-    */
+    
+    public void setWeightVariable(PORVariable variable) {
+        weightVariableName = null;
+        weightVariable = variable;
+    }
     
     // VARIABLE RECORDS
     //==================
     
+    /**
+     * Return the actual number of variables.
+     *
+     * @return The number of variables in the variables container.
+     */
     public int numberOfVariables() {
         return variables.size();
     }
     
     
     /**
-     * Finds a variable with the specified name
+     * Find a variable with the specified name.
+     *
      * @param name Variable's name.
+     *
      * @return The variable, or {@code null} if no such name found.
      */
     public PORVariable getVariable(String name) {
         for (int i = 0; i < variables.size(); i++) {
-            PORVariable rval = variables.elementAt(i);
-            if (name.equals(rval.name)) {
-                return rval;
+            PORVariable variable = variables.elementAt(i);
+            if (name.equals(variable.name)) {
+                return variable;
             }
         }
         
+        // Not found
         return null;
     } // getVariable()
     
