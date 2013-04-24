@@ -159,7 +159,6 @@ public class PORWriter
         
         // unset output stream
         unbind();
-        // unbind()
     }
     
     /*
@@ -1218,27 +1217,13 @@ public class PORWriter
                 outputString(pvalue.value);
                 break;
             case PORValue.TYPE_NUMERIC:
-                // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                // TODO: The precision has to be accounted for.
-                // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                write(pvalue.value); // pass-through
+                // Take the current precision settings into account
+                // while serializing this number.
+                outputNumberAfterReformat(pvalue.value);
                 break;
             default:
                 throw new RuntimeException();
         } // switch
-    }
-    
-    /**
-     * Write a base-30 number according to the current precision settings.
-     * The formatted number is re-formatted before writing.
-     *
-     * @param number The pre-formatted base-30 to be written according
-     *      to the current precision settings.
-     */
-    public void outputNumberWithReformat(String number) 
-        throws IOException
-    {
-        // TODO
     }
 
 } // class PORWriter

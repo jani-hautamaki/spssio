@@ -275,12 +275,40 @@ public class POROutputWriter {
     }
     
     
-    // OTHER METHODS
-    //===============
-    
     //=======================================================================
     // SPSS/PSPP PRIMITIVES' OUTPUT METHODS
     //=======================================================================
+    
+    /**
+     * Write a base-30 number after reformatting it according to
+     * to the current precision settings.
+     * 
+     * @param number The base-30 number pre-formatted as a {@code String} 
+     *      that in the current NumberSystem that is to be serialized.
+     *
+     */
+    public void outputNumberAfterReformat(String number) 
+        throws IOException
+    {
+        
+        // Serialize the string into the buffer
+        int len = number.length();
+        for (int i = 0; i < len; i++) {
+            buffer[i] = number.charAt(i);
+        }
+        
+        // Reformat and store the length of serialization
+        len = numberFormatter.reformat(
+            buffer, len, numberFormatter.getPrecision());
+        
+        // Write out the value
+        for (int i = 0; i < len; i++) {
+            write(buffer[i]);
+        }
+        
+        // Write number separator
+        write(PORConstants.NUMBER_SEPARATOR);
+    }
     
     /**
      * Write a string.

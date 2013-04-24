@@ -113,8 +113,12 @@ public class PORNoiseGen {
     
     public static void usage() {
         System.out.printf("Options:\n");
-        System.out.printf("   -rows=n         Set the number of rows (default: 100)\n");
-        System.out.printf("   -cols=n         Set the number of columns (default: 100)\n");
+        System.out.printf("   -rows=n         Set number of rows to n (default: 100)\n");
+        System.out.printf("   -cols=n         Set number of columns to n (default: 100)\n");
+        System.out.printf("   -stddev=s       Set standard deviation to s (default: 1.0)\n");
+        System.out.printf("   -mean=m         Set mean to m (default: 0)\n");
+        System.out.printf("    -sysmiss=c      Set values above/below c*sigma to SYSMISS (default: 3.0)\n");
+        System.out.printf("    -bufsize=n      Set output buffer size to n\n");
     }
     
     protected static int parseIntArg(String carg) {
@@ -488,6 +492,4 @@ public class PORNoiseGen {
         );
     }
 
-    
-    
 } // class PORNoiseGen

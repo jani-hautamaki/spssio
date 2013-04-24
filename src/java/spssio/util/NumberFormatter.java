@@ -654,6 +654,7 @@ public class NumberFormatter {
      * @param newPrecision The new precision
      * @param int The updated length of the buffer
      *
+     * TODO: Should the method be renamed into reformatNumber() ?
      */
     public int reformat(int[] buffer, int len, int newPrecision) {
         // Offset for dtab[]
