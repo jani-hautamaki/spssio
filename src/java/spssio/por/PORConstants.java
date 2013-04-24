@@ -35,7 +35,7 @@ public class PORConstants
      * than this value are expanded with whitespaces to the specified
      * length. During writing the lines wrapped at the specified length.
      */
-    public static final int ROW_LENGTH = 80;
+    public static final int ROW_LENGTH              = 80;
     
     
     /**
@@ -51,27 +51,27 @@ public class PORConstants
     /**
      * Software maximum length.
      */
-    public static int MAX_SOFTWARE_LENGTH = 255;
+    public static int MAX_SOFTWARE_LENGTH           = 255;
     
     /**
      * Author maximum length.
      */
-    public static int MAX_AUTHOR_LENGTH = 255;
+    public static int MAX_AUTHOR_LENGTH             = 255;
     
     /**
      * Title maximum length.
      */
-    public static int MAX_TITLE_LENGTH = 255;
+    public static int MAX_TITLE_LENGTH              = 255;
     
     /**
      * Variable name maximum length.
      */
-    public static int MAX_VARNAME_LENGTH = 8;
+    public static int MAX_VARNAME_LENGTH            = 8;
     
     /**
      * Variable label maximum length.
      */
-    public static int MAX_VARLABEL_LENGTH = 255;
+    public static int MAX_VARLABEL_LENGTH           = 255;
 
 
     

@@ -179,7 +179,8 @@ public class PORNoiseGen {
         writer.outputVariableCount(opt.cols);
         
         // Numeric precision
-        writer.outputNumericPrecision(writer.getNumericPrecision());
+        writer.outputNumericPrecision(
+            writer.getNumberFormatter().getPrecision());
         
         // Save the generated variable names into this
         Vector<String> varnames = new Vector<String>(opt.cols);

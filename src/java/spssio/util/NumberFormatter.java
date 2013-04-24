@@ -195,6 +195,15 @@ public class NumberFormatter {
     }
     
     /**
+     * Get the underlying {@code NumberSystem}.
+     * 
+     * @return The underlying {@code NumberSystem} object.
+     */
+    public NumberSystem getNumberSystem() {
+        return numberSystem;
+    }
+    
+    /**
      * Set the precision used by the formatter.
      * 
      * @param newPrecision The precision to be used
@@ -211,12 +220,50 @@ public class NumberFormatter {
      */
     public void setDefaultPrecision() {
         if (numberSystem == null) {
-            throw new RuntimeException("No number system set");
+            throw new RuntimeException(
+                "Unable to set default precision: NumberSystem is null");
+        }
+        precision = getDefaultPrecision(numberSystem);
+    }
+    
+    /**
+     * Calculate default precision for the specified {@code NumberSystem}.<p>
+     *
+     * The default precision is defined as the number of digits required
+     * in the specified {@code NumberSystem} to express the biggest value
+     * that can be stored into the mantissa/significand of Java's 
+     * {@code double}s. They are IEEE double precision floating points.<p<
+     *
+     * The IEEE double precision floating point is defined to have 53 bits
+     * in the mantissa, with 52 bits explicitly stored. If the radix
+     * of the number system is N, the default precision is then given
+     * by:<p>
+     * 
+     *      logN(2^53)<p>
+     *
+     * which gives<p>
+     * 
+     *      defaultPrecision = ln(2^53) / ln(N)<p>
+     * 
+     * To emphasize: the default precision is the number of base-N digits 
+     * needed to express the biggest mantissa value.
+     *
+     * @param numberSystem The number system for which to calculate
+     *      the default precision
+     *
+     * @return The default precision for the specified {@code NumberSystem}.
+     */
+    public static int getDefaultPrecision(NumberSystem numberSystem) {
+        // Validate parameters
+        if (numberSystem == null) {
+            throw new IllegalArgumentException(
+                "Illegal NumberSystem specified: null");
         }
         if (numberSystem.base == NumberSystem.BASE_UNSET) {
             throw new RuntimeException(
-                "The number system base is unset");
+                "Illegal NumberSystem specified: the base is unset");
         }
+        
         // Calculate the default precision.
         // Java's doubles are IEEE double precision floating points,
         // so they have 53 bit mantissa's (with 52 bits explicitly stored).
@@ -230,7 +277,7 @@ public class NumberFormatter {
             (53.0*Math.log(2.0)) / Math.log(numberSystem.base)
         ); // ceil()
         
-        precision = defaultPrecision;
+        return defaultPrecision;
     }
     
     /**

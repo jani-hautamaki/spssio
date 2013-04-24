@@ -118,122 +118,22 @@ import java.util.List;  // to_sections()
  * 
  */
 public class PORWriter
+    extends POROutputWriter
 {
-    
-    // CONSTANTS
-    //===========
-    
-    /**
-     * Use Unix-style end-of-lines: LF ({@code '\n'}) only.
-     * TBC: Use int[] array instead of a constant?
-     */
-    public static final int EOL_LF                  = 0x0A;
-    
-    /**
-     * Use Windows-style end-of-lines: CR+LF ({@code '\r'}+{@code '\n'}).
-     * TBC: Use int[] array instead of a constant?
-     */
-    public static final int EOL_CRLF                = 0x0D0A;
-    
-    /**
-     * Default serialization precision.
-     */
-    public static final int DEFAULT_PRECISION       = 11;
-    
-    // MEMBER VARIABLES
-    //==================
-    
-    /**
-     * Encoding table
-     */
-    private int[] enctab;
-    
-    /**
-     * Column number of the next byte, 0-based.
-     */
-    private int col;
-    
-    /**
-     * Row number of the next byte, 0-based.
-     */
-    private int row;
-
-    
-    /**
-     * Row length (number of columns in a row).
-     */
-    private int row_length;
-    
-    /**
-     * End-of-line type, either LF (unix) or CRLF (windows).
-     */
-    private int eol;
-    
-    /**
-     * Output byte stream to which the serialization is sent.
-     */
-    private OutputStream ostream;
-
-    /**
-     * Number of bytes written.
-     */
-    private int size;
-    
-    /**
-     * NumberSystem object for base-30 numbers
-     */
-    private NumberSystem numsys;
-    
-    /**
-     * Formatter for the base-30 numbers
-     */
-    private NumberFormatter numberFormatter;
-    
-    /**
-     * NumberFormatter's buffer
-     */
-    private int[] buffer;
-    
     
     // CONSTRUCTORS
     //==============
     
     public PORWriter() {
-        numsys = new NumberSystem(30, null);
-        numberFormatter = new NumberFormatter(numsys, 11);
-        buffer = numberFormatter.getBuffer();
-        
-        // Row length is determined by Portable format.
-        row_length = PORConstants.ROW_LENGTH;
-        
-        col = 0;
-        row = 0;
-        eol = EOL_CRLF;
-        ostream = null;
-        size = 0;
-
-        // Unset encoding (ie. use identity transformation)
-        setEncodingCharset(null);
+        super();
     }
     
     public PORWriter(OutputStream os) {
         this(); // Call default ctor
         
-        // Assign output stream
-        ostream = os;
+        // Bind directly to the specified stream
+        bind(os);
     }
-    
-    // SETUP METHODS
-    //===============
-    
-    public int getNumericPrecision() {
-        return numberFormatter.getPrecision();
-    }
-    
-    public void setNumericPrecision(int precision) {
-        numberFormatter.setPrecision(precision);
-    }
-    
     
     // OTHER METHODS
     //===============
@@ -244,12 +144,7 @@ public class PORWriter
     
     public void output(OutputStream os, PORFile file) {
         
-        // set output stream
-        ostream = os;
-        
-        // Reset locator
-        row = 0;
-        col = 0;
+        bind(os);
         
         try {
             /*
@@ -263,7 +158,8 @@ public class PORWriter
         }
         
         // unset output stream
-        ostream = null;
+        unbind();
+        // unbind()
     }
     
     /*
@@ -567,7 +463,7 @@ public class PORWriter
         } // for: each char
         
         // Set encoding table.
-        setEncodingCharset(charset);
+        setEncoding(charset);
     }
     
     public void outputFormatSignature(String signature) 
@@ -1293,14 +1189,8 @@ public class PORWriter
             }
         } // for
         
-        // Write end-marker
-        write(PORConstants.EOF_MARKER); // 'Z'
-        
-        // Complete the last line with end-markers.
-        int len = row_length-col;
-        for (int i = 0; i < len; i++) {
-            write(PORConstants.EOF_MARKER); // 'Z'
-        }
+        // Finish with eof marker
+        outputEofMarkers();
         
         // and we are done!
     }
@@ -1315,8 +1205,6 @@ public class PORWriter
         // if len < precision: pass-through
         // else: round(array, len, desired_precision)
     } // output_data_matrix2()
-
-    
 
     //=======================================================================
     // PORValue OUTPUT METHOD
@@ -1353,303 +1241,4 @@ public class PORWriter
         // TODO
     }
 
-    
-    //=======================================================================
-    // SPSS/PSPP PRIMITIVES' OUTPUT METHODS
-    //=======================================================================
-    
-    /**
-     * Write a string.
-     *
-     * <b>TODO:</b> Should the 255 character string length 
-     * limit be obeyed here?
-     *
-     * @param string The string to be written.
-     */
-    public void outputString(String string) 
-        throws IOException
-    {
-        // UNROLLED outputInt()
-        
-        // Serialize and store the length of serialization
-        int len = numberFormatter.formatInt(string.length());
-        
-        // Write out the value
-        for (int i = 0; i < len; i++) {
-            write(buffer[i]);
-        }
-        
-        // Write number separator
-        write(PORConstants.NUMBER_SEPARATOR);
-        
-        // Finally, serialize the string itself.
-        write(string);
-    }
-    
-    /**
-     * Write a decimal number in base-30 digits. Formatting is done 
-     * according to the current precision settings.<p>
-     *
-     * <b>TODO:</b> The method should be renamed into outputDouble()
-     *
-     * @param value The number to be written.
-     *
-     */
-    public void outputDouble(double value)
-        throws IOException
-    {
-        // Serialize and store the data length
-        int len = numberFormatter.formatDouble(value);
-        
-        // Write data
-        for (int i = 0; i < len; i++) {
-            write(buffer[i]);
-        } // for
-        
-        // Write number separator
-        write(PORConstants.NUMBER_SEPARATOR);
-    }
-    
-    /**
-     * Write a SYSMISS numeric value with the default value separator.
-     *
-     * @see PORConstants#SYSMISS_SEPARATOR
-     */
-    public void outputSysmiss()
-        throws IOException
-    {
-        write(PORConstants.SYSMISS_MARKER);
-        write(PORConstants.SYSMISS_SEPARATOR);
-    }
-    
-    /** 
-     * Write a SYSMISS numeric value with a specified value separator.
-     *
-     * @param sep The character to be used as a value separator 
-     *      after SYSMISS value.
-     */
-    public void outputSysmiss(int sep)
-        throws IOException
-    {
-        write(PORConstants.SYSMISS_MARKER);
-        write(sep);
-    }
-
-    /**
-     * Write an integer number in base-30 digits.
-     *
-     * @param value An {@code int}-valued integer number.
-     * 
-     */
-    public void outputInt(int value)
-        throws IOException
-    {
-        
-        // Serialize and get the length of the serialization
-        int len = numberFormatter.formatInt(value);
-        
-        // Output the serialization
-        for (int i = 0; i < len; i++) {
-            write(buffer[i]);
-        }
-        
-        // Write number separator
-        write(PORConstants.NUMBER_SEPARATOR);
-    }
-    
-    /**
-     * Write a tag code
-     *
-     * @param c The tag code
-     */
-    public void outputTag(int c)
-        throws IOException
-    {
-        // TODO!!!!!!!!!! 
-        // Study whether the tag codes are subject to decoding/encoding
-        write(c);
-    }
-
-    /**
-     * Write end-of-file markers ('Z') to complete the current line.
-     *
-     */
-    public void outputEofMarkers() 
-        throws IOException
-    {
-        // Write end-marker
-        write(PORConstants.EOF_MARKER); // 'Z'
-        
-        // Complete the last line with end-markers.
-        int len = row_length-col;
-        for (int i = 0; i < len; i++) {
-            write(PORConstants.EOF_MARKER); // 'Z'
-        }
-    }
-    
-    //=======================================================================
-    // LOW-LEVEL OUTPUT METHODS
-    //=======================================================================
-    
-    /**
-     * Set byte encoding according to charset.
-     * 
-     * @param charset The character set to use in encoding,
-     *      or {@code null} to disable encoding.
-     * 
-     */
-    private void setEncodingCharset(int[] charset) {
-        // TODO: calculate encoding table
-        if (charset != null) {
-            enctab = PORCharset.getIdentityTable();
-        } else {
-            // If encoding unset, use identity transformation.
-            enctab = PORCharset.getIdentityTable();
-        }
-    }
-    
-    private void write(String string) 
-        throws IOException
-    {
-        int len = string.length();
-        int c;
-        
-        for (int i = 0; i < len; i++) {
-            // Pick the current char
-            c = string.charAt(i);
-            
-            // UNROLLED write(int)
-            //=====================
-
-            // Truncate and encode
-            c = enctab[c & 0xff];
-            
-            // Write
-            ostream.write(c);
-            
-            // Next column
-            col++;
-            
-            // If line is full, write an end-of-line sequence,
-            // reset column, and move to next row.
-            if (col == row_length) {
-                // Write end-of-line sequence.
-                // If Windows-style, then precede LF by CR.
-                if (eol == EOL_CRLF) {
-                    ostream.write('\r'); // CR
-                }
-                ostream.write('\n'); // LF
-                
-                // Reset column and move to next row.
-                col = 0;
-                row++;
-            } // if: row full
-        } // for: each char
-        
-    } // write(String)
-
-    /**
-     * Write a sequence to output stream with the current encoding. 
-     * A new line sequence is emitted if the line exceeds the current
-     * row length setting.
-     *
-     * @param array The data array.
-     * @param from First array position to write.
-     * @param to First array position not to write.
-     */
-    private void write(int[] array, int from, int to) 
-        throws IOException
-    {
-        int c;
-        
-        for (int i = from; i < to; i++) {
-            // Pick the next byte
-            c = array[i];
- 
-            // Finish with update sequence
-            
-            // UNROLLED write(int)
-            //=====================
-
-            // Truncate and encode
-            c = enctab[c & 0xff];
-            
-            // Write
-            ostream.write(c);
-            
-            // Next column
-            col++;
-            
-            // If line is full, write an end-of-line sequence,
-            // reset column, and move to next row.
-            if (col == row_length) {
-                // Write end-of-line sequence.
-                // If Windows-style, then precede LF by CR.
-                if (eol == EOL_CRLF) {
-                    ostream.write('\r'); // CR
-                }
-                ostream.write('\n'); // LF
-                
-                // Reset column and move to next row.
-                col = 0;
-                row++;
-            } // if: row full
-        } // for
-        
-    } // write(array)
-    
-    /**
-     * Write a byte to output stream with the current encoding. 
-     * A new line sequence is emitted if the line exceeds the current
-     * row length setting.
-     *
-     * @param c The byte to write
-     */
-    private void write(int c) 
-        throws IOException
-    {
-        // Apparently SPSS writes an end-of-line sequence after 'Z' sequence.
-        
-        // Encode
-        c = enctab[c & 0xff];
-        
-        // Write to the output stream
-        ostream.write(c);
-        
-        // Next column
-        col++;
-        
-        // If line is full, write an end-of-line sequence,
-        // reset column, and move to next row.
-        if (col == row_length) {
-            // Write end-of-line sequence.
-            // If Windows-style, then precede with CR.
-            if (eol == EOL_CRLF) {
-                ostream.write('\r'); // CR
-            }
-            ostream.write('\n'); // LF
-            
-            // Reset column and move to next row.
-            col = 0;
-            row++;
-        } // if: row full
-    } // write(int)
-    
-    /**
-     * Return the row of next char
-     *
-     * @return The row of the next char
-     */
-    public int getRow() {
-        return row;
-    }
-    
-    /**
-     * Return the column of the next char
-     * 
-     * @return The column of the next char
-     */
-    public int getColumn() {
-        return col;
-    }
 } // class PORWriter
