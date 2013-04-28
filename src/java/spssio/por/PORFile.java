@@ -181,11 +181,11 @@ public class PORFile {
     // HEADER
     //========
     
-    public byte[] getSplash() {
+    public int[] getSplash() {
         return header.splash;
     }
     
-    public byte[] getCharset() {
+    public int[] getCharset() {
         return header.charset;
     }
     

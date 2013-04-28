@@ -443,7 +443,12 @@ public class POROutputWriter {
     // LOW-LEVEL OUTPUT METHODS
     //=======================================================================
     
-    
+    /*
+     * TODO:
+     * Take a user-specified encoding into account
+     * http://docs.oracle.com/javase/7/docs/api/java/lang/String.html#getBytes%28java.lang.String%29
+     *
+     */
     public void write(String string) 
         throws IOException
     {

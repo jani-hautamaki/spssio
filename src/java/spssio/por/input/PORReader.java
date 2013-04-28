@@ -353,7 +353,7 @@ public class PORReader
     
     protected void parseSplashStrings() {
         // Allocate a byte array for the splash strings.
-        byte[] array = new byte[5*40];
+        int[] array = new int[5*40];
         
         // Populate the array
         read(array, 0, array.length);
@@ -367,7 +367,7 @@ public class PORReader
         // Avoid allocating a new one, and use the one that
         // has been allocated to the PORFile?
         
-        byte[] array = new byte[256];
+        int[] array = new int[256];
         
         // Read the next 256 bytes (=character map) into "table".
         read(array, 0, array.length);
@@ -379,6 +379,8 @@ public class PORReader
         
         // Compute a decoding table
         PORCharset.computeDecodingTable(dectab, array);
+        // TODO: setDecoding(charset)
+        
     } // parse_charset_map()
     
     
@@ -388,13 +390,20 @@ public class PORReader
         byte[] array = new byte[8];
         
         // Read the signature
-        read(array, 0, array.length);
+        for (int i = 0; i < array.length; i++) {
+            array[i] = (byte) readc();
+        }
+        //read(array, 0, array.length);
         
         // Decode the signature
         decode(array);
         
         // Convert into a string
         String signature = new String(array);
+        
+        // TODO:
+        // Enable the reader to be configured so that the signature
+        // is not validated.
         
         // Finally, assert that the file is SPSS Portable file
         // (Format signature is 'SPSSPORT')
@@ -910,10 +919,40 @@ public class PORReader
             array[i] = (byte) outchar;
         } // for
     } // decode
+
+    protected void read(int[] array, int from, int to) {
+        int offset = 0;
+        int c = -1;
+        
+        try {
+            for (offset = from; offset < to; offset++) {
+                c = read();
+                
+                if (c == -1) {
+                    // eof
+                    break;
+                }
+                array[offset] = c;
+            } // for
+        } catch(IOException ex) {
+            error_io(String.format(
+                "BufferedInputStream.read(int[], from=%d, len=%d)",
+                from, to-from), ex);
+        } // try-catch
+        
+        // If the read() didn't got as many bytes as required,
+        // then the only explanation is that eof was reached.
+        if (offset != to) {
+            error_eof(String.format(
+                "BufferedInputStream.read(int[], from=%d, len=%d)",
+                from, to-from));
+        } // if: 
+    }
     
     /**
      * Read an array of bytes. Throws an exception, if eof is reached.
      */
+    /*
     protected void read(byte[] array, int from, int to) {
         int offset = 0;
         int c = -1;
@@ -942,6 +981,8 @@ public class PORReader
                 from, to-from));
         } // if: 
     } // read()
+    */
+    
     
     /**
      * Read a single byte. Throws an exception, if eof is reached.

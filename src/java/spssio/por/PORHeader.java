@@ -24,14 +24,14 @@ package spssio.por;
 public class PORHeader {
     
     /** 
-     * Five splash strings.
+     * 5x 40-byte splash string.
      */
-    public byte[] splash;
+    public int[] splash;
     
     /**
      * 256-byte character set translation table.
      */
-    public byte[] charset;
+    public int[] charset;
     
     /**
      * 8-byte signature string, {@code "SPSSPORT"}.
@@ -39,7 +39,7 @@ public class PORHeader {
     public String signature;
 
     /**
-      * A single character identifying the file format version. 
+      * A 1-byte character identifying the file format version. 
       * The letter A represents version 0, and so on. 
       */
     public char version;

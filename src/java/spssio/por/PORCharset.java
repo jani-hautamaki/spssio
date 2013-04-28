@@ -400,7 +400,7 @@ public class PORCharset
      * @param charset
      *      [in] The charset for which the decoding table is computed.
      */
-    public static void computeDecodingTable(int[] dectab, byte[] charset) {
+    public static void computeDecodingTable(int[] dectab, int[] charset) {
         if ((dectab.length != 256) || (charset.length != 256)) {
             throw new IllegalArgumentException(
                 "ComputeDecodingTable(): incorrect array length (internal error)");
@@ -428,7 +428,7 @@ public class PORCharset
             // it should be interpreted as a character default_charset[code]
             // (which is the UTF-8 character for code SPSS symbol code "code").
             
-            int inbyte = ((int) charset[code]) & 0xff;
+            int inbyte = charset[code];
             int outchar = default_charset[code];
             
             if (inbyte == inzero) {
@@ -456,7 +456,7 @@ public class PORCharset
      * @param charset
      *      [in] The charset for which the decoding table is computed.
      */
-    public static void computeEncodingTable(int[] enctab, byte[] charset) {
+    public static void computeEncodingTable(int[] enctab, int[] charset) {
         if ((enctab.length != 256) || (charset.length != 256)) {
             throw new IllegalArgumentException(
                 "ComputeEncodingTable(): incorrect array length (internal error)");
@@ -484,8 +484,11 @@ public class PORCharset
             // it should be interpreted as a character default_charset[code]
             // (which is the UTF-8 character for code SPSS symbol code "code").
             
-            int outbyte = ((int) charset[code]) & 0xff;
+            int outbyte = charset[code];
             int inchar = default_charset[code];
+            
+            // TODO:
+            // Validate the outbyte value (by verifying it is < 0x100)
             
             if (outbyte == outzero) {
                 // the input table entry has been marked with zero,
@@ -495,11 +498,10 @@ public class PORCharset
                 // This should be: enctab[inchar] = inchar?
                 //enctab[code] = code;
                 enctab[inchar] = inchar;
-                continue;
+            } else {
+                // Otherwise, set the corresponding output char
+                enctab[inchar] = outbyte;
             }
-            
-            // Otherwise, set the corresponding output char
-            enctab[inchar] = outbyte;
         } // for
     } // computeEncodingTable()
 } // class PORCharset

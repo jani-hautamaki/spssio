@@ -383,49 +383,6 @@ public class PORWriter
     }
 
     /**
-     * Write splash strings.<p>
-     * 
-     * Portable file header contains 5 splash strings, each 40 bytes.
-     * The parameter {@code splash} is expected to contain all splash
-     * strings in a sequence. The array should have length 5x40=200 bytes.
-     *
-     * @param splash The splash strings as a single array.
-     *
-     */
-    public void outputSplashStrings(byte[] splash) 
-        throws IOException
-    {
-        // Validate splash array length
-        if (splash.length != 200) {
-            throw new IllegalArgumentException(String.format(
-                "Splash array has invalid length: %d (expected 200)",
-                splash.length));
-        }
-        
-        // Write the splash strings.
-        // The array write method is for int[] arrays, so this must
-        // be done by hand.
-        for (int i = 0; i < splash.length; i++) {
-            int c = ((int) splash[i]) & 0xff;
-            write(c);
-        } // for
-    }
-
-    public void outputCharset(byte[] charset) 
-        throws IOException
-    {
-        int[] icharset = null;
-        
-        if (charset != null) {
-            // Convert into an int[] array
-            icharset = new int[charset.length];
-            for (int i = 0; i < charset.length; i++) {
-                icharset[i] = ((int) charset[i]) & 0xff;
-            }
-        }
-        outputCharset(icharset);
-    }
-    /**
      * Output the character set used.
      * NOTE: The method sets the encoding table accordingly.
      *
