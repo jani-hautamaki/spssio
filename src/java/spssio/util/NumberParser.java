@@ -460,7 +460,7 @@ public class NumberParser
             
             if (state == S_ERROR) {
                 errno = E_EXPONENT_SIZE;
-                strerror = String.format("exponent overflow; number too long");
+                strerror = String.format("Exponent overflow; number too long");
                 return;
             }
 
@@ -505,7 +505,7 @@ public class NumberParser
         // If an error occurred during conversion, exit here.
         if (state == S_ERROR) {
             errno = E_MANTISSA_SIZE;
-            strerror = String.format("mantissa overflow; number too long");
+            strerror = String.format("Mantissa overflow; number too long");
             return;
         }
         
@@ -685,7 +685,7 @@ public class NumberParser
         // Check for overflow
         if (exp > sys.max_exponent) {
             errno = E_OVERFLOW;
-            strerror = String.format("number overflow; exponent out of range");
+            strerror = String.format("Number overflow; exponent out of range");
             state = S_ERROR;
         } else if (exp == sys.max_exponent) {
             // Get normalized mantissa value into dvalue for limit checking.
@@ -703,7 +703,7 @@ public class NumberParser
             } // if: overflow
         } else if (exp+digits_int < sys.min_exponent) {
             errno = E_UNDERFLOW;
-            strerror = String.format("number underflow; exponent out of range");
+            strerror = String.format("Number underflow; exponent out of range");
             state = S_ERROR;
         } else if (exp-digits_frac <= sys.min_exponent) {
             // Implied: min_exponent <= exp+digits_int
@@ -724,7 +724,7 @@ public class NumberParser
             // Check overflow with the normalized mantissa
             if ((exp == sys.min_exponent) && (dvalue < sys.min_mantissa)) {
                 errno = E_UNDERFLOW;
-                strerror = String.format("number underflow; mantissa out of range");
+                strerror = String.format("Number underflow; mantissa out of range");
                 state = S_ERROR;
             } // if: underflow
         } else {
@@ -851,8 +851,8 @@ public class NumberParser
                     // ERROR: unexpeced or eof
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected character: %s", 
-                        c > 0 ? c : "<eof>");
+                        "Syntax error; unexpected character or end-of-data: %s", 
+                        c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 } // if-else
                 break;
@@ -885,7 +885,7 @@ public class NumberParser
                     // Error: unrecognized character (can't be eof)
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unrecognized character: %c", c);
+                        "Syntax error; unrecognized character: %c", c);
                     state = S_ERROR;
                 }
                 break;
@@ -902,7 +902,7 @@ public class NumberParser
                     // unallowed
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected end-of-data");
+                        "Syntax error; unexpected end-of-data");
                     state = S_ERROR;
                 }
                 else if (digit != -1) {
@@ -914,7 +914,7 @@ public class NumberParser
                     // Unexpected char or unexpected exponent
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; no digits before the exponent");
+                        "Syntax error; no digits before the exponent");
                     state = S_ERROR;
                 }
                 break;
@@ -951,7 +951,8 @@ public class NumberParser
                     // or unexpected eof.
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected character or end-of-data");
+                        "Syntax error; unexpected character or end-of-data: %s", 
+                        c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 }
                 break;
@@ -980,7 +981,7 @@ public class NumberParser
                     // Unexpected or unrecognized char (can't be eof)
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected character: %c", c);
+                        "Syntax error; unexpected character: %c", c);
                     state = S_ERROR;
                 }
                 break;
@@ -1002,7 +1003,8 @@ public class NumberParser
                     // unexpected, unrecognized or eof.
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected character or end-of-data");
+                        "Syntax error; unexpected character or end-of-data: %s", 
+                        c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 }
                 break;
@@ -1019,7 +1021,8 @@ public class NumberParser
                     // either unexpected, unrecognized or eof
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected character or end-of-data");
+                        "Syntax error; unexpected character or end-of-data: %s", 
+                        c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 }
                 break;
@@ -1036,7 +1039,7 @@ public class NumberParser
                     // unrecognized or unexpected.
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "syntax error; unexpected characer: %c", c);
+                        "Syntax error; unexpected characer: %c", c);
                     state = S_ERROR;
                 }
                 break;
@@ -1052,7 +1055,7 @@ public class NumberParser
             default:
                 errno = E_INTERNAL;
                 strerror = String.format(
-                    "internal error; unhandled state: state=%d", state);
+                    "Internal error; unhandled state: state=%d", state);
                 state = S_ERROR;
                 break;
         } // switch
