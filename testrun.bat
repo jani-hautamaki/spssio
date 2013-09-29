@@ -16,17 +16,6 @@ rem       http://www.gnu.org/licenses/gpl-3.0.html
 rem 
 rem ********************************{end:header}*******************************
 
-rem NOTE: 
-rem To move the location of the installation directory, the environment 
-rem variable DDIR should be changed to correspond the new installation 
-rem directory.
-
-rem The installation directory
-set DDIR=$deploy.dir$
-
 rem Call Java VM
-java -cp $deploy.jars$; %*
-
-rem Unset the the auxiliary environment variable
-set DDIR=
+java -cp build; %*
 

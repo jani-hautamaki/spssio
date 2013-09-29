@@ -17,80 +17,75 @@
   
 **********************************{end:header}******************************-->
 
-<project name="spssio" default="deploy" basedir=".">
+<project name="spssio" default="build" basedir=".">
 
   <!-- Description; just point at the Google Code web page -->
   <description>https://code.google.com/p/spssio/</description>
-    
+
   <!-- =================================================================== -->
   <!-- Configuration constants                                             -->
   <!-- =================================================================== -->
 
+  <!-- Instantiate DSTAMP (has format: yyyyMMdd) -->
+  <tstamp />
+
+  <!-- Instantiate timestamp for build.time property -->
+  <tstamp>
+    <format property="build.time" pattern="yyyy-MM-dd HH:mm Z" />
+  </tstamp>
+
+  <!-- Base name for directories and packages -->
+  <property name="base.name"                  value="spssio" />
+
   <!-- Version number used in the distribution package name -->
-  <property name="version"                    value="0.0.1" />
+  <property name="version"                    value="0.4.7" />
 
-  <!-- File name for the class jar package -->
-  <property name="classes.jar"              value="spssio-${version}.jar" />
-    
-  <!-- Deployment directory name -->
-  <!-- <property name="spssio.dir"                 value="spssio" /> -->
-
-  <!-- Testrun script file name (Windows) -->
-  <property name="testrun.bat"                value="testrun.bat" />
-    
   <!-- =================================================================== -->
-  <!-- Directory layout: root INPUT directories and files                  -->
+  <!-- Directory layout: root INPUT directories                            -->
   <!-- =================================================================== -->
 
-  <!-- Directory for all Java source codes -->
-  <property name="sources.dir"                location="./src/java" />
+  <!-- Directory for all source codes -->
+  <property name="sources.dir"                value="src" />
 
   <!-- Third-party .jar files automatically included in classpath -->
-  <property name="lib.dir"                    location="./lib" />
-    
-  <!-- Script templates directory -->
-  <property name="templ.dir"                  location="./src/templ" />
+  <property name="lib.dir"                    value="lib" />
 
-  <!-- File name for the location independent testrun script (Windows) -->
-  <property name="testrun.bat.templ"          location="${templ.dir}/${testrun.bat}.templ" />
-  
+  <!-- Java source code directory -->
+  <property name="jsources.dir"               value="${sources.dir}/java" />
+
+  <!-- Script templates directory -->
+  <property name="templ.dir"                  value="${sources.dir}/templ" />
+
   <!-- =================================================================== -->
-  <!-- Directory layout: root OUTPUT directories and files                 -->
+  <!-- Directory layout: root OUTPUT directories                           -->
   <!-- =================================================================== -->
 
   <!-- Build root directory for compiled code -->
-  <property name="build.dir"                  location="./build" />
-    
-  <!-- Build directory for all compiled Java code -->
-  <property name="build.java.dir"             location="${build.dir}/java" />
+  <property name="build.dir"                  value="build" />
 
-  <!-- File name for the built class jar package -->
-  <property name="build.classes.jar"          location="${build.dir}/${classes.jar}" />
+  <!-- Build root directory for bin scripts -->
+  <property name="bin.dir"                    value="bin" />
 
   <!-- Build directory for all generated javadocs -->
-  <property name="javadoc.dir"                location="./javadoc" />
+  <property name="javadoc.dir"                value="javadoc" />
 
-  <!-- Installation directory for the built classes jar -->
-  <property name="install.dir"                location="./deploy/spssio" />
-
-  <!-- Installation location for the location independent testrun script (Windows) -->
-  <property name="install.testrun.bat"        location="./${testrun.bat}" />
-
-  <!-- Redistributable package; package evolution -->
-  <property name="dist.dir"                   location="./dist" />
+  <!-- Directory for the distributable package -->
+  <property name="dist.dir"                   value="dist" />
 
   <!-- =================================================================== -->
-  <!-- Java compilation options                                            -->
+  <!-- Specific OUTPUT file names                                          -->
   <!-- =================================================================== -->
-    
-  <property name="compile.debug"       value="true" />
-  <property name="compile.optimize"    value="true" />
-  <property name="compile.target"      value="1.6" />
-  <property name="compile.source"      value="1.6" />
-  <property name="compile.deprecation" value="true" />
 
-  <!-- Directory for javadocs generated documentation -->
-  <property name="javadoc.dir"  location="javadoc" />
+  <!-- File name for the class jar package -->
+  <property name="jar.file"                   value="${base.name}-${version}.jar" />
+
+  <!-- Redistributable package -->
+  <property name="zip.file"                   value="${base.name}-${version}.zip" />
+  
+  <property name="nightlyzip.file"            value="${base.name}-${DSTAMP}.zip" />
+
+  <!-- Embed build details to this java source file (in sources.dir) -->
+  <property name="buildinfo.file"             value="spssio/BuildInfo.java" />
 
   <!-- =================================================================== -->
   <!-- Automatic inclusion of all .jar files in the lib.dir                -->
@@ -104,60 +99,28 @@
   </path>
 
   <!-- =================================================================== -->
-  <!-- Prepares the build directory                                        -->
+  <!-- Java compilation options                                            -->
   <!-- =================================================================== -->
-  <target name="prepare-build" depends=""
-          description="prepares the build directory">
-    <!-- Timestamp -->
-    <tstamp />
-    <!-- Create the build root -->
-    <mkdir dir="${build.dir}" />
-    <!-- Create sub-directory for compiled Java .class files -->
-    <mkdir dir="${build.java.dir}" />
-  </target>
+    
+  <property name="compile.debug"       value="true" />
+  <property name="compile.optimize"    value="true" />
+  <property name="compile.target"      value="1.6" />
+  <property name="compile.source"      value="1.6" />
+  <property name="compile.deprecation" value="true" />
 
   <!-- =================================================================== -->
-  <!-- Prepares the deploy directory                                       -->
+  <!-- Compiles "sources.dir" into "build.dir"                             -->
   <!-- =================================================================== -->
-  
-  <target name="prepare-deploy" 
-          description="prepares the deploy directory"
-          depends="">
-    <!-- Timestamp -->
-    <tstamp />
-    <!-- Create the install directory if it doesn't exist already -->
-    <mkdir dir="${install.dir}" />
-  </target>
-
-  
-  <!-- =================================================================== -->
-  <!-- TODO: Propagate / redist                                            -->
-  <!-- =================================================================== -->
-  <target name="propagate" 
+  <target name="compile"
           depends=""
-          description="propagate to a new distributable package">
-    
-    <!-- TODO: prepare dist -->
-    <!-- TODO: identity transform -->
-    <!-- TODO: propagate sources -->
-    
-    <!-- Example of propagating sources with identity transformation
-    <copy todir="${build.sources.dir}" filtering="true">
-        <fileset dir="${sources.dir}" />
-    </copy>
-    -->
-  </target>
+          description="Compile the source directory">
 
-
-  <!-- =================================================================== -->
-  <!-- Compiles the snippets directory                                     -->
-  <!-- =================================================================== -->
-  <target name="compile" depends="prepare-build"
-          description="Compiles the java sources directory">
-        
+    <!-- Assert output dir existence -->
+    <mkdir dir="${build.dir}" />
+    
     <!-- Execute javac -->
-    <javac srcdir="${sources.dir}"
-           destdir="${build.java.dir}"
+    <javac srcdir="${jsources.dir}"
+           destdir="${build.dir}"
            includeAntRuntime="no" 
            fork="no" 
            listfiles="yes"
@@ -172,133 +135,152 @@
   </target>
 
   <!-- =================================================================== -->
-  <!-- Create a jar package of all class files                             -->
+  <!-- Jars all "build.dir/**/*.class" into "build.dir/jar.file".          -->
+  <!-- Includes the files in "lib.dir/**/*.jar" in the package.            -->
   <!-- =================================================================== -->
   <target name="jar"
           depends="compile"
-          description="Creates a jar package">
-    <!-- Create distributable jar package of the program into the dist.dir -->
-    <jar jarfile="${build.classes.jar}" basedir="${build.java.dir}" />
+          description="Create a single jar package">
+    <jar destfile="${build.dir}/${jar.file}" 
+         basedir="${build.dir}" 
+         includes="**/*.class">
+      <zipgroupfileset dir="${lib.dir}" includes="**/*.jar">
+        <exclude name="META-INF/*" />
+      </zipgroupfileset>
+    </jar>
   </target>
 
   <!-- =================================================================== -->
-  <!-- Xlint the source files                                              -->
+  <!-- Script files in "bin.dir"                                           -->
   <!-- =================================================================== -->
   
-  <!-- Note: this is exactly the same as all javac commands in the other
-  targets compiling source files expect for the additional compilerarg
-  child element. -->
-  <target name="xlint" 
-          description="Xlint the source files"
-          depends="prepare-build">
-    <!-- Execute javac with -Xlint for snippets -->
-    <javac srcdir="${sources.dir}"
-           destdir="${build.java.dir}"
-           includeAntRuntime="no" 
-           fork="no" 
-           listfiles="yes"
-           debug="${compile.debug}"
-           optimize="${compile.optimize}"
-           target="${compile.target}"
-           source="${compile.source}"
-           deprecation="${compile.deprecation}">
-      <!-- Pass argument: -Xlint -->
-      <compilerarg value="-Xlint" />
-      <!-- Pass argument: -classpath -->
-      <classpath refid="classpath.lib"/>
-    </javac>
-  </target>
+  <!-- NOTE: These will have absolute paths -->
+  <fileset id="templ.fileset" dir="${templ.dir}">
+    <include name="*" />
+  </fileset>
+  <fileset id="templbash.fileset" dir="${templ.dir}">
+    <include name="*" />
+    <exclude name="*.bat"/>
+  </fileset>
 
-  <!-- =================================================================== -->
-  <!-- Clean all dynamically created directories                           -->
-  <!-- =================================================================== -->
-  <target name="clean"
-          description="clean all dynamically created directories"
-          depends="">
-    <!-- Remove the build directory -->
-    <delete dir="${build.dir}" />
-    <!-- Remoe the javadocs directory -->
-    <delete dir="${javadoc.dir}" />
-    <!-- Remove the deployment directory -->
-    <delete dir="${install.dir}" />
-  </target>
-    
-  <!-- =================================================================== -->
-  <!-- Create position-independent installation                            -->
-  <!-- =================================================================== -->
+  <!-- Convert filesets into properties listing flat filenames only -->
+  <pathconvert pathsep=" " property="templ.list" refid="templ.fileset">
+    <mapper type="flatten" />
+  </pathconvert>
+  <pathconvert pathsep=" " property="templbash.list" refid="templbash.fileset">
+    <mapper type="flatten" />
+  </pathconvert>
   
-  <target name="deploy"
-          description="create position-independent installation direcotry"
-          depends="jar, prepare-deploy">
-          
-    <!-- Flatten 3rd party libs into the deployment dir -->
-    <copy todir="${install.dir}"
-          overwrite="true"
-          flatten="true">
-      <!-- All automatically include .jar packages -->
-      <fileset dir="${lib.dir}">
-        <include name="**/*.jar" />
-      </fileset>
-    </copy> 
-    
-    <!-- Flatten the built class jar file into the deployment dir also -->
-    <copy todir="${install.dir}"
-          file="${build.classes.jar}" />
-    
-    <!-- Create a file list out of all flattened jar files -->
-    <path id="installed_jars.list">
-      <fileset dir="${install.dir}">
-        <!-- Include automatically all .jar packages -->
-        <include name="**/*.jar" />
-      </fileset>
-    </path>
-    
-    <!-- Copy the runscript template for Windows, and rename it -->
-    <copy tofile="${install.testrun.bat}"
-          file="${testrun.bat.templ}" 
-          overwrite="true" />
-          
-    <!-- Instantiate the template for the deployment dir -->
-    <replace file="${install.testrun.bat}">
-      <!-- Replace classpath argument -->
-      <replacefilter>
-        <replacetoken>$deploy.jars$</replacetoken>
-        <replacevalue expandProperties="true">${ant.refid:installed_jars.list}</replacevalue>
-      </replacefilter>
+  <!-- =================================================================== -->
+  <!-- Instantiate scripts from "temp.dir" into "bin.dir"                  -->
+  <!-- =================================================================== -->
+  <target name="bin"
+          depends=""
+          description="Instantiate bin scripts">
 
-      <!-- Replace absolute paths to the deployment directory
-      with an environment variable called %DDIR% -->
-      <replacefilter>
-        <replacetoken expandProperties="true">${install.dir}</replacetoken>
-        <replacevalue expandProperties="true">%DDIR%</replacevalue>
-      </replacefilter>
-      <!-- NOTE: The order is important here; if this replacement is
-      performed before converting absolute paths an erraneous situation
-      will occur. -->
+    <!-- Assert output dir existence -->
+    <mkdir dir="${bin.dir}" />
+    
+    <!-- Read-filter-write -->
+    <copy todir="${bin.dir}" overwrite="true">
+      <fileset refid="templ.fileset" />
       
-      <!-- Replace $deploy.dir$ with the absolute path 
-      of the xml-snippets deployment directory -->
-      <replacefilter>
-        <replacetoken>$deploy.dir$</replacetoken>
-        <replacevalue expandProperties="true">${install.dir}</replacevalue>
-      </replacefilter>
-    </replace>
+      <filterchain>
+        <tokenfilter>
+          <replacestring from="build.dir" to="${build.dir}" />
+          <replacestring from="classes.jar" to="${jar.file}" />
+        </tokenfilter>
+      </filterchain>
+    </copy>
+
+    <!-- set +x to bash scripts -->
+    <exec executable="chmod" osfamily="unix" dir="${bin.dir}">
+      <arg line="a+x ${templbash.list}" />
+    </exec>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Default target                                                      -->
+  <!-- =================================================================== -->
+  <target name="build"
+          depends="jar, bin"
+          description="Default build target">
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Instantiate scripts from "templ.dir" to "." (repository root)       -->
+  <!-- =================================================================== -->
+  <target name="bin2root"
+          depends=""
+          description="Install bin scripts to the repository root">
+    <copy todir="." overwrite="true">
+      <fileset refid="templ.fileset" />
+      
+      <filterchain>
+        <tokenfilter>
+          <replacestring from="../build.dir" to="${build.dir}" />
+          <replacestring from="..\build.dir" to="${build.dir}" />
+          <replacestring from="classes.jar" to="${jar.file}" />
+        </tokenfilter>
+      </filterchain>
+    </copy>
     
-    <!-- Make a copy of the instantiated runscript to project root -->
-    <copy tofile="${testrun.bat}"
-          file="${install.testrun.bat}"
-          overwrite="true" />
+    <exec executable="chmod" osfamily="unix">
+      <arg line="a+x ${templbash.list}" />
+    </exec>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Create the distributable directory                                  -->
+  <!-- =================================================================== -->
+  <target name="dist"
+          depends="jar, bin"
+          description="Build the distributable directory">
+
+    <!-- Assert output dir existence -->
+    <mkdir dir="${dist.dir}" />
     
+    <!-- Directories -->
+    <copy todir="${dist.dir}">
+      <fileset dir=".">
+        <include name="${bin.dir}/**/*" />
+        <include name="${lib.dir}/**/*" />
+        <include name="${sources.dir}/**/*" />
+        <include name="text/**/*" />
+      </fileset>
+    </copy>
+    
+    <!-- Individual files -->
+    <copy todir="${dist.dir}" overwrite="true">
+      <fileset dir=".">
+        <include name="build.xml" />
+        <include name="LICENSE.txt" />
+        <include name="README.txt" />
+        <include name="NOTICES.txt" />
+        <include name="${build.dir}/${jar.file}" />
+      </fileset>
+    </copy>
+
+    <!-- Zip the dist.dir as it were in xmlsnippets-${version} dir -->
+    <zip destfile="${build.dir}/${zip.file}" update="true">
+      <mappedresources>
+        <fileset dir="${dist.dir}"/>
+        <globmapper from="*" to="${base.name}-${version}/*"/>
+      </mappedresources>
+    </zip>
   </target>
   
   <!-- =================================================================== -->
   <!-- Create Javadoc documentation                                        -->
   <!-- =================================================================== -->
   <target name="javadoc"
+          depends=""
           description="compile javadocs">
+    <!-- Assert output dir existence -->
     <mkdir dir="${javadoc.dir}" />
-        
-    <javadoc      sourcepath="${sources.dir}"
+  
+    <!-- Compile javadocs -->
+    <javadoc      sourcepath="${jsources.dir}"
                   defaultexcludes="yes"
                   destdir="${javadoc.dir}"
                   author="true"
@@ -308,6 +290,107 @@
       <!-- Pass argument: -classpath -->
       <classpath refid="classpath.lib"/>
     </javadoc>
+  </target>
+  
+  <!-- =================================================================== -->
+  <!-- Clean all dynamically created directories                           -->
+  <!-- =================================================================== -->
+  <target name="clean"
+          description="clean all dynamically created directories"
+          depends="">
+    <delete dir="${build.dir}" />
+    <delete dir="${bin.dir}" />
+    <delete dir="${dist.dir}" />
+    <delete dir="${javadoc.dir}" />
+    <!-- files by "bin2root" target -->
+    <delete>
+      <!-- WARNING: This really must be a filelist instead of fileset
+           Otherwise, if the templ.dir is empty, all files in the root
+           directory will be deleted. A catastrophy. -->
+      <filelist dir="." files="${templ.list}" />
+    </delete>
+  </target>
+
+
+  <!-- =================================================================== -->
+  <!-- Stamp rev info to a source file                                     -->
+  <!-- =================================================================== -->
+  <target name="tag"
+          depends=""
+          description="Tag build info">
+    <!-- Pull out the tip revision information -->
+    <exec executable="hg"
+          outputproperty="revision">
+      <arg line="tip --template '{rev}:{node|short} ({date|isodate})\n'" />
+    </exec>
+
+    <!-- Push it into a source file; a temp file is used -->
+    <copy tofile="${jsources.dir}/${buildinfo.file}.new" 
+          file="${jsources.dir}/${buildinfo.file}"
+          overwrite="true">
+      <filterchain>
+        <tokenfilter>
+          <replaceregex pattern="VERSION[ ]*=.*" replace="VERSION = &quot;${version}&quot;;" />
+          <replaceregex pattern="REVISION[ ]*=.*" replace="REVISION = &quot;${revision}&quot;;" />
+          <replaceregex pattern="TIMESTAMP[ ]*=.*" replace="TIMESTAMP = &quot;${build.time}&quot;;" />
+        </tokenfilter>
+      </filterchain>
+    </copy>
+    <!-- Replace original with the temp file -->
+    <move file="${jsources.dir}/${buildinfo.file}.new"
+          tofile="${jsources.dir}/${buildinfo.file}"
+          overwrite="true" />
+  </target>  
+
+  <!-- =================================================================== -->
+  <!-- Unstamp rev info from a source file                                 -->
+  <!-- =================================================================== -->
+  <target name="untag"
+          depends=""
+          description="Untag build info">
+    <copy tofile="${jsources.dir}/${buildinfo.file}.new" 
+          file="${jsources.dir}/${buildinfo.file}"
+          overwrite="true">
+      <filterchain>
+        <tokenfilter>
+          <replaceregex pattern="VERSION[ ]*=.*" replace="VERSION = null;" />
+          <replaceregex pattern="REVISION[ ]*=.*" replace="REVISION = null;" />
+          <replaceregex pattern="TIMESTAMP[ ]*=.*" replace="TIMESTAMP = null;" />
+        </tokenfilter>
+      </filterchain>
+    </copy>
+    <!-- Replace original with the temp file -->
+    <move file="${jsources.dir}/${buildinfo.file}.new"
+          tofile="${jsources.dir}/${buildinfo.file}"
+          overwrite="true" />
+  </target>  
+
+  <!-- =================================================================== -->
+  <!-- Create a release                                                    -->
+  <!-- =================================================================== -->
+  <target name="release"
+          depends=""
+          description="Build a release">
+
+    <!-- Execute the targets in the required order -->
+    <antcall target="tag" />
+    <antcall target="dist" />
+    <antcall target="untag" />
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Create a nightly dist package                                       -->
+  <!-- =================================================================== -->
+  <target name="nightly"
+          depends=""
+          description="Build a release">
+
+    <!-- Execute the targets in the required order -->
+    <antcall target="tag" />
+    <antcall target="dist">
+        <param name="zip.file" value="${nightlyzip.file}" />
+    </antcall>
+    <antcall target="untag" />
   </target>
 
 </project>
