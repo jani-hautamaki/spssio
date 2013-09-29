@@ -63,7 +63,6 @@ public class NumberSystemTool {
     private NumberParser parser = null;
     private NumberFormatter formatter = null;
     
-    
     private int inputMode  = INPUT_NUMPARSER;
     private int outputMode = OUTPUT_NUMFORMATTER;
     
@@ -73,7 +72,6 @@ public class NumberSystemTool {
     private String outputFormat = null;
     private boolean outputDoubleBits = false;
     private int lastPromptLength = 0;
-    
     
     // CONSTRUCTORS
     //==============
@@ -95,6 +93,19 @@ public class NumberSystemTool {
     
     public void run() {
         BufferedReader br = null;
+
+        System.out.printf("numsystool (c) 2013 jani.hautamaki@hotmail.com\n");
+        
+        String revision = spssio.BuildInfo.REVISION;
+        String btime = spssio.BuildInfo.TIMESTAMP;
+        
+        //revision = revision != null ? revision : "<untagged>";
+        //btime = btime != null ? btime : "<untagged>";
+        if ((revision != null) && (btime != null)) {
+            System.out.printf("Revision    %s\n", revision);
+            System.out.printf("Build time  %s\n", btime);
+        }
+        System.out.printf("\n");
         
         try {
             br = new BufferedReader(new InputStreamReader(System.in));
@@ -115,40 +126,16 @@ public class NumberSystemTool {
         do {
             String line = null;
             String prompt = null;
-            
-            // Display prompt
-            if (inputMode == INPUT_NUMPARSER) {
-                if (inputMathContextName != null) {
-                    prompt = String.format("b=%d:tool:m=%s >> ", 
-                        sysin.getBase(), inputMathContextName);
-                } else {
-                    prompt = String.format("b=%d:tool >> ", 
-                        sysin.getBase());
-                } // if-else: math context set
-            } else if (inputMode == INPUT_JAVA_BUILTIN) {
-                prompt = String.format("b=10:java >> ");
-            } else if (inputMode == INPUT_HEX) {
-                prompt = String.format("b=16:hex >> ");
-            } else if (inputMode == INPUT_RESHAPE) {
-                if (outputMathContextName != null) {
-                    prompt = String.format("b=%d:reshape=%d:m=%s >> ", 
-                        sysout.getBase(), 
-                        formatter.getPrecision(),
-                        outputMathContextName
-                    ); // format()
-                } else {
-                    prompt = String.format("b=%d:reshape=%d >> ", 
-                        sysout.getBase(),
-                        formatter.getPrecision()
-                    ); // format()
-                } // if-else: math context set
-            } else {
-                error("Unexpected input mode (this is a bug)");
-            }
+            String stin = null;
             
             try {
                 // Output command prompt
                 System.out.printf("\n");
+                
+                stin = getInputMode();
+                
+                //prompt = "numsystool>> ";
+                prompt = String.format("%s> ", stin);
                 System.out.printf(prompt);
                 lastPromptLength = prompt.length();
                 // Read command
@@ -159,6 +146,14 @@ public class NumberSystemTool {
             
             // split into arguments
             String[] args = line.split(" ");
+            
+            if ((args.length == 0) || (line.length() == 0))  {
+                System.out.printf("\n");
+                System.out.printf("input:   %s\n", stin);
+                System.out.printf("output:  %s\n", getOutputMode());
+                continue;
+            }
+            
             try {
                 parseCommand(args);
             } catch(Exception ex) {
@@ -171,6 +166,13 @@ public class NumberSystemTool {
     
     private void parseCommand(String[] args) {
         String carg = args[0];
+        
+        boolean iscmd = false;
+        
+        if (carg.startsWith("\\")) {
+            iscmd = true;
+            System.out.printf("\n");
+        }
         
         if (carg.equals("\\q")) {
             expectArgs(args, 1);
@@ -261,6 +263,9 @@ public class NumberSystemTool {
             outputMode = OUTPUT_JAVA_TOSTRING;
             printBase();
         }
+        else if (iscmd == true) {
+            error("Unknown command");
+        }
         else if (args.length > 1) {
             error("Syntax error");
         } 
@@ -292,7 +297,7 @@ public class NumberSystemTool {
         System.out.printf("Input control:\n");
         System.out.printf("\\in java            Use Double.parseDouble for input\n");
         System.out.printf("\\in tool            Use NumberParser.parseDouble for input\n");
-        System.out.printf("\\in hex             Use Double.longBitsToDouble for hex input\n");
+        System.out.printf("\\in raw             Use Double.longBitsToDouble for hex input\n");
         System.out.printf("\\in reshape         Switch into reformat/reshape mode\n");
         System.out.printf("\n");
         System.out.printf("Output control\n");
@@ -355,12 +360,15 @@ public class NumberSystemTool {
         double frac = ((double) mantissa) * Math.pow(2.0, -52);
 
         output("sign:      %s\n", msign != 0 ? "-" : "+");
-        if (exponent >= 0) {
-            output("exponent:  2**%d = %.0f\n", exponent, Math.pow(2.0, exponent));
-        } else {
-            output("exponent:  2**(%d) = 1/%.0f\n", exponent, Math.pow(2.0, -exponent));
-        }
+        output("exponent:  %d\n", exponent);
         output("mantissa:  %s\n", Double.toString(frac));
+        if (exponent >= 0) {
+            output("*(2^exp):  2^(%d) = %.0f\n",
+                exponent, Math.pow(2.0, exponent));
+        } else {
+            output("*(2^exp):  2^(%d) = 1/%.0f\n",
+                exponent, Math.pow(2.0, -exponent));
+        }
     } // printDoubleBits()
 
     private void printBase() {
@@ -440,6 +448,7 @@ public class NumberSystemTool {
                 int errno = parser.errno();
                 if (errno != NumberParser.E_OK) {
                     // Error management
+                    System.out.printf("\n");
                     System.out.printf("Parse error: %s\n", parser.strerror());
                     if (errno == NumberParser.E_OVERFLOW) {
                         if (parser.lastsign() < 0) {
@@ -462,6 +471,7 @@ public class NumberSystemTool {
                 // Parse success (even though the result might be infinite)
                 valid = true;
             } else if (inputMode == INPUT_HEX) {
+                // Read raw ieee 64 bit double
                 value = parseDoubleHex(arg);
                 valid = true;
             } else if (inputMode == INPUT_RESHAPE) {
@@ -470,10 +480,12 @@ public class NumberSystemTool {
                 for (int i = 0; i < len; i++) {
                     buffer[i] = arg.charAt(i);
                 }
+                // Perform actual reformat/reshape here.
+                // Returns the new length of the reformatted string
                 len = formatter.reformat(
                     buffer, len, formatter.getPrecision());
-                output("%s", new String(buffer, 0, len));
-                System.out.printf("   (reformat)\n");
+                output("%s\n", new String(buffer, 0, len));
+                output("^ reshape to=%d\n", formatter.getPrecision());
                 return;
             } else {
                 error("Unexpected input mode (this is a bug)");
@@ -486,42 +498,33 @@ public class NumberSystemTool {
             // If succesfully parsed, output the value
             // in hexadecimal and in decimal.
             if (outputDoubleBits == false) {
-                output("hex: %s\n",
-                    Long.toHexString(Double.doubleToRawLongBits(value))
-                );
                 output("dec: %s   (Double.toString)\n", 
                     Double.toString(value)
+                );
+                output("raw: %s   (doubleToRawLongBits)\n",
+                    Long.toHexString(Double.doubleToRawLongBits(value))
                 );
             } else {
                 printDoubleBits(value);
             } 
             
-            
+            String result = null;
             
             if (outputMode == OUTPUT_NUMFORMATTER) {
                 formatter.formatDouble(value);
-                if (outputMathContextName != null) {
-                    output("%s", formatter.getString());
-                    System.out.printf("   (b=%d:tool:m=%s)\n", 
-                        sysout.getBase(),
-                        outputMathContextName
-                    ); // printf()
-                } else {
-                    output("%s", formatter.getString());
-                    System.out.printf("   (b=%d:tool)\n", 
-                        sysout.getBase());
-                }
+                result = formatter.getString();
             } else if (outputMode == OUTPUT_JAVA_FORMAT) {
-                output("%s", String.format(
-                    Locale.ROOT, outputFormat, value));
-                System.out.printf("   (%s)\n", outputFormat);
+                result = String.format(Locale.ROOT, outputFormat, value);
             } else if (outputMode == OUTPUT_JAVA_TOSTRING) {
-                output(Double.toString(value));
-                System.out.printf("   (Double.toString)\n");
+                result = Double.toString(value);
             } else {
                 error("Unexpected output mode (this is a bug)");
             }
-
+            
+            //output("%s   (%s)\n", result, stout);
+            System.out.printf("\n");
+            output("%s\n", result);
+            output("^ %s\n", getOutputMode());
             
         }
         catch(NumberFormatException ex) {
@@ -576,7 +579,7 @@ public class NumberSystemTool {
         else if (arg.equals("java")) {
             inputMode = INPUT_JAVA_BUILTIN;
         }
-        else if (arg.equals("hex")) {
+        else if (arg.equals("raw")) {
             inputMode = INPUT_HEX;
         }
         else if (arg.equals("reshape")) {
@@ -721,6 +724,72 @@ public class NumberSystemTool {
         return Double.longBitsToDouble(val);
     } // parseHexdouble()
     
+    private String getInputMode() {
+        String rval = null;
+        switch(inputMode) {
+            case INPUT_NUMPARSER:
+                if (inputMathContextName != null) {
+                    rval = String.format("tool b=%d m=%s",
+                        sysin.getBase(), inputMathContextName);
+                } else {
+                    rval = String.format("tool b=%d m=double",
+                        sysin.getBase());
+                } // if-else: math context set
+                break;
+            case INPUT_JAVA_BUILTIN:
+                rval = String.format("java b=10/fixed");
+                break;
+            case INPUT_HEX:
+                rval = String.format("raw ieee64");
+                break;
+            case INPUT_RESHAPE:
+                if (outputMathContextName != null) {
+                    rval = String.format("reshape b=%d to=%d m=%s",
+                        sysout.getBase(), 
+                        formatter.getPrecision(),
+                        outputMathContextName);
+                } else {
+                    rval = String.format("reshape b=%d to=%d m=double",
+                        sysout.getBase(), 
+                        formatter.getPrecision());
+                } // if-else: math context set
+            default:
+                error("Unexpected input mode: %d (this is a bug)", inputMode);
+                break;
+        } // switch
+        return rval;
+    }
+    
+    private String getOutputMode() {
+        String rval = null;
+        switch(outputMode) {
+            case OUTPUT_NUMFORMATTER:
+                if (outputMathContextName != null) {
+                    rval = String.format("tool b=%d prec=%d m=%s",
+                        sysout.getBase(),
+                        formatter.getPrecision(),
+                        outputMathContextName);
+                } else {
+                    rval = String.format("tool b=%d prec=%d m=double",
+                        sysout.getBase(),
+                        formatter.getPrecision());
+                }
+                break;
+            case OUTPUT_JAVA_FORMAT:
+                rval = String.format("string b=?/implied fmt=%s",
+                    outputFormat);
+                break;
+            case OUTPUT_JAVA_TOSTRING:
+                rval = String.format("java b=10/fixed");
+                break;
+            default:
+                error("Unexpected output mode: %d (this is a bug)", outputMode);
+                break;
+        } // switch
+        
+        return rval;
+    }
+    
 
     // Helper class
     private static class Tuple<S, T> {
@@ -814,8 +883,6 @@ public class NumberSystemTool {
      * Application entry point
      */
     public static void main(String[] args) {
-        System.out.printf("Number systems testing tool (c) 2013 jani.hautamaki@hotmail.com\n");
-        
         NumberSystemTool app = new NumberSystemTool();
         try {
             app.run();
@@ -827,7 +894,6 @@ public class NumberSystemTool {
                 ex.printStackTrace();
             } // if-else
         } // try-catch
-        
         // TODO: System.exit(EXIT_SUCCESS) ?
     } // main()
 
