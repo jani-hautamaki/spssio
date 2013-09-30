@@ -601,7 +601,7 @@ public class NumberParser
                 state = S_ERROR;
                 break;
             } // if: overflow
-            rval = rval.multiply(base_bigdecimal);
+            rval = rval.multiply(base_bigdecimal, mctx);
             // The following add() uses mctx for rounding
             rval = rval.add(new BigDecimal(tab[i], mctx));
         } // for
@@ -692,7 +692,8 @@ public class NumberParser
             if (mctx == null) {
                 dvalue = dvalue * Math.pow(sys.base, -digits_frac);
             } else {
-                bvalue = bvalue.divide(base_bigdecimal.pow(digits_frac));
+                bvalue = bvalue.divide(
+                    base_bigdecimal.pow(digits_frac), mctx);
                 dvalue = bvalue.doubleValue();
             } // if-else
             
@@ -714,7 +715,7 @@ public class NumberParser
             if (mctx == null) {
                 dvalue = dvalue * Math.pow(sys.base, -digits);
             } else {
-                bvalue = bvalue.divide(base_bigdecimal.pow(digits));
+                bvalue = bvalue.divide(base_bigdecimal.pow(digits), mctx);
                 dvalue = bvalue.doubleValue();
             } // if-else
 
@@ -743,9 +744,9 @@ public class NumberParser
             // mctx != null. BigDecimals don't have problems
             // with negative exponents less than Double.MIN_EXPNENT
             if (exp < 0) {
-                bvalue = bvalue.divide(base_bigdecimal.pow(-exp));
+                bvalue = bvalue.divide(base_bigdecimal.pow(-exp), mctx);
             } else if (exp > 0) {
-                bvalue = bvalue.multiply(base_bigdecimal.pow(exp));
+                bvalue = bvalue.multiply(base_bigdecimal.pow(exp), mctx);
             } else {
                 // exp == 0; no actions required
             }
