@@ -37,8 +37,8 @@ import spssio.util.NumberFormatter;
 
 /**
  * Test application for the number system related classes.
- * These classes are {@code NumberSystem}, {@code NumberParser}
- * and {@code NumberPrinter}.
+ * These classes are {@link NumberSystem}, {@link NumberParser}
+ * and {@link NumberFormatter}.
  */
 public class NumberSystemTool {
     
@@ -46,13 +46,14 @@ public class NumberSystemTool {
     //===========
     
     private static final int INPUT_NUMPARSER            = 0;
-    private static final int INPUT_JAVA_BUILTIN         = 1;
-    private static final int INPUT_HEX                  = 2;
-    private static final int INPUT_RESHAPE              = 3;
+    private static final int INPUT_JAVA_DOUBLE          = 1;
+    private static final int INPUT_JAVA_FLOAT           = 2;
+    private static final int INPUT_HEX                  = 3;
+    private static final int INPUT_RESHAPE              = 4;
     
     private static final int OUTPUT_NUMFORMATTER        = 0;
     private static final int OUTPUT_JAVA_FORMAT         = 1;
-    private static final int OUTPUT_JAVA_TOSTRING       = 2;
+    private static final int OUTPUT_JAVA_DOUBLE         = 2;
     
     // MEMBER VARIABLES
     //==================
@@ -179,6 +180,10 @@ public class NumberSystemTool {
             System.out.printf("Exiting\n");
             quit = true;
         }
+        else if (carg.equals("\\version")) {
+            expectArgs(args, 1);
+            printVersion();
+        }
         else if (carg.equals("\\h")) {
             expectArgs(args, 1);
             printHelp();
@@ -215,6 +220,9 @@ public class NumberSystemTool {
             expectArgs(args, 2);
             doSetOutputMode(args[1]);
         }
+        else if (carg.equals("\\digits")) {
+            doSetDigits(args);
+        }
         else if (carg.equals("\\format")) {
             doSetOutputFormat(args);
         }
@@ -238,7 +246,7 @@ public class NumberSystemTool {
         else if (carg.equals("\\dec2trig")) {
             sysin.setBase(10);
             sysout.setBase(30);
-            inputMode = INPUT_JAVA_BUILTIN;
+            inputMode = INPUT_JAVA_DOUBLE;
             outputMode = OUTPUT_NUMFORMATTER;
             printBase();
         }
@@ -246,13 +254,13 @@ public class NumberSystemTool {
             sysin.setBase(30);
             sysout.setBase(10);
             inputMode = INPUT_NUMPARSER;
-            outputMode = OUTPUT_JAVA_TOSTRING;
+            outputMode = OUTPUT_JAVA_DOUBLE;
             printBase();
         }
         else if (carg.equals("\\dec2hex")) {
             sysin.setBase(10);
             sysout.setBase(16);
-            inputMode = INPUT_JAVA_BUILTIN;
+            inputMode = INPUT_JAVA_DOUBLE;
             outputMode = OUTPUT_NUMFORMATTER;
             printBase();
         }
@@ -260,7 +268,7 @@ public class NumberSystemTool {
             sysin.setBase(16);
             sysout.setBase(10);
             inputMode = INPUT_NUMPARSER;
-            outputMode = OUTPUT_JAVA_TOSTRING;
+            outputMode = OUTPUT_JAVA_DOUBLE;
             printBase();
         }
         else if (iscmd == true) {
@@ -275,27 +283,42 @@ public class NumberSystemTool {
         } // if-else
     } // parse()
     
+    private void printVersion() {
+        String version = spssio.BuildInfo.VERSION;
+        String revision = spssio.BuildInfo.REVISION;
+        String btime = spssio.BuildInfo.TIMESTAMP;
+        
+        
+        System.out.printf("Version:       %s\n",
+            version != null ? version : "<untagged>");
+        System.out.printf("Revision:      %s\n",
+            revision != null ? revision : "<untagged>");
+        System.out.printf("Build time:    %s\n",
+            btime != null ? btime : "<untagged>");
+    }
+    
     private void printHelp() {
         System.out.printf("Commands:\n");
         System.out.printf("\n");
         System.out.printf("\\l                  Show number system limits and details\n");
         System.out.printf("\\base [int]         Get/set number system radix\n");
-        System.out.printf("\\base <sys> <int>   get radix, sys is either \"in\" or \"out\"\n");
+        System.out.printf("\\base <sys> <int>   Get radix, sys is either \"in\" or \"out\"\n");
         System.out.printf("\\precision [int]    Get/set output precision\n");
         System.out.printf("\\trig               Shortcut for trigesimals, ie. \\base 30\n");
         System.out.printf("\\dec                Shortcut for decimals, ie. \\base 10\n");
         System.out.printf("\\bits               Toggle bit-level value display\n");
-        System.out.printf("\\q                  quit\n");
-
+        System.out.printf("\\q                  Quit\n");
+        System.out.printf("\\version            Display version/revision details\n");
+        System.out.printf("\n");
         System.out.printf("Shortcuts:\n");
         System.out.printf("\\dec2trig           Decimals to trigesimals\n");
         System.out.printf("\\trig2dec           Trigesimals to decimals\n");
         System.out.printf("\\dec2hex            Decimals to hexadecimals\n");
         System.out.printf("\\hex2dec            Hexadecimals to decimals\n");
         System.out.printf("\n");
-        
         System.out.printf("Input control:\n");
         System.out.printf("\\in java            Use Double.parseDouble for input\n");
+        System.out.printf("\\in float           Use Float.parseFloat for input\n");
         System.out.printf("\\in tool            Use NumberParser.parseDouble for input\n");
         System.out.printf("\\in raw             Use Double.longBitsToDouble for hex input\n");
         System.out.printf("\\in reshape         Switch into reformat/reshape mode\n");
@@ -305,20 +328,21 @@ public class NumberSystemTool {
         System.out.printf("\\out tool           Use NumberFormatter.formatDouble for output\n");
         System.out.printf("\\out string         Use String.format for output\n");
         System.out.printf("\\format [fmt]       Get/et format string for String.format\n");
-        
+        System.out.printf("\n");
         System.out.printf("MathContext control for input and output:\n");
         System.out.printf("\\context            Display current MathContext for input and output\n");
         System.out.printf("\\context <x>        Set MathContext to DECIMAL<x>. If n==0, unset\n");
         System.out.printf("\\context <n> <rm>   Set MathContext to precision=<n>, rounding=<rm>\n");
         System.out.printf("\n");
-        
-        System.out.printf("As above, solely for input or output MathContext only:\n");
+        System.out.printf("MathContext can be specified separately for either input or output:\n");
         System.out.printf("\\context [in|out] <x>\n");
         System.out.printf("\\context [in|out] <n> <rm>\n");
         System.out.printf("\n");
-        
+        System.out.printf("Setting the input/output digits:\n");
+        System.out.printf("\\digits <digits>         Set the digits used by input and output\n");
+        System.out.printf("\\digits <sys> <digits>   Set the digits used by <sys> (in or out)\n");
         System.out.printf("\n");
-        System.out.printf("Every other single argument input is considered a number!\n");
+        System.out.printf("Note: every other single argument input is considered a number!\n");
         System.out.printf("\n");
     } // printHelp()
     
@@ -409,6 +433,12 @@ public class NumberSystemTool {
         System.out.printf("Output format: %s\n", outputFormat);
     }
     
+    private void printDigits() {
+        System.out.printf("       0         1         2         3         4         5         6         \n");
+        System.out.printf("Digit: 0123456789012345678901234567890123456789012345678901234567890123456789\n");
+        System.out.printf("Input: %s\n", sysin.getDigits());
+        System.out.printf("Output %s\n", sysout.getDigits());
+    }
     
     private void outputIndent() {
         for (int i = 0; i < lastPromptLength; i++) {
@@ -436,6 +466,7 @@ public class NumberSystemTool {
         try {
             // result value is stored here
             double value = 0.0;
+            float valueFloat = 0.0f;
             
             // The parse result defaults to invalid
             boolean valid = false;
@@ -465,9 +496,16 @@ public class NumberSystemTool {
                     // Parse success. Show results
                     valid = true;
                 } // if-else
-            } else if (inputMode == INPUT_JAVA_BUILTIN) {
+            } else if (inputMode == INPUT_JAVA_DOUBLE) {
                 // Use Java's built-in double parser.
                 value = Double.parseDouble(arg);
+                // Parse success (even though the result might be infinite)
+                valid = true;
+            } else if (inputMode == INPUT_JAVA_FLOAT) {
+                // Use Java's built-in float parser.
+                valueFloat = Float.parseFloat(arg);
+                // TODO: Refactor the code so that double is not necessary
+                value = (double) valueFloat;
                 // Parse success (even though the result might be infinite)
                 valid = true;
             } else if (inputMode == INPUT_HEX) {
@@ -498,12 +536,21 @@ public class NumberSystemTool {
             // If succesfully parsed, output the value
             // in hexadecimal and in decimal.
             if (outputDoubleBits == false) {
-                output("dec: %s   (Double.toString)\n", 
-                    Double.toString(value)
-                );
-                output("raw: %s   (doubleToRawLongBits)\n",
-                    Long.toHexString(Double.doubleToRawLongBits(value))
-                );
+                if (inputMode == INPUT_JAVA_FLOAT) {
+                    output("dec: %s   (Float.toString)\n", 
+                        Float.toString(valueFloat)
+                    );
+                    output("raw: %s   (floatToRawLongBits)\n",
+                        Integer.toHexString(Float.floatToRawIntBits(valueFloat))
+                    );
+                } else {
+                    output("dec: %s   (Double.toString)\n", 
+                        Double.toString(value)
+                    );
+                    output("raw: %s   (doubleToRawLongBits)\n",
+                        Long.toHexString(Double.doubleToRawLongBits(value))
+                    );
+                }
             } else {
                 printDoubleBits(value);
             } 
@@ -515,7 +562,7 @@ public class NumberSystemTool {
                 result = formatter.getString();
             } else if (outputMode == OUTPUT_JAVA_FORMAT) {
                 result = String.format(Locale.ROOT, outputFormat, value);
-            } else if (outputMode == OUTPUT_JAVA_TOSTRING) {
+            } else if (outputMode == OUTPUT_JAVA_DOUBLE) {
                 result = Double.toString(value);
             } else {
                 error("Unexpected output mode (this is a bug)");
@@ -577,7 +624,10 @@ public class NumberSystemTool {
             inputMode = INPUT_NUMPARSER;
         } 
         else if (arg.equals("java")) {
-            inputMode = INPUT_JAVA_BUILTIN;
+            inputMode = INPUT_JAVA_DOUBLE;
+        }
+        else if (arg.equals("float")) {
+            inputMode = INPUT_JAVA_FLOAT;
         }
         else if (arg.equals("raw")) {
             inputMode = INPUT_HEX;
@@ -596,7 +646,7 @@ public class NumberSystemTool {
             outputMode = OUTPUT_NUMFORMATTER;
         } 
         else if (arg.equals("java")) {
-            outputMode = OUTPUT_JAVA_TOSTRING;
+            outputMode = OUTPUT_JAVA_DOUBLE;
         }
         else if (arg.equals("string")) {
             outputMode = OUTPUT_JAVA_FORMAT;
@@ -605,7 +655,7 @@ public class NumberSystemTool {
             error("Unrecognized output mode: %s", arg);
         }
         System.out.printf("Output mode set.\n");
-    } // doSetInputMode
+    } // doSetInputMode()
 
     private void doSetOutputFormat(String[] args) {
         if (args.length == 1) {
@@ -624,6 +674,35 @@ public class NumberSystemTool {
         outputFormat = fmt;
         printOutputFormat();
     }
+
+    private void doSetDigits(String[] args) {
+        if (args.length == 1) {
+        } else if (args.length == 2) {
+            if (sysin.getBase() != sysout.getBase()) {
+                error("Cannot use the same digits for both input and output, because they are using different bases");
+            }
+            // set both
+            sysin.setNumberSystem(sysin.getBase(), args[1]);
+            sysout.setNumberSystem(sysout.getBase(), args[1]);
+            System.out.printf("Input and output digits set\n");
+        } else if (args.length == 3) {
+            if (args[1].equals("in")) {
+                // set input
+                sysin.setNumberSystem(sysin.getBase(), args[2]);
+                System.out.printf("Input digits set\n");
+            } else if (args[1].equals("out")) {
+                // set output
+                sysout.setNumberSystem(sysout.getBase(), args[2]);
+                System.out.printf("Output digits set\n");
+            } else {
+                error("Expected either \"in\" or \"out\", but found: %s", 
+                    args[1]);
+            }
+        } else {
+            error("Too many arguments");
+        }
+        printDigits();
+    } // doSetDigits()
     
     private void doSetMathContext(String[] args) {
         Tuple<String, MathContext> context = null;
@@ -736,8 +815,11 @@ public class NumberSystemTool {
                         sysin.getBase());
                 } // if-else: math context set
                 break;
-            case INPUT_JAVA_BUILTIN:
+            case INPUT_JAVA_DOUBLE:
                 rval = String.format("java b=10/fixed");
+                break;
+            case INPUT_JAVA_FLOAT:
+                rval = String.format("float b=10/fixed");
                 break;
             case INPUT_HEX:
                 rval = String.format("raw ieee64");
@@ -779,7 +861,7 @@ public class NumberSystemTool {
                 rval = String.format("string b=?/implied fmt=%s",
                     outputFormat);
                 break;
-            case OUTPUT_JAVA_TOSTRING:
+            case OUTPUT_JAVA_DOUBLE:
                 rval = String.format("java b=10/fixed");
                 break;
             default:
@@ -789,7 +871,6 @@ public class NumberSystemTool {
         
         return rval;
     }
-    
 
     // Helper class
     private static class Tuple<S, T> {
