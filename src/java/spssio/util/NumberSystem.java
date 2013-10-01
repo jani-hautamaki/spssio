@@ -19,7 +19,8 @@ package spssio.util;
 
 /**
  *
- * Just to make clear the terminology regarding underflow
+ * The following diagram is meant to clarify the terminology,
+ * especially the meaning of the terms <i>underflow</i> and <i>overflow</i>
  * <code><pre>
  *  
  *          -MAX_VALUE   -MIN_VALUE     ZERO      MIN_VALUE   +MAX_VALUE
@@ -28,12 +29,17 @@ package spssio.util;
  *       Overflow  |        |  Underflow  |  Underflow  |        |  Overflow       
  *                 |        |             |             |        |                 
  * </code></pre>
- *
- * TODO: 
- *   - Separate parser and formatter into their own classes.
- *   - Consequently, an accessing method for the NumberSystem class' variables
- *     is needed. Two sensible options: either make the member variables public, 
- *     or use "packege private" access modifier.
+ * <p>
+ * 
+ * <h4>TODO</h4>
+ * <ul>
+ *   <li>The numeric limits are properties that emerge from the relationship
+ *     between a NumberSystem and a data type (eg. {@code double}, 
+ *     {@code float}, or {@code BigDecimal}). Therefore, the limits should be
+ *     separated from the {@code NumberSystem} classinto their own class (eg. 
+ *     {@code SystemLimits}, which associates to a {@code NumberSystem} and 
+ *     to a {@code Class<?>} corresponding to the underlying data type.</li>
+ * </ul>
  *   
  */
 public class NumberSystem

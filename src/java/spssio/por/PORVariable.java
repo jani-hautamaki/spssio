@@ -32,6 +32,7 @@ import spssio.common.SPSSFormat;
  *       A.8 Variable Records
  *    </a>
  * </ul>
+ * <p>
  *
  * TBC: Rename {@code printfmt} and {@code writefmt} into readfmt and writefmt?
  */

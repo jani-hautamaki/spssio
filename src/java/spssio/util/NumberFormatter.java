@@ -652,7 +652,7 @@ public class NumberFormatter {
      * @param buffer The buffer containing the number to reformat
      * @param len Length of the buffer in number of characters.
      * @param newPrecision The new precision
-     * @param int The updated length of the buffer
+     * @return The updated length of the buffer
      *
      * TODO: Should the method be renamed into reformatNumber() ?
      */
