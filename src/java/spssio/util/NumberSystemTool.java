@@ -375,7 +375,7 @@ public class NumberSystemTool {
         exponent = exponent >> 52; // shift
         
         output("dec:       %s   (Double.toString)\n", Double.toString(d));
-        output("hex:       %s   (doubleToLongBits)\n", Long.toHexString(bits));
+        output("hex:       %16s   (doubleToLongBits)\n", Long.toHexString(bits));
         output("exp/mant: %-3s %13s\n", 
             Long.toHexString(exponent), Long.toHexString(mantissa));
         
@@ -394,6 +394,31 @@ public class NumberSystemTool {
                 exponent, Math.pow(2.0, -exponent));
         }
     } // printDoubleBits()
+    
+    private void printFloatBits(float f) {
+        int bits = Float.floatToIntBits(f);
+        
+        // Extract separate parts
+        int msign =    bits & 0x80000000;
+        int exponent = bits & 0x7f800000;
+        int mantissa = bits & 0x007fffff;
+        
+        exponent = exponent >> 23; // Shift
+        
+        output("dec:       %s   (Float.toString)\n", Float.toString(f));
+        output("hex:       %8s  (floatToIntBits)\n", Integer.toHexString(bits));
+        output("exp/mant: %-2s %6s\n", 
+            Integer.toHexString(exponent), Integer.toHexString(mantissa));
+
+        exponent = exponent - 127; // Unbiasing
+        mantissa |= 0x00800000;    // Normalizing
+        float frac = ((float) mantissa) * (float) Math.pow(2.0, -23);
+
+        output("sign:      %s\n", msign != 0 ? "-" : "+");
+        output("exponent:  %d\n", exponent);
+        output("mantissa:  %s\n", Float.toString(frac));
+    } // printFloatBits()
+    
 
     private void printBase() {
         System.out.printf("Input base:       %d\n", sysin.getBase());
@@ -552,7 +577,11 @@ public class NumberSystemTool {
                     );
                 }
             } else {
-                printDoubleBits(value);
+                if (inputMode == INPUT_JAVA_FLOAT) {
+                    printFloatBits(valueFloat);
+                } else {
+                    printDoubleBits(value);
+                }
             } 
             
             String result = null;
