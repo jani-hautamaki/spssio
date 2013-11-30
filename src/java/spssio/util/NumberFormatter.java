@@ -477,9 +477,32 @@ public class NumberFormatter {
             } // for
             
         } else {
-            // Use BigDecimals
-            // TODO TODO TODO TODO TODO TODO 
-            // TODO TODO TODO TODO TODO TODO
+            // Use BigDecimals and MathContext
+            
+            BigDecimal bbase = new BigDecimal(numberSystem.base, mctx);
+            BigDecimal bvalue = new BigDecimal(value, mctx);
+            
+            bvalue = bvalue.divide(bbase.pow(exp, mctx), mctx);
+
+            // XXX: dirty hack, see above for explanation
+            if (bvalue.compareTo(BigDecimal.ONE) < 0) {
+                bvalue = bvalue.multiply(bbase, mctx);
+                exp--;
+            } else if (bvalue.compareTo(bbase) >= 0) {
+                bvalue = bvalue.divide(bbase, mctx);
+                exp++;
+            }
+            
+            for (int i = 0; i < ndigits; i++) {
+                // Discard fractional part 
+                int d = bvalue.intValue();
+                
+                dtab[dlen++] = d;
+                bvalue = bvalue.subtract(new BigDecimal(d, mctx), mctx);
+                bvalue = bvalue.multiply(bbase, mctx);
+            } // for
+            
+            value = bvalue.doubleValue();
         } // if-else
         
         // Save the remainder into a member variable for debugging

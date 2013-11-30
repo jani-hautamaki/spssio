@@ -565,7 +565,7 @@ public class NumberSystemTool {
                     output("dec: %s   (Float.toString)\n", 
                         Float.toString(valueFloat)
                     );
-                    output("raw: %s   (floatToRawLongBits)\n",
+                    output("raw: %s   (floatToRawIntBits)\n",
                         Integer.toHexString(Float.floatToRawIntBits(valueFloat))
                     );
                 } else {
