@@ -193,7 +193,7 @@ public class PORNoiseGen {
         for (int i = 0; i < opt.cols; i++) {
             
             // Generate variable name, and record it to the vector
-            String name = String.format("VAR_%03d", i);
+            String name = String.format("V_%04d", i);
             varnames.add(name);
             
             // For a list of print/write format types, see
@@ -210,17 +210,19 @@ public class PORNoiseGen {
             // Output missing values here, if any
             
             // Finally output the variable label
-            /*
+            
             String label = String.format(
                 "[%s] Automatically generated variable", name);
-            */
+            
+            /*
             StringBuilder sb = new StringBuilder(100);
             sb.append(String.format("%3d ", i+10));
             for (int j = 0; j < i+6; j++) {
                 sb.append(String.format("%d", (j+4) % 10));
             }
             String label = sb.toString();
-
+            */
+            
             writer.outputVariableLabel(label);
         } // for: each variable
         
@@ -243,7 +245,29 @@ public class PORNoiseGen {
         writer.outputValueLabelsRecord(
             varnames, Arrays.asList(vallabels));
         
+        System.out.printf("rows=%d, cols=%d\n", opt.rows, opt.cols);
+        
+        printStatusHeaders();
+
+        int ynext = 0;
+        int ystep = opt.rows / 20;
+        
+        // Write data matrix tag code
+        writer.outputTag('F');
+        
         /*
+        for (int y = 0; y < opt.rows; y++) {
+            for (int x = 0;  x < opt.cols; x++) {
+                //writer.outputInt(x);
+                writer.outputDouble(810000 + y*opt.cols+x);
+            } // for: each col
+            if (y > ynext) {
+                ynext += ystep;
+                printStatusLine(y, opt.rows);
+            }
+        } // for: each row
+        */
+        
         // Serialize data
         double sysmiss_limit = opt.stddev * opt.sigmaSysmiss;
         double randval;
@@ -261,34 +285,18 @@ public class PORNoiseGen {
                 } // if: over sysmiss sigma limit
                 
                 if (sysmiss == false) {
-                    writer.outputNumeric(randval*opt.stddev+opt.mean);
+                    writer.outputDouble(randval*opt.stddev+opt.mean);
                 } else {
                     writer.outputSysmiss();
                 }
-            } // for: each col
-        } // for: each row
-        */
-        
-        System.out.printf("rows=%d, cols=%d\n", opt.rows, opt.cols);
-        
-        printStatusHeaders();
-
-        int ynext = 0;
-        int ystep = opt.rows / 20;
-        
-        // Write data matrix tag code
-        writer.outputTag('F');
-        
-        for (int y = 0; y < opt.rows; y++) {
-            for (int x = 0;  x < opt.cols; x++) {
-                //writer.outputInt(x);
-                writer.outputDouble(810000 + y*opt.cols+x);
             } // for: each col
             if (y > ynext) {
                 ynext += ystep;
                 printStatusLine(y, opt.rows);
             }
         } // for: each row
+        
+        
         
         printStatusLine(opt.rows, opt.rows);
         
