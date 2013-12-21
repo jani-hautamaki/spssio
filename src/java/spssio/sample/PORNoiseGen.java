@@ -442,7 +442,7 @@ public class PORNoiseGen {
     } // rephrase()
 
     
-    private static boolean s_randvalUsed = false;
+    private static boolean s_randvalUsed = true;
     private static double s_randval = 0.0;
     private static Random s_rand = new Random();
     
@@ -461,8 +461,12 @@ public class PORNoiseGen {
             } while (w >= 1.0);
             
             // Apply Box-Muller transformation.
-            // Generates two normal deviates
+            // Generates two normal deviates.
+            
             w = Math.sqrt( (-2.0*Math.log(w)) / w );
+            
+            x1 = x1 * w;
+            x2 = x2 * w;
             
             // Record one for later use...
             s_randval = x2;
