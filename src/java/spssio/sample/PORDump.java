@@ -627,7 +627,7 @@ public class PORDump {
     public static void main(String[] args) {
         if (args.length < 1) {
             usage();
-        System.exit(EXIT_SUCCESS);
+            System.exit(EXIT_SUCCESS);
         }
         
         Options opt = new Options();

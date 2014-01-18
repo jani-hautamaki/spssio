@@ -5,7 +5,7 @@
 //      Java classes for reading and writing 
 //      SPSS/PSPP Portable and System files
 //
-//      Copyright (C) 2013 Jani Hautamaki <jani.hautamaki@hotmail.com>
+//      Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
 //
 //      Licensed under the terms of GNU General Public License v3.
 //

@@ -264,8 +264,8 @@ public class PORFile {
     // Convert from/to a real calendar object
     
     
-    // HEADER RECORDS
-    //================
+    // HEADER RECORDS: GETTERS
+    //=========================
     
     public String getSoftware() {
         return software;
@@ -301,6 +301,9 @@ public class PORFile {
     public PORVariable getWeightVariable() {
         return weightVariable;
     }
+
+    // HEADER RECORDS: SETTERS
+    //=========================
     
     public void setSoftware(String software) {
         if ((software != null) &&
@@ -412,6 +415,58 @@ public class PORFile {
         // Not found
         return null;
     } // getVariable()
+    
+    public Vector<PORVariable> getVariablesVector() {
+        return variables;
+    }
+    
+    public int getNumberOfVariables() {
+        return variables.size();
+    }
+    
+    public PORVariable getVariableAt(int index) {
+        return variables.elementAt(index);
+    }
+    
+    public void addVariable(PORVariable v) {
+        // TODO:
+        // Validate the variable,
+        // Verify that there does not exist a variable with the same name?
+        // Assert that data has not been added yet, or invalidate the data
+        variables.add(v);
+    }
+    
+    // TODO: Variable removal requires that the associations
+    // from ValueLabels must be removed as well.
+    public PORVariable removeVariableAt(int index) {
+        PORVariable v = variables.elementAt(index);
+        
+        variables.removeElementAt(index);
+        
+        // Remove the variable also from PORValueLabels, if any
+        
+        Vector<PORValueLabels> empty_vallabels
+            = new Vector<PORValueLabels>();
+        
+        for (PORValueLabels vallabel : labels) {
+            boolean removed = false;
+            
+            // Removes all instances
+            while (vallabel.vars.removeElement(v) == true) {
+                removed = true;
+            }
+            
+            // If the vallabels became empty, it is queued for removal too
+            if ((removed == true) && (vallabel.vars.isEmpty() == true)) {
+                empty_vallabels.add(vallabel);
+            }
+        } // for: each valuelabels
+        
+        // Remove all vallabels which became empty
+        labels.removeAll(empty_vallabels);
+        
+        return v;
+    } // removeVariableAt()
     
     
     // VALUE-LABEL MAPPING RECORDS

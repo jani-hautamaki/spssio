@@ -91,8 +91,56 @@ public class PORVariable {
         label = null;
     } // ctor
     
+    /**
+     * Creates a numeric variable.
+     *
+     * @param name The variable name (1-8 chars)
+     * @param label The variable's label/description
+     * 
+     * @return The {@code PORVariable}
+     */
+    public static PORVariable createNumeric(
+        String name, 
+        String label
+    ) {
+        // TODO: Validate input
+        
+        PORVariable v = new PORVariable();
+        v.width = 0; // zero width indicates numeric variable
+        v.name = name; // TODO: Check limits
+        v.label = label; // TODO: Check limits
+        
+        return v;
+    } // createNumeric()
+    
+    public static PORVariable createString(
+        String name,
+        int width,
+        String label
+    ) {
+        // TODO: Validate input
+        
+        PORVariable v = new PORVariable();
+        v.width = width;
+        v.name = name;
+        v.label = label;
+        
+        return v;
+    } // createTextual()
+    
+    // OTHER METHODS
+    //===============
+    
     public String getName() {
         return name;
+    }
+    
+    public String getLabel() {
+        return label;
+    }
+    
+    public int getWidth() {
+        return width;
     }
     
 } // class PORVariable

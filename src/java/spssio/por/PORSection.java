@@ -29,8 +29,6 @@ import spssio.por.PORValueLabels;
 
 /**
  *
- * NOTE: This class might fit better to spssio.por package.
- *
  */
 public class PORSection
 {
