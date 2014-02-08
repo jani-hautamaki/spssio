@@ -30,7 +30,10 @@ import spssio.sav.SAVVariable;
 import spssio.sav.SAVValueLabels;
 import spssio.sav.SAVValue;
 import spssio.sav.SAVExtensionRecord;
-import spssio.sav.SAVData;
+
+// spssio util
+import spssio.util.DataEndianness;
+
 
 // spssio sav parser
 import spssio.sav.input.SAVReader;
@@ -122,7 +125,7 @@ public class SAVDump {
         System.out.printf("  Columns:                   %d\n",       sav.variables.size());
         System.out.printf("  Variables:                 %d\n",       sav.calculateNumberOfVariables());
         
-        //displayVariables(sav.variables);
+        displayVariables(sav.variables);
         
         displayValueLabelMaps(sav.valueLabelMaps);
         
@@ -144,7 +147,7 @@ public class SAVDump {
         System.out.printf("  Last modified time:        \"%s\"\n",   header.time);
         System.out.printf("  Number of cases:           %d\n",       header.numberOfCases);
         System.out.printf("  File label:                \"%s\"\n",   header.title);
-        System.out.printf("  Padding:                   \"%s\"\n",   header.padding);
+        System.out.printf("  Padding:                   [%02x, %02x, %02x]\n", header.padding[0], header.padding[1], header.padding[2]);
     }
     
     public static void displayVariables(Vector<SAVVariable> variables) {
@@ -261,8 +264,11 @@ public class SAVDump {
         System.out.printf("  Element size:              %d\n", extRecord.elementSize);
         System.out.printf("  Number of elements:        %d\n", extRecord.numberOfElements);
         
-        int integerEndianness = savReader.getIntegerEndianness();
-        int floatingEndianness = savReader.getFloatingEndianness();
+        DataEndianness integerEndianness = new DataEndianness();
+        DataEndianness floatingEndianness = new DataEndianness();
+
+        integerEndianness.set(savReader.getIntegerEndianness());
+        floatingEndianness.set(savReader.getFloatingEndianness());
         
         
         if (extRecord.elementSize == 1) {
@@ -305,8 +311,8 @@ public class SAVDump {
                     System.out.printf("   ");
                 }
                 
-                int value = SAVData.bytesToInteger(
-                    extRecord.data, i*4, integerEndianness);
+                int value = integerEndianness.bytesToInteger(
+                    extRecord.data, i*4);
                 
                 System.out.printf("%-10d", value);
                 
@@ -330,8 +336,8 @@ public class SAVDump {
                     System.out.printf("   ");
                 }
                 
-                double value = SAVData.bytesToDouble(
-                    extRecord.data, i*8, floatingEndianness);
+                double value = floatingEndianness.bytesToDouble(
+                    extRecord.data, i*8);
                 
                 System.out.printf("%10s", Double.toString(value));
                 

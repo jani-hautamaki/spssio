@@ -32,15 +32,14 @@ import spssio.sav.SAVFile;
 import spssio.sav.SAVHeader;
 import spssio.sav.SAVValueLabels;
 import spssio.sav.SAVVariable;
-import spssio.sav.SAVVariableSet;
 import spssio.sav.SAVExtensionRecord;
 import spssio.sav.SAVValueFormat;
 import spssio.sav.SAVMatrix;
 import spssio.sav.SAVRawMatrix;
-import spssio.sav.SAVEndianness;
 import spssio.sav.SAVSection;
 import spssio.sav.SAVValue;
 import spssio.util.SequentialByteArray;
+import spssio.util.DataEndianness;
 
 
 /**
@@ -71,7 +70,7 @@ public class SAVReader
         sav = null;
         lastVLMap = null;
     }
-    
+
     // OTHER METHODS
     //===============
     
@@ -167,6 +166,20 @@ public class SAVReader
         sav.sections.add(section);
     }
     
+    // OVERRIDES
+    //===========
+
+    public void readAlignedStringPadding(
+        String string, 
+        int paddingLength
+    ) {
+        // Use a constant byte array into which the padding is read
+        
+        skip(paddingLength);
+    }
+    
+    
+    
     private SAVHeader parseSAVHeader() {
         // Create a new SAVHeader
         sav.header = new SAVHeader();
@@ -175,7 +188,7 @@ public class SAVReader
         SAVHeader header = sav.header;
         
         // Parse format signature
-        String signature = readString(4);
+        String signature = readPaddedString(4);
         
         /*
         // Validate signature
@@ -210,10 +223,10 @@ public class SAVReader
         header.bias = readDouble();
         
         // Parse the creation date
-        header.date = readString(9);
+        header.date = readPaddedString(9);
         
         // Parse the creation time
-        header.time = readString(8);
+        header.time = readPaddedString(8);
         
         // Parse the title of the file
         header.title = readPaddedString(64);
@@ -261,8 +274,7 @@ public class SAVReader
             // of 32 bits. The first label_len characters are 
             // the variable's variable label. 
             
-            int encodedLength = readInt();
-            v.label = readAlignedString(encodedLength, 4, 0);
+            v.label = readAlignedString(4, 4, 0);
             
             v.missingValues = null;
 
@@ -321,10 +333,7 @@ public class SAVReader
             // either a string or a number.
             readBytes(data, 0, 8);
             
-            // Length of the value label
-            int encodedLength = (int) read1();
-            
-            String vlabel = readAlignedString(encodedLength, 8, 1);
+            String vlabel = readAlignedString(1, 8, 1);
             
             // Add a mapping
             SAVValue value = new SAVValue(data);
@@ -446,8 +455,8 @@ public class SAVReader
             
             switch(type) {
                 case SAVValue.TYPE_NUMERIC:
-                    // Utilizes floatingEndianness
-                    valueNew.setDouble(bytesToDouble(bytes));
+                    // Utilizes floatingEndianness in the base-class
+                    valueNew.setDouble(bytesToDouble(bytes, 0));
                     //System.out.printf("%f    %s\n", valueNew.getDouble(), vlabel);
                     break;
                 case SAVValue.TYPE_STRING:
@@ -533,6 +542,7 @@ public class SAVReader
     }
 
     
+    
     protected void parseSAVDataMatrix2() {
         SAVMatrixParser matrixParser = null;
         
@@ -565,7 +575,7 @@ public class SAVReader
         matrixParser.reallocStringBuffer(32*1024); // 32 KBs
         
         // Set endianness (system default)
-        matrixParser.setEndianness(SAVEndianness.LITTLE_ENDIAN);
+        matrixParser.setEndianness(DataEndianness.LITTLE_ENDIAN);
         
         // Set column widths
         int nvars = sav.variables.size();

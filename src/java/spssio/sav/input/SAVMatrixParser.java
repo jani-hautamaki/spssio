@@ -24,7 +24,7 @@ import java.util.Arrays;
 
 // spssio
 import spssio.sav.SAVMatrixHandler;
-import spssio.sav.SAVEndianness;
+import spssio.util.DataEndianness;
 
 public class SAVMatrixParser {
     
@@ -37,9 +37,10 @@ public class SAVMatrixParser {
     private int index;
     
     /**
-     * Configured column widths
+     * The current column having non-negative width
+     * that is being built.
      */
-    private int[] columnWidths;
+    private int currentColumn;
 
     /**
      * Buffer used for accumulating string data
@@ -52,9 +53,19 @@ public class SAVMatrixParser {
     private int stringBytes;
 
     /**
+     * Configured column widths
+     */
+    private int[] columnWidths;
+    
+    /**
      * Encoding of the raw string bytes
      */
     private Charset encoding;
+    
+    /**
+     * Configured endianness of the input data
+     */
+    private int endianness;
 
     /**
      * Configured SYSMISS value of the input data
@@ -67,11 +78,6 @@ public class SAVMatrixParser {
     private long sysmissRaw;
     
     /**
-     * Configured endianness of the input data
-     */
-    private int endianness;
-    
-    /**
      * Receiver of the parsing events.
      */
     private SAVMatrixHandler contentHandler;
@@ -81,19 +87,20 @@ public class SAVMatrixParser {
     
     public SAVMatrixParser() {
         index = 0;
+        currentColumn = 0;
         columnWidths = null;
         
         // Buffer uninitialized
         stringBuffer = null;
         stringBytes = 0;
         
-        // Unsert content handler
+        // User content handler
         contentHandler = null;
         
         // TODO: a good default
         sysmiss = 0.0;
         sysmissRaw = 0;
-        endianness = SAVEndianness.LITTLE_ENDIAN;
+        endianness = DataEndianness.LITTLE_ENDIAN;
     }
     
     // CONFIGURATION METHODS
@@ -101,7 +108,7 @@ public class SAVMatrixParser {
     
     public void setEndianness(int endianness) {
         // Validate argument
-        if (SAVEndianness.isValid(endianness) == false) {
+        if (DataEndianness.isValid(endianness) == false) {
             throw new IllegalArgumentException(String.format(
                 "Illegal endianness: %d", endianness));
         }
@@ -208,6 +215,7 @@ public class SAVMatrixParser {
     // Therefore, "reset" is a better word for the method.
     public void reset() {
         index = 0;
+        currentColumn = 0;
         stringBytes = 0;
     }
     
@@ -235,21 +243,23 @@ public class SAVMatrixParser {
         if (index == 0) {
             emitRowBegin();
         }
-
-
         
         int curWidth = columnWidths[index];
-        
-        // Next column
-        index++;
-        
-        if (index == columnWidths.length) {
-            // This data packet was last for the current row.
-            // Reset index to the beginning of the next row.
-            index = 0;
+        if (curWidth >= 0) {
+            // Reset the column
+            currentColumn = index;
         }
         
-        int nextWidth = columnWidths[index];
+        // Next column
+        int nextIndex = index+1;
+        
+        if (nextIndex == columnWidths.length) {
+            // This data packet was last for the current row.
+            // Reset index to the beginning of the next row.
+            nextIndex = 0;
+        }
+        
+        int nextWidth = columnWidths[nextIndex];
         
         if (curWidth == 0) {
             // Numeric variable.
@@ -297,9 +307,11 @@ public class SAVMatrixParser {
         } // if-else: curVar.width 
         
         // If at the last column, emit row end
-        if (index == 0) {
+        if (nextIndex == 0) {
             emitRowEnd();
         }
+        
+        index = nextIndex;
         
         return 0;
     }
@@ -308,13 +320,13 @@ public class SAVMatrixParser {
         long raw = 0;
         long cbyte = 0;
         
-        if (endianness == SAVEndianness.LITTLE_ENDIAN) {
+        if (endianness == DataEndianness.LITTLE_ENDIAN) {
             for (int i = 7; i >= 0; i--) {
                 cbyte = ((long)data[i]) & 0xff;
                 raw = raw << 8;
                 raw = raw | cbyte;
             }
-        } else if (endianness == SAVEndianness.BIG_ENDIAN) {
+        } else if (endianness == DataEndianness.BIG_ENDIAN) {
             for (int i = 0; i < 8; i++) {
                 cbyte = ((long)data[i]) & 0xff;
                 raw = raw << 8;
@@ -410,23 +422,21 @@ public class SAVMatrixParser {
     
     private void emitNumber(double value) {
         if (contentHandler != null) {
-            contentHandler.onCellNumber(-1, value);
+            contentHandler.onCellNumber(currentColumn, value);
         }
     }
     
     private void emitSysmiss() {
         if (contentHandler != null) {
-            contentHandler.onCellSysmiss(-1);
+            contentHandler.onCellSysmiss(currentColumn);
         }
     }
     
     private void emitString(String value) {
         if (contentHandler != null) {
-            contentHandler.onCellString(-1, value);
+            contentHandler.onCellString(currentColumn, value);
         }
     }
-    
-    
     
     private void emitRowBegin() {
         if (contentHandler != null) {

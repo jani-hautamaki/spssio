@@ -24,11 +24,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 // spssio
-import spssio.sav.SAVData;
+import spssio.util.DataEndianness;
 
 public class SAVBaseReader {
 
-        
+    
     // CONSTANTS
     //===========
 
@@ -41,10 +41,6 @@ public class SAVBaseReader {
      * Default encoding used
      */
     public static final String DEFAULT_ENCODING = "ISO-8859-1";
-    
-    // TODO: Remove these, since these constants are defined elsewhere
-    public static final int BIG_ENDIAN = 1;
-    public static final int LITTLE_ENDIAN = -1;
     
     // MEMBER VARIABLES
     //==================
@@ -61,10 +57,15 @@ public class SAVBaseReader {
      */
     private String stringEncoding;
 
-    private int integerEndianness;
-    private int floatingEndianness;
+    /**
+     * Endianness for integers
+     */
+    private DataEndianness integerEndianness;
     
-
+    /**
+     * Endianness for floating-point numbers
+     */
+    private DataEndianness floatingEndianness;
 
     /** 
      * The input stream
@@ -81,6 +82,13 @@ public class SAVBaseReader {
      */
     private int fsize;
     
+    /**
+     * Internal buffer used for reading numbers.
+     * The size is fixed to 8 bytes, which is 
+     * the number of bytes needed for a double.
+     */
+    private byte[] numberBuffer;
+    
     
     // CONSTRUCTORS
     //==============
@@ -89,15 +97,20 @@ public class SAVBaseReader {
         bufferSize = DEFAULT_BUFFER_SIZE;
         stringEncoding = DEFAULT_ENCODING;
         istream = null;
-        integerEndianness = LITTLE_ENDIAN;
-        floatingEndianness = LITTLE_ENDIAN;
+        integerEndianness = new DataEndianness();
+        floatingEndianness = new DataEndianness();
         fpos = 0;
         fsize = -1;
+        
+        numberBuffer = new byte[8];
+        
+        // Set default endianness
+        setEndianness(DataEndianness.LITTLE_ENDIAN);
+        
     } // ctor
     
-    // OTHER METHODS
-    //===============
-    
+    // CONFIGURATION METHODS
+    //=======================
 
     public void bind(InputStream is) {
         istream = new BufferedInputStream(is, bufferSize);
@@ -141,6 +154,33 @@ public class SAVBaseReader {
         // TODO
     }
 
+    public void setEndianness(int endianness) {
+        setIntegerEndianness(endianness);
+        setFloatingEndianness(endianness);
+    }
+    
+    public void setIntegerEndianness(int endianness) {
+        integerEndianness.set(endianness);
+    }
+
+    public void setFloatingEndianness(int endianness) {
+        floatingEndianness.set(endianness);
+    }
+
+    public int getIntegerEndianness() {
+        return integerEndianness.get();
+    }
+    
+    public int getFloatingEndianness() {
+        return floatingEndianness.get();
+        
+    }
+
+    
+    
+    // OTHER METHODS
+    //===============
+    
     /**
      * Returns the offset of the next byte
      */
@@ -156,16 +196,81 @@ public class SAVBaseReader {
         return fsize;
     }
 
-    
-    public int getIntegerEndianness() {
-        return integerEndianness;
-    }
-    
-    public int getFloatingEndianness() {
-        return floatingEndianness;
-        
+    public String decodeString(byte[] encoded, int offset, int length) {
+        try {
+            return new String(encoded, offset, length, stringEncoding);
+        } catch(UnsupportedEncodingException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
+    /**
+     * TODO: This is common to both BaseReader and BaseWriter, 
+     * so it should be put into a separate file.
+     */
+    public static int calculateAlignedLength(
+        int length, 
+        int alignment, 
+        int offset
+    ) {
+        // Turns the alignment into a consequtive bit seqeuence.
+        // For instance if aligment is 2^4, 
+        // that is, 000 1000, it will be 0000 0111 after this.
+        alignment--;
+        
+        // Take a bitwise complement of the alignment. 
+        // For instance, if the alignment is now 0000 0111, 
+        // after this it will be 1111 1000. The bitwise complement is then 
+        // used as a bitmask in an AND-operation which essentially performs 
+        //an integer division using {@code alignment} as the divider.
+        int mask = ~alignment;
+        
+        // Calculates (ceil((length+offset) / alignment) * alignment) - offset
+        int alignedLength = ((length+alignment+offset) & mask) - offset;
+        
+        return alignedLength;
+    }
+
+    public String bytesToStringUnpad(byte[] encoded) {
+        int length = encoded.length;
+        String rval = null;
+        
+        // Unpad
+        // TODO: Use a whitespace constant instead of char literal
+        while ((length > 0) && (encoded[length-1] == ' ')) {
+            length--;
+        }
+        
+        try {
+            rval = new String(encoded, 0, length, stringEncoding);
+        } catch(UnsupportedEncodingException ex) {
+            error_encoding(stringEncoding);
+        }
+        
+        return rval;
+    }
+    
+    /**
+     * Converts byte sequence into an integer according to
+     * the integer endianness. 
+     * Used to lift access to integerEndianness to sub-classes.
+     */
+    public int bytesToInteger(byte[] buffer, int offset) {
+        return integerEndianness.bytesToInteger(buffer, offset);
+    }
+
+    /**
+     * Converts byte sequence into a double according to
+     * the floating-point endianness. 
+     * Used to lift access to floatingEndianness to sub-classes.
+     */
+    public double bytesToDouble(byte[] buffer, int offset) {
+        return floatingEndianness.bytesToDouble(buffer, offset);
+    }
+    
+    // READ METHODS
+    //==============
+    
     /**
      * Read a single byte, and keeps count of the location.
      * If eof is reached, returns -1.
@@ -174,6 +279,7 @@ public class SAVBaseReader {
         throws IOException
     {
         int rval = istream.read(); // may throw
+        
         // Increase the offset only if a byte was actually read.
         if (rval != -1) {
             fpos++;
@@ -204,6 +310,28 @@ public class SAVBaseReader {
         return rval;
     } //  read()
     
+    /**
+     * Skips over and discards bytes from the input stream.
+     * This does not forward the call to {@code InputStream.skip()},
+     * instead, it uses a for loop. This is to avoid creating a buffer
+     * every time {@code skip()} is called.
+     */
+    protected void skip(int n) {
+        int rval = 0;
+        
+        try {
+            for (int i = 0; i < n; i++) {
+                rval = read();
+            }
+        } catch(IOException ex) {
+            error_io("skip()", ex);
+        } // try-catch
+        
+        if (rval == -1) {
+            error_eof("skip()");
+        }
+    }
+    
     public int read1() {
         int rval = -1;
         
@@ -221,75 +349,7 @@ public class SAVBaseReader {
         
         return rval;
     }
-    
-    public int readInt() {
-        int rval = 0;
-        int cbyte = -1;
-        
-        try {
-            switch(integerEndianness) {
-                case BIG_ENDIAN:
-                    for (int i = 3; i >= 0; i--) {
-                        cbyte = read();
-                        rval |= (cbyte & 0xff) << (i << 3);
-                    }
-                    break;
-                case LITTLE_ENDIAN:
-                    for (int i = 0; i < 4; i++) {
-                        cbyte = read();
-                        rval |= (cbyte & 0xff) << (i << 3);
-                    }
-                    break;
-                default:
-                    error_endianness(integerEndianness);
-                    break;
-            }
 
-            if (cbyte == -1) {
-                error_eof("readInt()");
-            }
-            
-        } catch(IOException ex) {
-            error_io("readInt()", ex);
-        } // try-catch
-        
-        return rval;
-    }
-    
-    public double readDouble() {
-        long rawBits = 0;
-        int cbyte = -1;
-        
-        try {
-            switch(floatingEndianness) {
-                case BIG_ENDIAN:
-                    for (int i = 7; i >= 0; i--) {
-                        cbyte = read();
-                        rawBits |= (long)(cbyte & 0xff) << (i << 3);
-                    }
-                    break;
-                case LITTLE_ENDIAN:
-                    for (int i = 0; i < 8; i++) {
-                        cbyte = read();
-                        rawBits |= (long)(cbyte & 0xff) << (i << 3);
-                    }
-                    break;
-                default:
-                    error_endianness(floatingEndianness);
-                    break;
-            }
-
-            if (cbyte == -1) {
-                error_eof("readDouble()");
-            }
-            
-        } catch(IOException ex) {
-            error_io("readDouble()", ex);
-        } // try-catch
-
-        return Double.longBitsToDouble(rawBits);
-    }
-    
     /**
      * Reads a number of bytes into an array
      */
@@ -321,140 +381,90 @@ public class SAVBaseReader {
         }
     }
     
-    /**
-     * TODO: Rename into readFixedString() ?
-     */
-    public String readString(int length) {
-        String rval = null;
-        
-        byte[] encoded = new byte[length];
-        readBytes(encoded, 0, length);
-        
-        try {
-            rval = new String(encoded, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-        
-        return rval;
+    public int readInt() {
+        readBytes(numberBuffer, 0, 4);
+        return integerEndianness.bytesToInteger(numberBuffer, 0);
     }
+    
+    public double readDouble() {
+        readBytes(numberBuffer, 0, 8);
+        return floatingEndianness.bytesToDouble(numberBuffer, 0);
+    }
+    
     
     /**
      * @param length The padded length in bytes.
      */
+    
     public String readPaddedString(int length) {
         String rval = null;
         
         byte[] encoded = new byte[length];
         readBytes(encoded, 0, length);
         
-        // Unpad
-        // TODO: Use a whitespace constant instead of char literal
-        while ((length > 0) && (encoded[length-1] == ' ')) {
-            length--;
-        }
-        
-        try {
-            rval = new String(encoded, 0, length, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-        
-        return rval;
-    }
-    
-    public String readAlignedString(int encodedLength, int alignment, int offset) {
-        String rval = null;
-        
-        // Calculate aligned length
-        alignment--;
-        int mask = ~alignment;
-
-        int alignedLength = ((encodedLength+alignment+offset) & mask) - offset;
-
-        byte[] encoded = new byte[alignedLength];
-        readBytes(encoded, 0, alignedLength);
-
-        // Unpadding should not be needed, since the unpadded length 
-        // is known a priori (ie. encodedLength)
-        
-        try {
-            rval = new String(encoded, 0, encodedLength, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-        
-        return rval;
-    }
-    
-
-    // (truncatedLength, readLength) TODO?
-    public String readString(int readLength, int stringLength) {
-        String rval = null;
-        
-        byte[] encoded = new byte[readLength];
-        readBytes(encoded, 0, readLength);
-        
-        try {
-            rval = new String(encoded, 0, stringLength, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-        
-        return rval;
-    }
-    
-    public String bytesToStringUnpad(byte[] encoded) {
-        int length = encoded.length;
-        String rval = null;
-        // Unpad
-        // TODO: Use a whitespace constant instead of char literal
-        while ((length > 0) && (encoded[length-1] == ' ')) {
-            length--;
-        }
-        try {
-            rval = new String(encoded, 0, length, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-        
-        return rval;
-    }
-    
-    
-    public double bytesToDouble(byte[] bytes) {
-        return SAVData.bytesToDouble(bytes, 0, floatingEndianness);
-    }
-    
-    /*
-    public double bytesToDouble(byte[] bytes) {
-        long rawBits = 0;
-        int cbyte = -1;
-        
         // TODO:
-        // Validate array length
+        // Use bytesToStringUnpad()
         
-        switch(floatingEndianness) {
-            case BIG_ENDIAN:
-                for (int i = 0; i < 8; i++) {
-                    cbyte = bytes[i];
-                    rawBits |= (long)(cbyte & 0xff) << (i << 3);
-                }
-                break;
-            case LITTLE_ENDIAN:
-                for (int i = 7; i >= 0; i--) {
-                    cbyte = bytes[i];
-                    rawBits |= (long)(cbyte & 0xff) << (i << 3);
-                }
-                break;
-            default:
-                error_endianness(floatingEndianness);
-                break;
+        // Unpadding...
+        while ((length > 0) && (encoded[length-1] == ' ')) {
+            length--;
         }
         
-        return Double.longBitsToDouble(rawBits);
+        try {
+            rval = new String(encoded, 0, length, stringEncoding);
+        } catch(UnsupportedEncodingException ex) {
+            error_encoding(stringEncoding);
+        }
+        
+        return rval;
     }
-    */
+    
+    public String readAlignedString(
+        int widthOfLength,
+        int alignment, 
+        int offset
+    ) {
+        String rval = null;
+        
+        int encodedLength = 0;
+        
+        // Read encoded length according to widthOfLength parameter
+        
+        if (widthOfLength == 1) {
+            encodedLength = read1();
+        } else if (widthOfLength == 4) {
+            encodedLength = readInt();
+        } else {
+            throw new IllegalArgumentException(String.format(
+                "widthOfLength must be either 1 or 4"));
+        }
+
+        int alignedLength 
+            = calculateAlignedLength(encodedLength, alignment, offset);
+
+        // Calculate the required padding
+        int paddingLength = alignedLength - encodedLength;
+
+        // Read the whole aligned length into 
+        // a newly created byte buffer
+        byte[] encoded = new byte[alignedLength];
+        //readBytes(encoded, 0, alignedLength);
+        readBytes(encoded, 0, encodedLength);
+
+        // Decode the string according to the current charset.
+        // Unpadding is not needed, since the unpadded 
+        // encoded length is already known. 
+        rval = decodeString(encoded, 0, encodedLength);
+        
+        // Read padding
+        readAlignedStringPadding(rval, paddingLength);
+        
+        return rval;
+    }
+    
+    public void readAlignedStringPadding(String string, int paddingLength) {
+        skip(paddingLength);
+    }
     
     // EXCEPTIONS
     //============
@@ -475,11 +485,6 @@ public class SAVBaseReader {
         throw new RuntimeException(String.format(
             "%s failed: unexpected end-of-file", method));
     } // error_eof()
-    
-    protected static void error_endianness(int endianness) {
-        throw new RuntimeException(String.format(
-            "Unhandled endianess: %d (programming error)", endianness));
-    }
     
     protected static void error_encoding(String charsetName) {
         throw new RuntimeException(String.format(

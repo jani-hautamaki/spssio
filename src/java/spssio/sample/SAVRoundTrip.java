@@ -135,11 +135,12 @@ public class SAVRoundTrip {
     //===============
     
     public static void usage() {
+        System.out.printf("SAVRoundTrip (C) 2014 Jani Hautamaki <jani.hautamaki@hotmail.com>\n");
+        System.out.printf("\n");
         System.out.printf("Usage:\n");
         System.out.printf("\n");
         System.out.printf("     SAVRoundTrip <input_sav> <output_sav>\n");
         System.out.printf("\n");
-        System.out.printf("SAVRoundTrip (C) 2014 Jani Hautamaki <jani.hautamaki@hotmail.com>\n");
     }
     
 }

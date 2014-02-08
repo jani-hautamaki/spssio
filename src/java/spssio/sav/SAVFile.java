@@ -38,6 +38,14 @@ public class SAVFile {
     
     public Vector<SAVValueLabels> valueLabelMaps;
     
+    /**
+     * Extension record: pre-defined floating-point constants
+     */
+    //public SAVNumberConfigRecord numberConfig;
+    
+    /**
+     * Unhandled extension records
+     */
     public Vector<SAVExtensionRecord> extensionRecords;
     
     public SAVMatrix dataMatrix;

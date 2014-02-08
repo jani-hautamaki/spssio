@@ -18,7 +18,8 @@
 package spssio.sav.input;
 
 // spssio
-import spssio.sav.SAVEndianness;
+import spssio.sav.SAVConstants;
+import spssio.util.DataEndianness;
 
 
 public class SAVMatrixDecompressor {
@@ -37,7 +38,6 @@ public class SAVMatrixDecompressor {
     /** The data has invalid format */
     public static final int E_FORMAT                   = 1;
     
-    
     // STATES
     //========
 
@@ -52,12 +52,6 @@ public class SAVMatrixDecompressor {
     private static final int S_EMIT_WHITESPACES         = 7;
     private static final int S_EXPECT_EOF               = 8;
     private static final int S_ACCEPT                   = 9;
-    
-    private static final int CBYTE_NOP                  = 0;
-    private static final int CBYTE_EOF                  = 252;
-    private static final int CBYTE_RAW_DATA             = 253;
-    private static final int CBYTE_WHITESPACES          = 254;
-    private static final int CBYTE_SYSMISS              = 255;
     
     // MEMBER VARIABLES: STATE & ERROR
     //=================================
@@ -170,7 +164,7 @@ public class SAVMatrixDecompressor {
         
         // Set endianness, but do not update the sysmissBytes yet,
         // because the buffer and the value are not ready yet.
-        this.endianness = SAVEndianness.LITTLE_ENDIAN;
+        this.endianness = DataEndianness.LITTLE_ENDIAN;
         
         whitespacesBytes = new byte[8];
         sysmissBytes = new byte[8];
@@ -190,7 +184,7 @@ public class SAVMatrixDecompressor {
     
     public void setEndianness(int endianness) {
         // Validate argument
-        if (SAVEndianness.isValid(endianness) == false) {
+        if (DataEndianness.isValid(endianness) == false) {
             throw new IllegalArgumentException(String.format(
                 "Illegal endianness: %d", endianness));
         }
@@ -267,13 +261,13 @@ public class SAVMatrixDecompressor {
      * opposite to the specified endianness
      */
     private void serializeRawDouble(long raw) {
-        if (endianness == SAVEndianness.LITTLE_ENDIAN) {
+        if (endianness == DataEndianness.LITTLE_ENDIAN) {
             // Underlying parser expects Little-Endian
             for (int i = 0; i < 8; i++) {
                 buffer[i] = (byte)(raw & 0xff);
                 raw = raw >>> 8;
             }
-        } else if (endianness == SAVEndianness.BIG_ENDIAN) {
+        } else if (endianness == DataEndianness.BIG_ENDIAN) {
             // Underlying parser expects Big-Endian
             for (int i = 7; i >= 0; i--) {
                 buffer[i] = (byte)(raw & 0xff);
@@ -500,29 +494,29 @@ public class SAVMatrixDecompressor {
     
     private void handleControlByte() {
         switch(cbyte) {
-            case CBYTE_NOP:             // 0 (0x00)
+            case SAVConstants.CBYTE_NOP:             // 0 (0x00)
                 // NOP operation
                 state = S_NEXT_CBYTE;
                 eps = true;
                 break;
             
-            case CBYTE_EOF:             // 252 (0xFC)
+            case SAVConstants.CBYTE_EOF:             // 252 (0xFC)
                 // End of file
                 state = S_EXPECT_EOF;
                 break;
             
-            case CBYTE_RAW_DATA:        // 253 (0xFD)
+            case SAVConstants.CBYTE_RAW_DATA:        // 253 (0xFD)
                 // string or double: raw data
                 state = S_EXPECT_RAW_DATA;
                 break;
             
-            case CBYTE_WHITESPACES:     // 254 (0xFE)
+            case SAVConstants.CBYTE_WHITESPACES:     // 254 (0xFE)
                 // string: 8x whitespace
                 state = S_EMIT_WHITESPACES;
                 eps = true;
                 break;
             
-            case CBYTE_SYSMISS:         // 255 (0xFF)
+            case SAVConstants.CBYTE_SYSMISS:         // 255 (0xFF)
                 // double: sysmiss
                 state = S_EMIT_SYSMISS;
                 eps = true;

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.FileNotFoundException;
 
 // spssio
@@ -182,10 +183,9 @@ public class SAVWriter
         writePaddedString(v.name, 8);
         
         if (v.hasLabel != 0) {
-
-            byte[] encoded = encodeString(v.label);
-            writeInt(encoded.length);
-            writeAlignedString(encoded, 4, 0);
+            // Write the label, aligned to 4 bytes with offset=0,
+            // String length as DWORD (INTEGER)
+            writeAlignedString(4, v.label, 4, 0);
 
             // For convenience and brevity
             int nvalues = v.numberOfMissingValues;
@@ -215,10 +215,9 @@ public class SAVWriter
             // Write 8 bytes; the value
             outputSAVValue(value);
 
-            // Write the label, aligned to 8 bytes with offset=1
-            byte[] encoded = encodeString(vlabel);
-            write1(encoded.length);
-            writeAlignedString(encoded, 8, 1);
+            // Write the label, aligned to 8 bytes with offset=1,
+            // String length as BYTE.
+            writeAlignedString(1, vlabel, 8, 1);
         }
     }
     
@@ -280,19 +279,52 @@ public class SAVWriter
         // TODO: filler
         writeInt(0); // filler
         
-        // NOTE! A parent structure not provided by the arguments is referenced
-        // if compressed...
+        // NOTE! A parent structure, which is not provided by the arguments,
+        // is referenced here, ie. "sav".
         
         SAVMatrixWriter matrixWriter = new SAVMatrixWriter();
+        
+        OutputStream ostream = getOutputStream();
+        
+        // Configure the writer
+        //matrixWriter.setEndianness(DataEndianness.LITTLE_ENDIAN);
+        //matrixWriter.setSysmiss()
+
+    
+        // Create a vector of column widths
+        int[] columnWidths = null;
+        // TODO:  These should probably be pulled out of the data matrix?
+        // Somehow make sure that matrix matches the variables?
+        columnWidths = new int[sav.variables.size()];
+        for (int i = 0; i < columnWidths.length; i++) {
+            columnWidths[i] = sav.variables.elementAt(i).width;
+        }
         
         // Set up...
         
         if (sav.header.compressed != 0) {
-            // set writer outputstream as compressor
+            // Insert Compressor to the chain
+            SAVMatrixCompressor compressor = new SAVMatrixCompressor();
+            // Use the configuration of this write
+            // compressor.takeConfigFrom(this);
+            
+            compressor.setOutputStream(ostream);
+            compressor.setColumnWidths(columnWidths);
+            compressor.setBias(sav.header.bias);
+            ostream = compressor;
+            
         } else {
+            // not compressed; needed routines are ...
+            // writeAlignedString(s, width, noLength)
+            // writeDouble()
+            
         }
+        
+        // Use matrix writer to serialize to ostream
+        matrixWriter.setOutputStream(ostream);
+        matrixWriter.setColumnWidths(sav.dataMatrix.getColumnWidths());
+        matrixWriter.outputSAVMatrix(sav.dataMatrix);
     }
-    
-    
 }
+
 
