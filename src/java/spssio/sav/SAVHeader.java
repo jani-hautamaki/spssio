@@ -17,6 +17,13 @@
 
 package spssio.sav;
 
+// core java
+import java.util.Date;
+import java.util.Calendar;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
+
+
 
 /** 
  * File Header record.
@@ -66,7 +73,8 @@ public class SAVHeader {
     //public PORVariable weightVariable; 
     
     /**
-     * Number of cases in teh file, if known. Otherwise, set to -1.
+     * Number of cases in the file, if known. Otherwise, set to -1.
+     * NOTE: SPSS 20.0 is pseudo-faithful to this number.
      */
     public int numberOfCases;
     
@@ -109,7 +117,7 @@ public class SAVHeader {
         signature = null;
         software = null;
         layout = 0;
-        variableCount = -1;
+        variableCount = 0;
         compressed = 0;
         weightVariableIndex = -1;
         numberOfCases = -1;
@@ -120,9 +128,159 @@ public class SAVHeader {
         padding = new byte[3];
     }
     
+    public static SAVHeader createNew() {
+        SAVHeader header = new SAVHeader();
+        
+        header.setSignature(SAVConstants.FORMAT_SIGNATURE);
+        header.setSoftware(SAVConstants.DEFAULT_SOFTWARE);
+        
+        // According to PSPP, "Nominally set to 2", and
+        // "PSPP use this value to determine the file's integer endianness".
+        // TODO: What is this really?
+        header.layout = 2; 
+        
+        // No weight variable
+        header.weightVariableIndex = -1;
+        
+        // Initially the data will be compressed
+        header.setCompressed(1);
+        header.setBias(SAVConstants.DEFAULT_COMPRESSION_BIAS);
+        
+        // Initialize date and time to now
+        header.touchTimestamp();
+        
+        // No title
+        header.setTitle(""); 
+        
+        // Padding
+        header.padding[0] = 0x20;
+        header.padding[1] = 0x20;
+        header.padding[2] = 0x20;
+        
+        return header;
+    }
+    
     // OTHER METHODS
     //===============
     
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setSignature(String signature) {
+        // TODO: must be exactly 4 characters when encoded with what?
+        this.signature = signature;
+    }
+    
+    public String getSoftware() {
+        return software;
+    }
+    
+    public void setSoftware(String software) {
+        this.software = software;
+    }
+    
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    
+    public int getNumberOfCase() {
+        return numberOfCases;
+    }
+    
+    public void setNumberOfCases(int numberOfCases) {
+        this.numberOfCases = numberOfCases;
+    }
+    
+    public int getVariableCount() {
+        return variableCount;
+    }
+    
+    public void setVariableCount(int variableCount) {
+        this.variableCount = variableCount;
+    }
+    
+    public int getCompressed() {
+        return compressed;
+    }
+    
+    public void setCompressed(int compressed) {
+        this.compressed = compressed;
+    }
+
+    public double getBias() {
+        return bias;
+    }
+    
+    public void setBias(double bias) {
+        this.bias = bias;
+    }
+    
+    
+    // TIMESTAMP METHODS
+    //===================
+    
+    
+    public String getDateString() {
+        return date;
+    }
+    
+    public void setDateString(String date) {
+        // Date must be exactly X chars when encoded with what?
+        this.date = date;
+    }
+    
+    public String getTimeString() {
+        return time;
+    }
+    
+    public void setTimeString(String time) {
+        // Time must be exactly X chars when encoded with what?
+        this.time = time;
+    }
+    
+    public Date getTimestamp() {
+        // Combine date and time strings.
+        // It is easier to combine than add time to the date in Java,
+        // you need to take my word for it...
+        StringBuilder sb = new StringBuilder(9+1+8);
+        sb.append(this.date);
+        sb.append(' ');
+        sb.append(this.time);
+        String full = sb.toString();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yy HH:mm:ss", Locale.US);
+        Date rval = null;
+        try {
+            rval = sdf.parse(full);
+        } catch(Exception ex) {
+            // Pass up
+            throw new RuntimeException(ex);
+        }
+        
+        return rval;
+    }
+    
+    public void setTimestamp(Date timestamp) {
+        SimpleDateFormat sdfDate
+            = new SimpleDateFormat("dd MMM yy", Locale.US);
+        
+        SimpleDateFormat sdfTime 
+            = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        
+        setDateString(sdfDate.format(timestamp));
+        setTimeString(sdfTime.format(timestamp));
+    }
+    
+    public void touchTimestamp() {
+        Date now = new Date();
+        setTimestamp(now);
+    }
 
 } // class SAVHeader
 

@@ -18,10 +18,14 @@
 package spssio.por.output;
 
 // core java
-import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.FileNotFoundException;
 import java.util.Map;         // for PORValueLabels
 import java.util.Collection;  // for outputValueLabelsRecord()
+import java.util.Vector;
 // for timestamp formation
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -121,11 +125,22 @@ public class PORWriter
     extends POROutputWriter
 {
     
+    // MEMBER VARIABLES
+    //==================
+    
+    /**
+     * Reference to the PORFile currently being serialized.
+     * Valid only during the invocation of output.
+     */
+    private PORFile por;
+    
     // CONSTRUCTORS
     //==============
     
     public PORWriter() {
         super();
+        
+        por = null;
     }
     
     public PORWriter(OutputStream os) {
@@ -138,37 +153,149 @@ public class PORWriter
     // OTHER METHODS
     //===============
     
-    public void output(String filename, PORFile file) {
-        
+    protected void addSection(int tag, Object obj) {
+        por.sections.add(new PORSection(tag, obj));
     }
     
-    public void output(OutputStream os, PORFile file) {
+    public void output(PORFile por, String filename) 
+        throws FileNotFoundException, IOException, SecurityException
+    {
+        // Remember the PORFile object being outputted
+        this.por = por;
         
-        bind(os);
+        // Remove previous sectionization
+        por.sections.clear();
         
-        try {
-            /*
-            outputPORHeader()
-            outputPORVariables()
-            outputPORValueLabels()
-            outputDataRecord();
-            */
-        } catch(Exception ex) {
-            // try-catch
+        // Sections:
+        // 1.   Header (pseudo-section)
+        // 2.   Software
+        // 3.   Author
+        // 4.   Title
+        // 5.   Variable count
+        // 6.   Precision
+        // 7.   Weight variable name
+        // 8a.  Variable record
+        // 8b.  Any missing values
+        // 8c.  Variable label
+        // 9.   Value-Label map
+        // 10.  Documents
+        // 11.  Data matrix
+
+        
+        // This is a pseudo-section
+        addSection(PORSection.TAG_HEADER, por.header);
+        
+        if (por.software != null) {
+            addSection(PORSection.TAG_SOFTWARE, por.software);
         }
         
-        // unset output stream
-        unbind();
+        if (por.author != null) {
+            addSection(PORSection.TAG_AUTHOR, por.author);
+        }
+
+        if (por.title != null) {
+            addSection(PORSection.TAG_TITLE, por.title);
+        }
+        
+        // Variable count is mandatory
+        addSection(PORSection.TAG_VARIABLE_COUNT, por.variableCount);
+        
+        // Precision is probably mandatory
+        addSection(PORSection.TAG_PRECISION, por.precision);
+        
+        if (por.weightVariableName != null) {
+            addSection(PORSection.TAG_WEIGHT_VARIABLE, 
+                por.weightVariableName);
+        }
+        
+        int len = por.variables.size();
+        for (int index = 0; index < len; index++) {
+            PORVariable v = por.variables.get(index);
+            addSection(PORSection.TAG_VARIABLE_RECORD, v);
+            // Serialize missing values, if any
+            for (PORMissingValue missingValue : v.missvalues) {
+                // Discriminate
+                switch(missingValue.type) {
+                    case PORMissingValue.TYPE_DISCRETE_VALUE:
+                        addSection(PORSection.TAG_MISSING_DISCRETE, missingValue);
+                        break;
+                    case PORMissingValue.TYPE_RANGE_OPEN_LO:
+                        addSection(PORSection.TAG_MISSING_OPEN_LO, missingValue);
+                        break;
+                    case PORMissingValue.TYPE_RANGE_OPEN_HI:
+                        addSection(PORSection.TAG_MISSING_OPEN_HI, missingValue);
+                        break;
+                    case PORMissingValue.TYPE_RANGE_CLOSED:
+                        addSection(PORSection.TAG_MISSING_RANGE, missingValue);
+                        break;
+                    default:
+                        // Ignore. TODO: Error?
+                        break;
+                } // switch
+            } // for: each missing value
+            
+            // Variable label, if any
+            if (v.label != null) {
+                addSection(PORSection.TAG_VARIABLE_LABEL, v.label);
+            }
+        } // for: each variable
+        
+        len = por.labels.size();
+        for (int index = 0; index < len; index++) {
+            PORValueLabels vlMap = por.labels.get(index);
+            addSection(PORSection.TAG_VALUE_LABELS, vlMap);
+        }
+        
+        // Documents, if any
+        if (por.documents != null) {
+            addSection(PORSection.TAG_DOCUMENTS_RECORD, por.documents);
+        }
+        
+        // Data matrix
+        addSection(PORSection.TAG_DATA_MATRIX, por.data);
+        
+        // Output the sections
+        outputSections(por, filename);
+        
+        // Forget the PORFile
+        this.por = por;
     }
     
-    /*
-    public void output(String filename, List<PORSection> sections) {
-        // Begin with default numeric precision (11),
-        // and identity-encoding.
-        // If PORHeader "section" is met, then the encoding is adjusted.
-        // If a precision section is met, then the precision is adjusted.
+    
+    public void outputSections(PORFile por, String filename) 
+        throws FileNotFoundException, IOException, SecurityException
+    {
+        
+        // Create a fname object
+        File f = new File(filename);
+        
+        // May throw FileNotFound
+        FileOutputStream fis = new FileOutputStream(filename);
+        
+        // Remember the SAVFile object being outputted
+        // TODO: This should probably be a parameter of bind()
+        this.por = por;
+        
+        // Connect base writer to the created stream,
+        // and reset location information
+        bind(fis);
+        
+        // Open file, setup base writer
+        for (PORSection section : por.sections) {
+            outputPORSection(section);
+        }
+        
+        // May throw IOException, close quietly.
+        try {
+            unbind(); // Does flushing
+            fis.close();
+        } catch(IOException ex) {
+            System.err.printf("%s: FileInputStream.close() failed. Ignoring.\n", filename);
+        } // try-catch
+        
+        // Forget the SAVFile
+        this.por = null;
     }
-    */
     
     /**
      * Convert {@code PORFile} into a sequence of {@code PORSection}s.
@@ -179,15 +306,14 @@ public class PORWriter
      * @return List of sections ready for serialization.
      */
     public static List<PORSection> sectionize(PORFile file) {
-        // TODO: Write implementation
+        // TODO: Should the implementation be here?
         return null;
     }
-    
 
     // OUTPUT PRIMITIVES
     //===================
     
-    public void outputSection(PORSection section) 
+    public void outputPORSection(PORSection section) 
         throws IOException
     {
         // Pass-forward
@@ -207,15 +333,15 @@ public class PORWriter
      * @see PORSection
      *
      */
+    @SuppressWarnings("unchecked")
     public void outputSection(int tag, Object obj) 
         throws IOException
     {
         switch(tag) {
-            /*
-            case PORSection.TAG_HEADER: // (the pseudo section)
+            
+            case PORSection.TAG_HEADER: // this is a pseudo-section
                 outputHeader((PORHeader) obj);
                 break;
-            */
             
             case PORSection.TAG_SOFTWARE:
                 outputSoftware((String) obj);
@@ -270,7 +396,8 @@ public class PORWriter
                 break;
             
             case PORSection.TAG_DOCUMENTS_RECORD:
-                // Unimplemented
+                // NOTE: Unchecked cast
+                outputDocumentsRecord((Vector<String>) obj);
                 break;
             
             case PORSection.TAG_DATA_MATRIX:
@@ -299,10 +426,11 @@ public class PORWriter
     
     
     // This does not work yet
-    /*
+    
     public void outputHeader(PORHeader header)
         throws IOException
     {
+        /*
         // Convert splash byte array into String array
         String[] splash = null;
         if (header.splash != null) {
@@ -317,17 +445,18 @@ public class PORWriter
                 charset[i] = ((int) header.charset[i]) & 0xff;
             }
         }
+        */
         
         outputHeader(
-            splash,
-            charset,
+            null,                 // TODO
+            header.charset,
             header.signature,
             header.version,
             header.date,
             header.time
         );
     }
-    */
+    
 
     public void outputHeader(
         String[] splash,
@@ -359,7 +488,6 @@ public class PORWriter
         outputCreationTimestamp(date, time);
         
     } // output_header
-    
     
     /**
      * Output splash strings. Each splash string has to have a length 40,
@@ -997,6 +1125,24 @@ public class PORWriter
         } // for: each entry
     } // outputValueLabelsRecord()
 
+    /*
+     * Output documents record
+     *
+     */
+    public void outputDocumentsRecord(Vector<String> documents)
+        throws IOException
+    {
+        // Tag code
+        outputTag(PORSection.TAG_DOCUMENTS_RECORD);
+        
+        // Number of lines
+        outputInt(documents.size());
+        
+        // Output variable names
+        for (String line : documents) {
+            outputString(line);
+        }
+    }
     
     //=======================================================================
     // PORDataMatrix OUTPUT METHOD
@@ -1108,18 +1254,18 @@ public class PORWriter
             lastc = c;
         } // while
         
-        System.out.printf("endoffset: %d, size: %d\n",
-            endoffset, data.size());
-        
         if (endoffset == -1) {
             // default to end-of-data
             endoffset = data.size();
+        } else {
+            // Exclude the EOF_MARKER itself
+            endoffset--;
         }
         
         // seek to the beginning
         data.seek(0);
-        int data_col = 0; // TODO: data.getColumn0()
-        int data_row_length = 80; // TODO: data.getRowLength()
+        int data_col = rawMatrix.getTextColumn0();
+        int data_row_length = rawMatrix.getTextRowLength();
         
         for (int i = 0; i < endoffset; i++) {
             c = data.read();

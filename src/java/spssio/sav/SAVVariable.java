@@ -111,6 +111,12 @@ public class SAVVariable {
     
     /**
      * Variable name, max 8 chars.
+     * According to PSPP:
+     * The variable name must begin with a capital letter or 
+     * the at-sign (`@'). Subsequent characters may also be digits, 
+     * octothorpes (`#'), dollar signs (`$'), underscores (`_'), 
+     * or full stops (`.'). The variable name is padded on 
+     * the right with spaces. 
      */
     public String name;
 
@@ -134,6 +140,64 @@ public class SAVVariable {
     //==============
 
     public SAVVariable() {
+        
+    }
+    
+    public static SAVVariable createNew() {
+        SAVVariable v = new SAVVariable();
+        
+        v.width = -1;
+        v.inputFormat = new SAVValueFormat();
+        v.outputFormat = new SAVValueFormat();
+        v.name = ""; // No name
+        
+        // No label
+        v.hasLabel = 0;
+        v.label = null;
+        
+        v.numberOfMissingValues = 0;
+        v.missingValues = null;
+        
+        return v;
+    }
+    
+    public static SAVVariable createNew(int width, String name) {
+        SAVVariable v = new SAVVariable();
+        
+        v.width = width;
+        v.inputFormat = new SAVValueFormat();
+        v.outputFormat = new SAVValueFormat();
+        v.name = name;
+        
+        // No label
+        v.hasLabel = 0;
+        v.label = null;
+        
+        v.numberOfMissingValues = 0;
+        v.missingValues = null;
+        
+        return v;
+    }
+    
+
+    
+    public SAVVariable createDummy() {
+        SAVVariable v = new SAVVariable();
+        
+        v.width = -1;
+        v.inputFormat = new SAVValueFormat(inputFormat.raw);
+        v.outputFormat = new SAVValueFormat(outputFormat.raw);
+        // No name
+        v.name = "";
+        
+        // No label
+        v.hasLabel = 0;
+        v.label = null;
+        
+        v.numberOfMissingValues = 0;
+        v.missingValues = null;
+        
+        return v;
     }
     
     // OTHER METHODS
@@ -172,9 +236,9 @@ public class SAVVariable {
     
     public void setLabel(String label) {
         if (label != null) {
-            hasLabel = 1;
+            this.hasLabel = 1;
         } else {
-            hasLabel = 0;
+            this.hasLabel = 0;
         }
         
         this.label = label;
@@ -184,8 +248,8 @@ public class SAVVariable {
         return name;
     }
     
-    public void setName(String newName) {
-        name = newName;
+    public void setName(String name) {
+        this.name = name;
     }
     
     public int getNumberOfMissingValues() {

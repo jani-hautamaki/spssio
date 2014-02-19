@@ -60,6 +60,10 @@ public class SAVValueFormat {
     // OTHER METHODS
     //===============
     
+    public Object clone() {
+        return new SAVValueFormat(this.raw);
+    }
+    
     public int getWidth() {
         return (raw >>> 8) & 0xff;
     }

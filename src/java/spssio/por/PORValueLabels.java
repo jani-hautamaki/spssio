@@ -51,12 +51,20 @@ public class PORValueLabels
     //==================
     
     /**
+     * Determines the type of the values.
+     * Uses same constants are PORValue
+     */
+    public int type;
+    
+    /**
      * List of the variables.
+     * TODO: rename into variables
      */
     public Vector<PORVariable> vars;
     
     /**
      * List of the (value, label) pairs. The {@code Map} is an order-preserving map.
+     * TODO: rename into map
      */
     public Map<PORValue, String> mappings;
     
@@ -67,6 +75,7 @@ public class PORValueLabels
      * Creates an empty value labels record.
      */
     public PORValueLabels() {
+        type = PORValue.TYPE_UNASSIGNED;
         vars = new Vector<PORVariable>();
         mappings = new LinkedHashMap<PORValue, String>();
     } // ctor

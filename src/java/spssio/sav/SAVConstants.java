@@ -18,6 +18,8 @@
 package spssio.sav;
 
 
+import spssio.util.DataEndianness;
+
 /**
  * Compression codes, see
  * {@url http://www.gnu.org/software/pspp/pspp-dev/html_node/Data-Record.html#Data-Record}
@@ -28,23 +30,56 @@ package spssio.sav;
  *
  */
 public class SAVConstants {
-    
+
+
     // CONSTANTS
     //===========
     
-    public static final long VALUE_HIGHEST_RAW          = 0x7fefffffffffffffL;
-    public static final long VALUE_LOWEST_RAW            = 0xffeffffffffffffeL;
-    public static final long VALUE_SYSMISS_RAW          = 0xffefffffffffffffL;
+    public static final String
+        FORMAT_SIGNATURE                                = "$FL2";
     
-    public static final double VALUE_HIGHEST
-        = Double.longBitsToDouble(VALUE_HIGHEST_RAW);
-
-    public static final double VALUE_LOWEST
-        = Double.longBitsToDouble(VALUE_LOWEST_RAW);
-
-    public static final double VALUE_SYSMISS
-        = Double.longBitsToDouble(VALUE_SYSMISS_RAW);
+    public static final String
+        SOFTWARE_PREFIX                                 = "@(#) SPSS DATA FILE";
     
+    // DEFAULTS
+    //==========
+    
+    public static final long
+        DEFAULT_HIGHEST_VALUE_RAW                       = 0x7fefffffffffffffL;
+
+    public static final long
+        DEFAULT_LOWEST_VALUE_RAW                        = 0xffeffffffffffffeL;
+
+    public static final long
+        DEFAULT_SYSMISS_VALUE_RAW                       = 0xffefffffffffffffL;
+        
+        
+    public static final double 
+        DEFAULT_HIGHEST_VALUE                           = Double.longBitsToDouble(DEFAULT_HIGHEST_VALUE_RAW);
+
+    public static final double 
+        DEFAULT_LOWEST_VALUE                            = Double.longBitsToDouble(DEFAULT_LOWEST_VALUE_RAW);
+
+    public static final double 
+        DEFAULT_SYSMISS_VALUE                           = Double.longBitsToDouble(DEFAULT_SYSMISS_VALUE_RAW);
+
+    public static final String 
+        DEFAULT_STRING_ENCODING                         = "ISO-8859-15";
+        
+    public static final int
+        DEFAULT_ENDIANNESS                              = DataEndianness.LITTLE_ENDIAN;
+        
+
+
+    public static final double
+        DEFAULT_COMPRESSION_BIAS                        = 100.0;
+    
+    // For populating SAVHeader
+    
+    // TODO: Retrieve package revision from somewhere
+    public static final String
+        DEFAULT_SOFTWARE                                = SOFTWARE_PREFIX + " spssio/Java";
+        
     // CONSTANTS: COMPRESSION
     //========================
 
@@ -68,7 +103,8 @@ public class SAVConstants {
     //==============
     
     /**
-     * Intentionally disabled
+     * Intentionally disabled.
+     *
      */
     private SAVConstants() {
     }

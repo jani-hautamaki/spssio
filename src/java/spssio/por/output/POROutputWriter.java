@@ -21,6 +21,7 @@ package spssio.por.output;
 // core java
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.BufferedOutputStream;
 
 // spssio
 import spssio.por.PORCharset;
@@ -47,13 +48,25 @@ public class POROutputWriter {
      */
     public static final int EOL_CRLF                = 0x0D0A;
 
+    /**
+     * Default size used for the BufferedOutputStream encapsulation
+     */
+    public static final int DEFAULT_BUFFER_SIZE = 0x10000; // 64 kbs
+
     // MEMBER VARIABLES
     //==================
 
     /**
+     * Config variable; is used as the buffer size parameter for
+     * {@code BufferedOutputStream}'s constructor. 
+     * Initialized to the default value, {@link DEFAULT_BUFFER_SIZE}
+     */
+    private int ostreamBufferSize;
+
+    /**
      * Output byte stream to which the serialization is sent.
      */
-    private OutputStream ostream;
+    private BufferedOutputStream ostream;
 
     /*
      * Number of bytes written.
@@ -106,6 +119,10 @@ public class POROutputWriter {
     //=============
     
     public POROutputWriter() {
+        
+        // Set the buffer size to the default value
+        ostreamBufferSize = DEFAULT_BUFFER_SIZE;
+        
         // No output stream associated yet.
         ostream = null;
         
@@ -214,14 +231,15 @@ public class POROutputWriter {
     // OTHER METHODS
     //===============
     
-    public void bind(OutputStream os) {
-        if (os == null) {
+    public void bind(OutputStream ostream) {
+        if (ostream == null) {
             throw new IllegalArgumentException(
                 "Illegal OutputStream specified: null");
         }
         
         // Bind the output stream
-        ostream = os;
+        // throws if ostreamBufferSize <= 0
+        this.ostream = new BufferedOutputStream(ostream, ostreamBufferSize);
         
         // Reset textual location
         row = 0;
@@ -230,8 +248,27 @@ public class POROutputWriter {
         // TODO: Should the encoding be reset?
     }
     
+    public void flush() 
+        throws IOException
+    {
+        ostream.flush();
+    }
+    
+    public void close() 
+        throws IOException
+    {
+        ostream.close();
+    }
+    
     public void unbind() {
-        ostream = null;
+        if (this.ostream != null) {
+            try {
+                this.ostream.flush();
+            } catch(IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        this.ostream = null;
     }
     
     /*
@@ -432,11 +469,15 @@ public class POROutputWriter {
         // Write end-marker
         write(PORConstants.EOF_MARKER); // 'Z'
         
-        // Complete the last line with end-markers.
-        int len = rowLength-col;
-        for (int i = 0; i < len; i++) {
-            write(PORConstants.EOF_MARKER); // 'Z'
+        
+        if (col > 0) {
+            // Complete the last line with end-markers.
+            int len = rowLength-col;
+            for (int i = 0; i < len; i++) {
+                write(PORConstants.EOF_MARKER); // 'Z'
+            }
         }
+        
     }
     
     //=======================================================================

@@ -5,7 +5,7 @@
 //      Java classes for reading and writing 
 //      SPSS/PSPP Portable and System files
 //
-//      Copyright (C) 2013 Jani Hautamaki <jani.hautamaki@hotmail.com>
+//      Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
 //
 //      Licensed under the terms of GNU General Public License v3.
 //
@@ -278,8 +278,16 @@ public class PORMatrixParser
         col = cur_column;
     }
     
+    public int getTextColumn0() {
+        return startcol;
+    }
+    
     public void setTextRowLength(int len) {
         row_length = len;
+    }
+    
+    public int getTextRowLength() {
+        return row_length;
     }
     
     public void setDataColumnTypes(int[] column_types) {

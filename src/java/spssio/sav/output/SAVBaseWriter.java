@@ -158,6 +158,14 @@ public class SAVBaseWriter
         return floatingEndianness.get();
     }
 
+    public void setStringEncoding(String charsetName) {
+        stringEncoding = charsetName;
+    }
+    
+    public String getStringEncoding() {
+        return stringEncoding;
+    }
+    
     // OTHER METHODS
     //===============
     

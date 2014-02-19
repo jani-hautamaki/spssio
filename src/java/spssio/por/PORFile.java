@@ -126,16 +126,18 @@ public class PORFile {
     
     /**
      * Sequence of value labels records (tag code 'D').
+     * TODO: Rename into valueLabelMaps?
      */
     public Vector<PORValueLabels> labels;
     
     /**
      * Document record (tag 'E', vector of strings)
      */
-    // TODO
+    public Vector<String> documents;
     
     /**
      * Data record (tag 'F', sequence of floating-point and string fields)
+     * TODO: Rename into dataMatrix
      */
     public PORMatrix data;
    
@@ -166,6 +168,9 @@ public class PORFile {
         
         // Value labels
         labels = new Vector<PORValueLabels>();
+
+        // Documents
+        documents = null;
         
         // Sections
         sections = new Vector<PORSection>();
@@ -177,6 +182,9 @@ public class PORFile {
     // OTHER METHODS
     //===============
     
+    public PORHeader getHeader() {
+        return header;
+    }
     
     // HEADER
     //========

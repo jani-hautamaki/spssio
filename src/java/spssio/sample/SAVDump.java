@@ -21,6 +21,7 @@ package spssio.sample;
 import java.util.Vector;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 
 // spssio sav
 import spssio.sav.SAVFile;
@@ -30,6 +31,8 @@ import spssio.sav.SAVVariable;
 import spssio.sav.SAVValueLabels;
 import spssio.sav.SAVValue;
 import spssio.sav.SAVExtensionRecord;
+import spssio.sav.SAVExtSystemConfig;
+import spssio.sav.SAVExtNumberConfig;
 
 // spssio util
 import spssio.util.DataEndianness;
@@ -96,6 +99,8 @@ public class SAVDump {
             // Dump the stack trace if debugging enabled
             ex.printStackTrace();
             
+            System.out.printf("Attempting to display the sav file anyway\n");
+            displaySAVFile(savReader.getLatestSAVFile(), savReader);
             
             System.exit(EXIT_FAILURE);
         } // try-catch
@@ -125,13 +130,15 @@ public class SAVDump {
         System.out.printf("  Columns:                   %d\n",       sav.variables.size());
         System.out.printf("  Variables:                 %d\n",       sav.calculateNumberOfVariables());
         
-        displayVariables(sav.variables);
+        //displayVariables(sav.variables);
         
-        displayValueLabelMaps(sav.valueLabelMaps);
+        //displayValueLabelMaps(sav.valueLabelMaps);
+        
+        displayDocuments(sav.documents);
         
         displayExtensionRecords(sav.extensionRecords, savReader);
         
-        //displaySections(sav.sections);
+        displaySections(sav.sections);
     }
     
     public static void displaySAVHeader(SAVHeader header) {
@@ -179,9 +186,7 @@ public class SAVDump {
     public static void displayValueLabelMaps(
         Vector<SAVValueLabels> maps
     ) {
-        
         int num = 0;
-        
         for (SAVValueLabels vls : maps) {
             System.out.printf("Value-Label Map #%d\n", num);
             displaySAVValueLabels(vls);
@@ -244,6 +249,19 @@ public class SAVDump {
         }
     }
 
+    public static void displayDocuments(List<String> documents) {
+        if (documents == null) {
+            return;
+        }
+        
+        System.out.printf("Documents/Comments (%d lines)\n", documents.size());
+        for (String line : documents) {
+            System.out.printf("  %s\n", line);
+        }
+        System.out.printf("  <end-of-documents>\n");
+    }
+    
+    
     public static void displayExtensionRecords(
         Vector<SAVExtensionRecord> records, 
         SAVReader savReader
@@ -263,6 +281,53 @@ public class SAVDump {
         System.out.printf("  Sub-tag:                   %d (hex %x)\n", extRecord.subtag, extRecord.subtag);
         System.out.printf("  Element size:              %d\n", extRecord.elementSize);
         System.out.printf("  Number of elements:        %d\n", extRecord.numberOfElements);
+        
+        boolean handled = false;
+        switch(extRecord.subtag) {
+            case 3: // Source platform integer info record
+                displaySAVExtSystemConfig((SAVExtSystemConfig) extRecord);
+                handled = true;
+                break;
+            case 4: // Source platform floating-point info record
+                displaySAVExtNumberConfig((SAVExtNumberConfig) extRecord);
+                handled = true;
+                break;
+            case 7: // Variable sets
+                break;
+            case 11: // Level, Width, Aligment
+                break;
+            case 13: // Long variable names record
+                break;
+            case 14: // Very long string record
+                break;
+            case 16: // int64 version of numberOfCases
+                break;
+            case 17: // Attributes
+                break;
+            case 18: // Attributes
+                break;
+            case 19: // Variable sets
+                break;
+            case 20: // Encoding
+                break;
+            case 21: // Long value label string map
+                break;
+            case 22: // Long missing value map
+                break;
+
+            default:
+                // Unhandled extension record
+                break;
+        }
+        
+        if ((extRecord.data == null) && (handled == false)) {
+            System.out.printf("   Unfortunately this cannot be displayed...\n");
+        }
+        
+        if (extRecord.data == null) {
+            return;
+        }
+        
         
         DataEndianness integerEndianness = new DataEndianness();
         DataEndianness floatingEndianness = new DataEndianness();
@@ -300,6 +365,9 @@ public class SAVDump {
                 }
             }
             // dump as characters
+            if (col != 0) {
+                System.out.printf("\n");
+            }
         }
         else if (extRecord.elementSize == 4) {
             System.out.printf("  Data dump (int):\n");
@@ -352,6 +420,31 @@ public class SAVDump {
             }
         }
     }
+
+    public static void displaySAVExtSystemConfig(
+        SAVExtSystemConfig ext
+    ) {
+        System.out.printf("  System configuration\n");
+        System.out.printf("  Version major.minor.rev:   %d.%d.%d\n", ext.versionMajor, ext.versionMinor, ext.versionRevision);
+        System.out.printf("  Machine code:              %d\n", ext.machineCode);
+        System.out.printf("  Floating-point format:     %d\n", ext.fpFormat);
+        System.out.printf("  Compression code:          %d\n", ext.compression);
+        System.out.printf("  Endianness:                %d\n", ext.systemEndianness);
+        System.out.printf("  String encoding/codepage:  %d\n", ext.stringCodepage);
+    }
+
+    public static void displaySAVExtNumberConfig(
+        SAVExtNumberConfig ext
+    ) {
+        System.out.printf("  Special symbols encoding\n");
+        System.out.printf("  Sysmiss:                   %16x\n", 
+            Double.doubleToLongBits(ext.sysmissValue));
+        System.out.printf("  Highest:                   %16x\n", 
+            Double.doubleToLongBits(ext.highestValue));
+        System.out.printf("  Lowest:                    %16x\n", 
+            Double.doubleToLongBits(ext.lowestValue));
+        
+    }
     
     
     public static void displaySections(Vector<SAVSection> sections) {
@@ -382,6 +475,7 @@ public class SAVDump {
         map.put(SAVSection.TAG_VARIABLE, "Variable");
         map.put(SAVSection.TAG_VARIABLE_LIST, "Variable list");
         map.put(SAVSection.TAG_VALUE_LABELS, "Value-Label map");
+        map.put(SAVSection.TAG_DOCUMENTS, "Documents/Comments");
         map.put(SAVSection.TAG_EXTENSION_RECORD, "Extension record");
         map.put(SAVSection.TAG_DATA_MATRIX, "Data matrix");
         

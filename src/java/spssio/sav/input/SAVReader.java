@@ -24,6 +24,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Vector;
+import java.util.List;
+import java.util.LinkedList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -32,12 +34,14 @@ import spssio.sav.SAVFile;
 import spssio.sav.SAVHeader;
 import spssio.sav.SAVValueLabels;
 import spssio.sav.SAVVariable;
-import spssio.sav.SAVExtensionRecord;
 import spssio.sav.SAVValueFormat;
 import spssio.sav.SAVMatrix;
 import spssio.sav.SAVRawMatrix;
 import spssio.sav.SAVSection;
 import spssio.sav.SAVValue;
+import spssio.sav.SAVExtensionRecord;
+import spssio.sav.SAVExtNumberConfig;
+import spssio.sav.SAVExtSystemConfig;
 import spssio.util.SequentialByteArray;
 import spssio.util.DataEndianness;
 
@@ -59,9 +63,16 @@ public class SAVReader
     private SAVFile sav;
     
     /**
-     * Last SAVValueLabels object parsed
+     * Latest SAVValueLabels object parsed
      */
     private SAVValueLabels lastVLMap;
+    
+    /**
+     * Latest extension record.
+     * This is used back and forth between extension record discriminator
+     * and the actual parsing method.
+     */
+    private SAVExtensionRecord lastExt;
     
     // CONSTRUCTORS
     //==============
@@ -69,10 +80,15 @@ public class SAVReader
     public SAVReader() {
         sav = null;
         lastVLMap = null;
+        lastExt = null;
     }
 
     // OTHER METHODS
     //===============
+    
+    public SAVFile getLatestSAVFile() {
+        return sav;
+    }
     
     // TODO:
     // Should use try-finally-catch
@@ -105,6 +121,7 @@ public class SAVReader
         
         sav = new SAVFile();
         lastVLMap = null;
+        lastExt = null;
         
         parseSAVHeader();
         
@@ -126,6 +143,10 @@ public class SAVReader
                 
                 case SAVSection.TAG_VARIABLE_LIST:
                     parseSAVVariableList();
+                    break;
+                
+                case SAVSection.TAG_DOCUMENTS:
+                    parseSAVDocuments();
                     break;
                 
                 case SAVSection.TAG_EXTENSION_RECORD:
@@ -207,6 +228,23 @@ public class SAVReader
         // Parse layout code
         header.layout = readInt();
         
+        // Examine layout to determine the endianness
+        if ((header.layout == 2) || (header.layout == 1) || (header.layout == 3)) {
+            // ok
+        } else {
+            // Swap
+            int layout = header.layout;
+            // Assume Big-Endian, flip layout
+            setEndianness(DataEndianness.BIG_ENDIAN);
+            layout = 0
+                | (layout & 0xff) << 24
+                | (layout & 0xff00) << 8
+                | (layout & 0xff0000) >> 8
+                | (layout & 0xff000000) >> 24;
+            header.layout = layout;
+        }
+        
+        
         // Parse variable count
         header.variableCount = readInt();
         
@@ -275,30 +313,29 @@ public class SAVReader
             // the variable's variable label. 
             
             v.label = readAlignedString(4, 4, 0);
-            
-            v.missingValues = null;
+        }
+        
+        // For convenience and brevity
+        int nvalues = v.numberOfMissingValues;
+        
+        // Q: What if the variable is a STRING variable?
+        // A: String variables cannot have missing values or SYSMISS.
 
-            // For convenience and brevity
-            int nvalues = v.numberOfMissingValues;
+        // If the variable has a range for missing variables, set to -2; 
+        // if the variable has a range for missing variables 
+        // plus a single discrete value, set to -3. 
+        
+        if (nvalues < 0) {
+            // Has a range
+            nvalues = -nvalues;
+        }
+        
+        v.missingValues = null;
+        if (nvalues > 0) {
+            v.missingValues = new double[nvalues];
             
-            // Q: What if the variable is a STRING variable?
-            // A: String variables cannot have missing values or SYSMISS.
-
-            // If the variable has a range for missing variables, set to -2; 
-            // if the variable has a range for missing variables 
-            // plus a single discrete value, set to -3. 
-            
-            if (nvalues < 0) {
-                // Has a range
-                nvalues = -nvalues;
-            }
-            
-            if (nvalues > 0) {
-                v.missingValues = new double[nvalues];
-                
-                for (int i = 0; i < nvalues; i++) {
-                    v.missingValues[i] = readDouble();
-                }
+            for (int i = 0; i < nvalues; i++) {
+                v.missingValues[i] = readDouble();
             }
         }
         
@@ -475,6 +512,24 @@ public class SAVReader
        
         return map;
     }
+
+    private List<String> parseSAVDocuments() {
+        List<String> list = new LinkedList<String>();
+        
+        int lines = readInt();
+        byte[] lineBuffer = new byte[80];
+        for (int i = 0; i < lines; i++) {
+            readBytes(lineBuffer, 0, 80);
+            list.add(bytesToStringUnpad(lineBuffer));
+        }
+
+        // S ection for the value label map
+        addSection(SAVSection.TAG_DOCUMENTS, list);
+        
+        sav.documents = list;
+        
+        return list;
+    }
     
     private void parseSAVExtensionRecord() {
         /*
@@ -493,17 +548,21 @@ public class SAVReader
         ext.subtag = readInt();
         ext.elementSize = readInt();
         ext.numberOfElements = readInt();
+        ext.data = null;
         
+        // This is used to communicate the current extension record
+        // down to the individual parsing methods
+        lastExt = ext;
         
-        int sizeBytes = ext.elementSize * ext.numberOfElements;
-        
-        ext.data = new byte[sizeBytes];
-        readBytes(ext.data, 0, sizeBytes);
-        
+        boolean handled = false;
         switch(ext.subtag) {
             case 3: // Source platform integer info record
+                parseExtSystemConfig();
+                handled = true;
                 break;
             case 4: // Source platform floating-point info record
+                parseExtNumberConfig();
+                handled = true;
                 break;
             case 7: // Variable sets
                 break;
@@ -533,14 +592,66 @@ public class SAVReader
                 break;
         } // switch
         
+        if (handled == false) {
+            int sizeBytes = ext.elementSize * ext.numberOfElements;
+            ext.data = new byte[sizeBytes];
+            readBytes(ext.data, 0, sizeBytes);
+            
+            lastExt = ext;
+        }
+        
         // Add to extension records
-        sav.extensionRecords.add(ext);
+        sav.extensionRecords.add(lastExt);
         
         // Section for the variable set
-        addSection(SAVSection.TAG_EXTENSION_RECORD, ext);
+        addSection(SAVSection.TAG_EXTENSION_RECORD, lastExt);
         
     }
-
+    
+    private void expectExtensionSize(int elementSize, int numberOfElements) {
+        if ((lastExt.elementSize != elementSize)
+            || (lastExt.numberOfElements != numberOfElements)) 
+        {
+            throw new RuntimeException(String.format(
+                "Extension record subtag=%d was expected to have elemsize=%d and nelem=%d, but found %d and %d",
+                lastExt.subtag,
+                elementSize, numberOfElements,
+                lastExt.elementSize, lastExt.numberOfElements)
+            );
+        }
+    }
+    
+    
+    private void parseExtSystemConfig() {
+        expectExtensionSize(4, 8);
+        
+        SAVExtSystemConfig ext = new SAVExtSystemConfig();
+        ext.copy(lastExt);
+        lastExt = ext;
+        
+        ext.versionMajor = readInt();
+        ext.versionMinor = readInt();
+        ext.versionRevision = readInt();
+        ext.machineCode = readInt();
+        ext.fpFormat = readInt();
+        ext.compression =  readInt();
+        ext.systemEndianness = readInt();
+        ext.stringCodepage = readInt();
+        
+    }
+    
+    private void parseExtNumberConfig() {
+        expectExtensionSize(8, 3);
+        
+        SAVExtNumberConfig ext = new SAVExtNumberConfig();
+        ext.copy(lastExt);
+        lastExt = ext;
+        
+        ext.sysmissValue = readDouble();
+        ext.highestValue = readDouble();
+        ext.lowestValue = readDouble();
+        
+    }
     
     
     protected void parseSAVDataMatrix2() {

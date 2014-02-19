@@ -36,21 +36,21 @@ public class PORSection
     
     /*
     0: header:          STRUCT
-    1: software:        string
-    2: author:          string
-    3: title:           string
-    4: varcount:        uint
-    5: precision:       uint
-    6: weight_var:      string
-    7: var_record       STRUCT
-    8: missing_val      1x uint/string
-    9: missing_val      1x uint(/string?)
-    A: missing_val      1x uint(/string?)
-    B: missing_val      2x uint(/string?)
-    C: var_label        string
-    D: values           STRUCT
-    E: doc_records      n/a
-    F: data             CUSTOM
+    1: software:        String
+    2: author:          String
+    3: title:           String
+    4: varcount:        Integer
+    5: precision:       Integer
+    6: weight_var:      String
+    7: var_record       PORVariable
+    8: missing_val      PORMissingValue
+    9: missing_val      PORMissingValue
+    A: missing_val      PORMissingValue
+    B: missing_val      PORMissingValue
+    C: var_label        String
+    D: value_labels     PORValueLabels
+    E: doc_records      Vector<String>
+    F: data             PORMatrix
     */
 
     // CONSTANTS
@@ -237,6 +237,10 @@ public class PORSection
         PORValueLabels vallabels
     ) {
         return new PORSection(TAG_VALUE_LABELS, vallabels);
+    }
+    
+    public static PORSection newDocumentsRecord(Vector<String> documents) {
+        return new PORSection(TAG_DOCUMENTS_RECORD, documents);
     }
     
     public static PORSection newDataMatrix(PORMatrix matrix) {

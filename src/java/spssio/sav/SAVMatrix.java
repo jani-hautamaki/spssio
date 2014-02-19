@@ -48,4 +48,9 @@ public interface SAVMatrix {
      */
     public void traverse(SAVMatrixHandler contentHandler);
     
+    /*
+     * For sequential access.
+     */
+    //public SAVMatrixReader getReader();
+    
 } // SAVMatrix

@@ -117,7 +117,6 @@ public class SAVMatrixDecompressor {
      * Configured endianness of the double values.
      */
     private int endianness;
-    
 
     // Derived data
 

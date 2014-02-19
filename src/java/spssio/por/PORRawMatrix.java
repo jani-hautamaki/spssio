@@ -5,7 +5,7 @@
 //      Java classes for reading and writing 
 //      SPSS/PSPP Portable and System files
 //
-//      Copyright (C) 2013 Jani Hautamaki <jani.hautamaki@hotmail.com>
+//      Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
 //
 //      Licensed under the terms of GNU General Public License v3.
 //
@@ -75,6 +75,14 @@ public class PORRawMatrix
     
     public SequentialByteArray getRawArray() {
         return array;
+    }
+    
+    public int getTextColumn0() {
+        return parser.getTextColumn0();
+    }
+    
+    public int getTextRowLength() {
+        return parser.getTextRowLength();
     }
     
     // PORMatrix INTERFACE

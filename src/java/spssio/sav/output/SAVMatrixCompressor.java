@@ -96,10 +96,12 @@ public class SAVMatrixCompressor
         
         
         floatingEndianness = new DataEndianness();
+        
         // Set default floating endianness
-        setFloatingEndianness(DataEndianness.LITTLE_ENDIAN);
+        setFloatingEndianness(SAVConstants.DEFAULT_ENDIANNESS);
+        
         // Set default sysmiss
-        setSysmiss(SAVConstants.VALUE_SYSMISS);
+        setSysmissValue(SAVConstants.DEFAULT_SYSMISS_VALUE);
     }
 
     // CONFIGURATION METHODS
@@ -121,12 +123,12 @@ public class SAVMatrixCompressor
         return Arrays.copyOf(columnWidths, columnWidths.length);
     }
     
-    public void setSysmiss(double sysmiss) {
+    public void setSysmissValue(double sysmiss) {
         this.sysmiss = sysmiss;
         //updateSysmissBytes();
     }
     
-    public double getSysmiss() {
+    public double getSysmissVaue() {
         return sysmiss;
     }
     

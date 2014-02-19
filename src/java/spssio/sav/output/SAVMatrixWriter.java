@@ -61,11 +61,6 @@ public class SAVMatrixWriter
     private double sysmiss;
     
     /**
-     * Configured SYSMISS value as long bits
-     */
-    private long sysmissRaw;
-    
-    /**
      * Configured endianness of the input data
      */
     private DataEndianness floatingEndianness;
@@ -87,13 +82,16 @@ public class SAVMatrixWriter
         encoding = null;
         ostream = null;
         byteBuffer = new byte[8];
-        sysmiss = SAVConstants.VALUE_SYSMISS;
-        sysmissRaw = SAVConstants.VALUE_SYSMISS_RAW;
-        
         floatingEndianness = new DataEndianness();
-        floatingEndianness.set(DataEndianness.LITTLE_ENDIAN);
         
-        setEncoding("ISO-8859-15");
+        // Set default sysmiss value
+        setSysmissValue(SAVConstants.DEFAULT_SYSMISS_VALUE);
+        
+        // Set default endianness
+        floatingEndianness.set(SAVConstants.DEFAULT_ENDIANNESS);
+        
+        // Set default encoding
+        setStringEncoding(SAVConstants.DEFAULT_STRING_ENCODING);
     }
     
     // CONFIGURATIN METHODS
@@ -107,30 +105,24 @@ public class SAVMatrixWriter
         return floatingEndianness.get();
     }
     
-    public void setSysmiss(double sysmiss) {
+    public void setSysmissValue(double sysmiss) {
         this.sysmiss = sysmiss;
-        this.sysmissRaw = Double.doubleToLongBits(this.sysmiss);
     }
     
-    public void setSysmissRaw(long sysmissRaw) {
-        this.sysmissRaw = sysmissRaw;
-        this.sysmiss = Double.longBitsToDouble(this.sysmissRaw);
-    }
-    
-    public double getSysmiss() {
+    public double getSysmissValue() {
         return sysmiss;
     }
     
-    public long getSysmissRaw() {
-        return sysmissRaw;
-    }
-    
-    public void setEncoding(String charsetName) {
+    public void setStringEncoding(String charsetName) {
         try {
             encoding = Charset.forName(charsetName);
         } catch(UnsupportedCharsetException ex) {
             throw new IllegalArgumentException(ex);
         } // try-catch
+    }
+    
+    public String getStringEncoding() {
+        return encoding.name();
     }
     
     public void setOutputStream(OutputStream ostream) {
@@ -145,6 +137,9 @@ public class SAVMatrixWriter
     //===============
     
     public void outputSAVMatrix(SAVMatrix dataMatrix) {
+
+        // Reset index prior to traversal
+        index = -1; // increasing by one will get to the first
         
         // Create a matrix handler
         
@@ -242,6 +237,24 @@ public class SAVMatrixWriter
 
     }
     
+    private int getNextWidth() {
+        
+        do {
+            index++;
+            if (index >= columnWidths.length) {
+                index = 0;
+            }
+            
+            if (index < columnWidths.length) {
+                int width = columnWidths[index];
+                if (width >= 0) {
+                    // use this
+                    return width;
+                }
+                // otherwise continue search
+            }
+        } while (true);
+    }
     
     // SAVMatrixHandler interface
     //============================
@@ -263,33 +276,32 @@ public class SAVMatrixWriter
     }
     
     public void onCellSysmiss(int x) {
+        int width = getNextWidth();
         // Verify width? 
         serializeDouble(sysmiss);
     }
     
     public void onCellNumber(int x, double value) {
+        int width = getNextWidth();
         // Verify width? 
         serializeDouble(value);
     }
     
     public void onCellInvalid(int x) {
-        // TODO: raise an error?
+        int width = getNextWidth();
         // Verify width? 
+        // TODO: raise an error?
         serializeDouble(sysmiss);
     }
     
     public void onCellString(int x, String value) {
-        
-        // Width of the xth variable
-        int width = columnWidths[x];
-        
+        int width = getNextWidth();
+        //int width = 8;
+        //System.out.printf("Serializng \"%s\", width: %d\n", value, width);
         // Verify width? 
         
         // Serialize string to that length, and padd to align
         serializeString(value, width);
-        
-        //outputString(value, width);
-        //outputEofMarker();
     }
     
     protected void emitBytes() {

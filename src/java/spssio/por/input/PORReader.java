@@ -18,6 +18,7 @@
 package spssio.por.input;
 
 // core java
+import java.util.Vector;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
@@ -420,7 +421,6 @@ public class PORReader
         int c = readc();
         
         // TODO: Decode?
-        // TODO: Validate: expect 'A' ?
         
         por.header.version = (char) c;
     } // parse_file_version();
@@ -684,8 +684,23 @@ public class PORReader
     } // parse_value_labels()
                 
     protected void parseDocumentsRecord() {
-        throw new RuntimeException(
-            "Document records parsing is unimplemented");
+        //http://www.gnu.org/software/pspp/pspp-dev/html_node/Portable-File-Document-Record.html#Portable-File-Document-Record
+        
+        int lines = parseIntU();
+        
+        Vector<String> documents = new Vector<String>(lines);
+        
+        for (int lineNumber = 0; lineNumber < lines; lineNumber++) {
+            String line = parseString();
+            documents.add(line);
+        }
+        
+        // TODO: Can there be more than one documents section?
+        // If so, it would be safer to inspect whether the variable
+        // is already set and perhaps .add() the new vector to it
+        por.documents = documents;
+        
+        por.sections.add(PORSection.newDocumentsRecord(documents));
     }
 
     protected void parseDataMatrixRecord() {

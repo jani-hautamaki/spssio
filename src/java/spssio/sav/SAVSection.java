@@ -19,6 +19,7 @@ package spssio.sav;
 
 // core java
 import java.util.Vector;
+import java.util.List;
 
 public class SAVSection {
     /*
@@ -31,7 +32,7 @@ public class SAVSection {
      *  3       ValuLabelMap        SAVValueLabels
      *  4       VariableList        Vector<SAVVariable>
      *  5       ?                   ?
-     *  6       ?                   ?
+     *  6       Documents           List<String>
      *  7       ExtensionRecord     SAVExtensionRecord, see subtag.
      *  999     DataMatrix          SAVMatrix
      * 
@@ -60,7 +61,12 @@ public class SAVSection {
      * obj is SAVVariableSet.
      */
     public static final int TAG_VARIABLE_LIST                   = 4;
-    
+
+    /**
+     * obj is List<String>
+     */
+    public static final int TAG_DOCUMENTS                       = 6;
+
     /**
      * obj is SAVExtensionRecord, see subtag.
      */
@@ -117,6 +123,10 @@ public class SAVSection {
             
             case TAG_VARIABLE_LIST:
                 expect(obj, Vector.class);
+                break;
+            
+            case TAG_DOCUMENTS:
+                expect(obj, List.class);
                 break;
             
             case TAG_EXTENSION_RECORD:
