@@ -49,7 +49,12 @@ import java.util.Vector;
  *
  */
 public class PORFile {
+
+    // CONSTANTS
+    //===========
     
+    public static final int DEFAULT_PRECISION = 11;
+   
     // MEMBER VARIABLES
     //==================
     
@@ -178,6 +183,19 @@ public class PORFile {
         // Data matrix
         data = null;
     } // ctor
+    
+    public static PORFile createNew() {
+        PORFile por = new PORFile();
+        
+        // Use default precision
+        por.precision = DEFAULT_PRECISION;
+        
+        // TODO: use a default software
+        
+        
+        
+        return por;
+    }
     
     // OTHER METHODS
     //===============

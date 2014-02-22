@@ -717,7 +717,7 @@ public class PORWriter
         if (pvar.name.length() == 0) {
             throw new IllegalArgumentException("Variable unnamed");
         }
-        if (pvar.name.length() >= PORConstants.MAX_VARNAME_LENGTH) {
+        if (pvar.name.length() > PORConstants.MAX_VARNAME_LENGTH) {
             throw new IllegalArgumentException(String.format(
                 "Variable name too long: %s (only 8 chars allowed)",
                 pvar.name.length()));

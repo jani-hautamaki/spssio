@@ -68,5 +68,26 @@ public class PORHeader {
         time = null;
     } // ctor
     
+    public static PORHeader createNew() {
+        PORHeader header = new PORHeader();
+        
+        // TODO: default splashes
+        // header.splash = 
+        
+        // TODO: default charset
+        
+        header.signature = PORConstants.FORMAT_SIGNATURE;
+        header.version = PORConstants.FORMAT_VERSION;
+        
+        // TODO: use current date/time
+        //header.date = null;
+        //header.time = null;
+        
+        return header;
+    }
+    
+    // OTHER METHODS
+    //===============
+    
 } // class PORHeader
 

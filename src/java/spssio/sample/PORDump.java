@@ -89,7 +89,7 @@ public class PORDump {
             // Dump the stack trace if debugging enabled
             ex.printStackTrace();
             
-            System.out.printf("Attempting to display the por file anyway\n");
+            //System.out.printf("Attempting to display the por file anyway\n");
             //displayPORFile(savReader.getLatestSAVFile(), savReader);
             
             System.exit(EXIT_FAILURE);
@@ -111,7 +111,7 @@ public class PORDump {
         System.out.printf("Various:\n");
         displayVarious(por);
         
-        //displayVariables(por.variables);
+        displayVariables(por.variables);
         
         //displayValueLabelMaps(por.labels);
         
@@ -143,11 +143,11 @@ public class PORDump {
         // tag 1
         System.out.printf("  Software:                  %s\n", maybeNull(por.software));
         // tag 2
-        System.out.printf("  Author:                    %s\n", maybeNull(por.software));
+        System.out.printf("  Author:                    %s\n", maybeNull(por.author));
         // tag 3
         System.out.printf("  Title:                     %s\n", maybeNull(por.title));
         // tag 4
-        System.out.printf("  Number of variableS:       %d\n", por.variableCount);
+        System.out.printf("  Number of variables:       %d\n", por.variableCount);
         // tag 5
         System.out.printf("  Precision:                 %d\n", por.precision);
         // tag 6

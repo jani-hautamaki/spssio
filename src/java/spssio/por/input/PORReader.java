@@ -768,6 +768,8 @@ public class PORReader
             error_io("BufferedInputStream.read()", ex);
         } // try-catch
         
+        array.flush();
+        
         por.sections.add(PORSection.newDataMatrix(por.data));
     } // parse_data_matrix()
 
