@@ -115,6 +115,19 @@ public class SequentialByteArray
         elem = 0;
     } // allocate
     
+    /**
+     * Limits the current size
+     */
+    public void limitSize(int size) {
+        if (size >= this.size) {
+            throw new IllegalArgumentException();
+        }
+        
+        this.size = size;
+        
+        // TODO: Does not saturate the offset
+    }
+    
     public void reallocate(int size_bytes_new) {
         int size_new = size_bytes_new;
         int elems_new = (size_new + BYTES_IN_ELEMENT - 1) / BYTES_IN_ELEMENT;

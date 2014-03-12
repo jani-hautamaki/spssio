@@ -207,12 +207,12 @@ public class PORFile {
     // HEADER
     //========
     
-    public int[] getSplash() {
+    public byte[] getSplash() {
         return header.splash;
     }
     
-    public int[] getCharset() {
-        return header.charset;
+    public byte[] getTranslation() {
+        return header.translation;
     }
     
     

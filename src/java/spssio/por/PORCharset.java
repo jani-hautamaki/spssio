@@ -100,7 +100,23 @@ public class PORCharset
      * Writing a portable file can be done in the same manner.<p>
      *
      */
-    //public static final int DEFAULT_TRANSLATION
+    
+    /**
+     * "translation array index"-to-"Java char" table.<p>
+     *
+     * This table has the following format:<br>
+     * Element at {@code (k*2+0)}: the translation table index number,<br>
+     * Element at {@code (k*2+1)}: the corresponding Java char.<br><p>
+     *
+     * The value of -1 indicates that the translation table index number
+     * is re-interpreted as Java char directly.<p>
+     *
+     * If a translation table index number is not present,
+     * the situation is interpreted as there would be an entry
+     * for it with the value of -1. Put concisely, if the translation table 
+     * index is missing, the index number is re-intepreted as Java char directly.
+     *
+     */
     public static final int[] DEFAULT_MAPPING = {
         // 0-60    Control characters. Not important enough to describe in full here. 
         // 61-63   Reserved. 
@@ -282,45 +298,170 @@ public class PORCharset
     // Some important constants
     //==========================
     
-    /** Full stop ('.'), symbol 127. */
+    /** Full stop ('.'), at index 127. */
     public static final int FULL_STOP                            = 127;
     
-    /** Plus sign ('+'), symbol 130. */
+    /** Plus sign ('+'), at index 130. */
     public static final int PLUS_SIGN                            = 130;
     
-    /** Minus sign ('-'), symbol 141. */
+    /** Minus sign ('-'), at index 141. */
     public static final int MINUS_SIGN                           = 141;
     
-    /** Slash ('/'), symbol 142. */
+    /** Slash ('/'), at index 142. */
     public static final int SLASH                                = 142;
     
-    /** Asterisk ('*'), symbol 137. */
+    /** Asterisk ('*'), at index 137. */
     public static final int ASTERISK                             = 137;
     
-    /** Space bar, symbol 126. */
+    /** Space bar, at index 126. */
     public static final int SPACE                                = 126;
     
-    /** Digit zero ('0'), symbol 64. */
+    /** Digit zero ('0'), at index 64. */
     public static final int DIGIT_0                              = 64;
     
-    /** Uppercase letter 'A', symbol 74. */
+    /** Uppercase letter 'A', at index 74. */
     public static final int LETTER_UPPERCASE_A                   = 74;
     
-    /** Uppercase letter 'Z', symbol 99. */
+    /** Uppercase letter 'Z', at index 99. */
     public static final int LETTER_UPPERCASE_Z                   = 99;
 
     // CLASS VARIABLES
     //=================
 
+    
+    
     private static int[] g_default_charset = null;
     private static int[] g_identity_table = null;
-
+    
+    
     // CONSTRUCTORS
     //==============
     
     /** Constructor intentionally disabled. */
     private PORCharset() {
     } // ctor
+
+    
+    // CLASS METHODS
+    //===============
+
+    public static int indexToChar(int index) {
+        // For convenience
+        final int[] table = DEFAULT_MAPPING;
+        
+        int c = -1;
+        
+        // TODO: The following loop could improved with a bisect search.
+        
+        // Number of entries (each entry occupies two array elements)
+        int entries = table.length / 2;
+        
+        for (int i = 0; i < entries; i++) {
+            if (table[(i*2)+0] == index) {
+                // The table entry number "i" contains
+                // specifies the character for character index "index".
+                // Get the Java char value
+                c = table[(i*2)+1];
+                break; // Stop search immediately
+            }
+        }
+        
+        if (c == -1) {
+            // Re-interpret the index as a char
+            c = index;
+        }
+        
+        return c;
+    }
+    
+    public static void assignDefaultTranslation(byte[] translation) {
+        System.arraycopy(
+            PORConstants.DEFAULT_TRANSLATION, 0, 
+            translation, 0,
+            PORConstants.TRANSLATION_LENGTH
+        );
+    }
+    
+    /**
+     * Computes an identity table (can be used either as
+     * a decoding or an encoding table).
+     */
+    public static void computeIdentityTable(int[] table) {
+        if (table == null) {
+            throw new IllegalArgumentException();
+        }
+        if (table.length != 256) {
+            throw new RuntimeException("table.length != 256");
+        }
+        
+        for (int i = 0; i < table.length; i++) {
+            table[i] = i;
+        }
+    }
+    
+    /**
+     * Computes a decoding table for the given translation
+     *
+     */
+    public static void computeDecodingTable(
+        int[] decodingTable, 
+        byte[] translation
+    ) {
+        if ((decodingTable == null) || (translation == null)) {
+            throw new IllegalArgumentException();
+        }
+        
+        if (translation.length != 256) {
+            throw new RuntimeException("translation.length != 256");
+        }
+        if (decodingTable.length != 256) {
+            throw new RuntimeException("decodingTable.length != 256");
+        }
+        
+        // Clear decoding table
+        for (int inByte = 0; inByte < decodingTable.length; inByte++) {
+            decodingTable[inByte] = -1;
+        }
+        
+        // In the translation table the unused entries are 
+        // marked with zero. Therefore, the byte value used to 
+        // indiciate zero must be picked up.
+        int zero = translation[DIGIT_0];
+        
+        // The entry for zero in the decoding table gets skipped
+        // in the following loop. Hence, it must be set manually.
+        decodingTable[zero] = '0';
+        
+        for (int index = 0; index < translation.length; index++) {
+            // The input byte is character index
+            int inByte = ((int) translation[index]) & 0xff;
+            // The output byte is the character in Java's internal encoding.
+            int outByte = indexToChar(index);
+            
+            // Zero as the input indicates that the character index
+            // should be decoded using the default value.
+            if (inByte == zero) {
+                continue;
+            }
+            
+            // Make "inByte" to be decoded as "outByte"
+            decodingTable[inByte] = outByte;
+            
+        } // for
+        
+        
+        // Unspecified entries assume their default output value
+        for (int inByte = 0; inByte < decodingTable.length; inByte++) {
+            int c = decodingTable[inByte];
+            if (c == -1) {
+                // Make it an identity translation
+                int outByte = inByte;
+                decodingTable[inByte] = outByte;
+            }
+        }
+    }
+    
+
 
     
     public static final int[] getDefaultCharset() {

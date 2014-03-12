@@ -26,12 +26,12 @@ public class PORHeader {
     /** 
      * 5x 40-byte splash string.
      */
-    public int[] splash;
+    public byte[] splash;
     
     /**
-     * 256-byte character set translation table.
+     * 256-byte character-to-byte translation table.
      */
-    public int[] charset;
+    public byte[] translation;
     
     /**
      * 8-byte signature string, {@code "SPSSPORT"}.
@@ -60,10 +60,15 @@ public class PORHeader {
     //==============
     
     public PORHeader() {
-        splash = null;
-        charset = null;
-        signature = null;
+        
+        splash = new byte[PORConstants.SPLASH_LENGTH];
+        translation = new byte[PORConstants.TRANSLATION_LENGTH];
+        
+        //signature = new byte[PORConstants.SIGNATURE_LENGTH];
+        signature = null; // This is a string
+        
         version = 0;
+        
         date = null;
         time = null;
     } // ctor

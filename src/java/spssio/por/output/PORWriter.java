@@ -449,7 +449,7 @@ public class PORWriter
         
         outputHeader(
             null,                 // TODO
-            header.charset,
+            header.translation,
             header.signature,
             header.version,
             header.date,
@@ -460,7 +460,7 @@ public class PORWriter
 
     public void outputHeader(
         String[] splash,
-        int[] charset,
+        byte[] translation,
         String signature,
         int version,
         String date,
@@ -474,7 +474,7 @@ public class PORWriter
         outputSplashStrings(splash);
         
         // Write the 256-byte character set
-        outputCharset(charset);
+        outputTranslation(translation);
         
         // TODO: Set encoding
         
@@ -515,26 +515,26 @@ public class PORWriter
      * NOTE: The method sets the encoding table accordingly.
      *
      */
-    public void outputCharset(int[] charset) 
+    public void outputTranslation(byte[] translation) 
         throws IOException
     {
         // If unspecified, use default charset
-        if (charset == null) {
-            charset = PORCharset.getDefaultCharset();
+        // TODO: Don't do this...
+        if (translation == null) {
+            PORCharset.assignDefaultTranslation(translation);
         }
         
         // Verify the length of the charset
-        if (charset.length != 256) {
-            throw new IllegalArgumentException(String.format(
-                "POR charset has incorrect length: %d (expected %d)",
-                charset.length, 256));
+        if (translation.length != 256) {
+            throw new IllegalArgumentException();
         }
         
         // Pick the value of zero for unmapped entries
-        int zero = charset[PORCharset.DIGIT_0];
+        byte zero = translation[PORCharset.DIGIT_0];
         
         for (int i = 0; i < 256; i++) {
-            int c = charset[i];
+            
+            int c = ((int) (translation[i])) & 0xff;
             
             if (c == -1) {
                 // If the char is unmapped, output zero.
@@ -547,7 +547,7 @@ public class PORWriter
         } // for: each char
         
         // Set encoding table.
-        setEncoding(charset);
+        //setEncoding(charset);
     }
     
     public void outputFormatSignature(String signature) 
