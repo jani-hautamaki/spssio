@@ -2,7 +2,7 @@
 //                 spssio - http://code.google.com/p/spssio/                 //
 //***************************************************************************//
 //
-//      Java classes for reading and writing 
+//      Java classes for reading and writing
 //      SPSS/PSPP Portable and System files
 //
 //      Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
@@ -14,6 +14,7 @@
 //      http://www.gnu.org/licenses/gpl-3.0.html
 //
 //********************************{end:header}*******************************//
+
 
 package spssio.por.input;
 
