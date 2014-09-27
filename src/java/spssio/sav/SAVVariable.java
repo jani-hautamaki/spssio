@@ -27,7 +27,7 @@ import spssio.sav.SAVValue;
  *
  *      rec_type (implied)
  *
- *      width (int, 0 for numeric, 1-255 for a short string variable or 
+ *      width (int, 0 for numeric, 1-255 for a short string variable or
  *          for a first part of a long string variable this is set to
  *          the width of the numeric variable. Subsequent parts are set to -1)
  *
@@ -36,23 +36,23 @@ import spssio.sav.SAVValue;
  *      n_missing_values (implied)
  *
  *      print fmt (int32)
- *          The least-significant byte of the int32 represents the number of 
- *          decimal places, and the next two bytes in order of increasing 
- *          significance represent field width and format type, respectively. 
- *          The most-significant byte is not used and should be set to zero. 
+ *          The least-significant byte of the int32 represents the number of
+ *          decimal places, and the next two bytes in order of increasing
+ *          significance represent field width and format type, respectively.
+ *          The most-significant byte is not used and should be set to zero.
  *
  *      write fmt (int32)
  *          See above
  *
  *      name (char[8], padded with spaces)
  *          The variable name must begin with a capital letter or the at-sign (`@').
- *          Subsequent characters may also be digits, octothorpes (`#'), 
- *          dollar signs (`$'), underscores (`_'), or full stops (`.'). 
+ *          Subsequent characters may also be digits, octothorpes (`#'),
+ *          dollar signs (`$'), underscores (`_'), or full stops (`.').
  *
  *      label_len (int32) (implied, between 0-120)
- *          This field is present only if has_var_label is set to 1. 
- *          It is set to the length, in characters, of the variable label, 
- *          which must be a number between 0 and 120. 
+ *          This field is present only if has_var_label is set to 1.
+ *          It is set to the length, in characters, of the variable label,
+ *          which must be a number between 0 and 120.
  *
  *      label (varchar, aligned to nearest 4 bytes, only first label_len used)
  *
@@ -61,19 +61,19 @@ import spssio.sav.SAVValue;
  * Related data elements:
  *
  *      Value Labels
- * 
+ *
  *      Display Parameters
  *          measure/scale (int32: nominal, ordinal, continuous)
  *          width (int32: column width in chars)
  *          alignment (int32, left, right centre)
- *  
+ *
  *      Long name
  *          "The value field is at most 64 bytes long"
- * 
- * "There must be one variable record for each numeric variable and each string 
- *  variable with width 8 bytes or less. String variables wider than 8 bytes have 
- *  one variable record for each 8 bytes, rounding up. The first variable record 
- *  for a long string specifies the variable's correct dictionary information. 
+ *
+ * "There must be one variable record for each numeric variable and each string
+ *  variable with width 8 bytes or less. String variables wider than 8 bytes have
+ *  one variable record for each 8 bytes, rounding up. The first variable record
+ *  for a long string specifies the variable's correct dictionary information.
  *  Subsequent variable records for a long string are filled with dummy information:
  *  a type of -1, no variable label or missing values, print and write formats that
  *  are ignored, and an empty string as name. "
@@ -113,27 +113,27 @@ public class SAVVariable {
     /**
      * Variable name, max 8 chars.
      * According to PSPP:
-     * The variable name must begin with a capital letter or 
-     * the at-sign (`@'). Subsequent characters may also be digits, 
-     * octothorpes (`#'), dollar signs (`$'), underscores (`_'), 
-     * or full stops (`.'). The variable name is padded on 
-     * the right with spaces. 
+     * The variable name must begin with a capital letter or
+     * the at-sign (`@'). Subsequent characters may also be digits,
+     * octothorpes (`#'), dollar signs (`$'), underscores (`_'),
+     * or full stops (`.'). The variable name is padded on
+     * the right with spaces.
      */
     public String name;
 
     //=================================
-    // The following fiels are present 
+    // The following fiels are present
     // only if hasLabel is non-zero.
     //=================================
 
     /**
-     * Field is present only if hasLabel is non-zero 
+     * Field is present only if hasLabel is non-zero
      * The label has alignment (4, 0) in the file.
      */
     public String label;
 
     /**
-     * Field is present only if numberofMissingValues is non-zero 
+     * Field is present only if numberofMissingValues is non-zero
      */
     public double[] missingValues;
 

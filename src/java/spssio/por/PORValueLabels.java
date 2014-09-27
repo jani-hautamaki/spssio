@@ -26,12 +26,12 @@ import java.util.Vector;
 /**
  * Tag code 'D', value label record. In the Portable file these records have
  * the following structure:</p>
- * 
+ *
  * <ul>
  *    <li>integer {@code var_count}: variable count.
  *    <li>string {@code vars[]}: list of variables ({@code var_count} elements).
  *    <li>integer {@code labl_count}: label count.
- *    <li>keyvalue {@code mapping[]}: list of (value, label) pairs 
+ *    <li>keyvalue {@code mapping[]}: list of (value, label) pairs
  *        ({@code labl_count} elements). Value is either numeric or string,
  *        and label is a string.
  * </ul>

@@ -27,12 +27,12 @@ import spssio.util.NumberSystem;
 
 /**
  * Parser for Portable file data matrix record.<p>
- * 
+ *
  * TODO:
  *  - Renaming of the MatrixVisitor into MatrixHandler
- *  - The called methods; include "onInvalidNumber" to 
+ *  - The called methods; include "onInvalidNumber" to
  *    indicate invalid numeric value.
- * 
+ *
  */
 public class PORMatrixParser
 {
@@ -63,12 +63,12 @@ public class PORMatrixParser
     //===============
 
     /**
-     * Current state 
+     * Current state
      */
     private int state;
 
-    /** 
-     * Null-transition flag 
+    /**
+     * Null-transition flag
      */
     private boolean eps;
 
@@ -76,30 +76,30 @@ public class PORMatrixParser
     // SPSS/PSPP cell-level
     //======================
 
-    /** 
+    /**
      * Column data type configuration indicating which columns
      * are numbers and which are strings.
      */
     private int[] xtype;
 
     /**
-     * Current matrix column 
+     * Current matrix column
      */
     private int xcur;
 
     /**
-     * Current matrix row 
+     * Current matrix row
      */
     private int ycur;
 
-    /** 
+    /**
      * Number of columns in the matrix.
-     * This is set to zero initially, and discovered during 
+     * This is set to zero initially, and discovered during
      * the first pass, which is the parsing.
      */
     private int xdim;
 
-    /** 
+    /**
      * Number of rows in the matrix.
      * This is set to zero initially, and discovered during
      * the first pass, which is the parsing.
@@ -117,8 +117,8 @@ public class PORMatrixParser
     // PARSING
     //=========
 
-    /** 
-     * Starting text column. This is the text column value 
+    /**
+     * Starting text column. This is the text column value
      * of the first byte. The knowledge of the starting text column
      * is required in the case the first row is not full-lengthed.
      */
@@ -133,44 +133,44 @@ public class PORMatrixParser
     private int col;
 
     /**
-     * Row width 
+     * Row width
      */
     private int row_length;
 
     /**
-     * NumberParser is used internally to convert the ASCII base-30 
-     * numbers into binary integers and floating points. 
+     * NumberParser is used internally to convert the ASCII base-30
+     * numbers into binary integers and floating points.
      */
     private NumberParser numberParser;
 
     /**
-     * If parsing a string cell, this is the number of bytes left 
+     * If parsing a string cell, this is the number of bytes left
      */
     private int stringleft;
 
-    /** 
-     * Verbatim copy of the current data cell's contents. 
+    /**
+     * Verbatim copy of the current data cell's contents.
      */
     private byte[] vbuffer;
 
     /**
-     * Valid length of the vbuffer array 
+     * Valid length of the vbuffer array
      */
     private int vhead;
 
-    /** 
-     * Base index for vbuffer[] array. Used for various purposes. 
+    /**
+     * Base index for vbuffer[] array. Used for various purposes.
      */
     private int vbase;
 
     // VISITOR
     //=========
 
-    /** 
+    /**
      * Reference to the Visitor object.
      *
-     * This member variable can be assumed to have a valid value only 
-     * during the activation of 
+     * This member variable can be assumed to have a valid value only
+     * during the activation of
      * {@link spssio.por.PORMatrix#accept(PORMatrixVisitor)}.
      */
     private PORMatrixVisitor visitor;
@@ -367,7 +367,7 @@ public class PORMatrixParser
 
             // Reset column number
             col = 0;
-        } 
+        }
         else if (c == '\r') {
             // CARRIAGE RETURN.
             // This is just simply ignored
@@ -443,7 +443,7 @@ public class PORMatrixParser
                     // However, this time there's space left for sure
                     vbuffer[vhead++] = (byte) c;
 
-                    // Regardless of the cell type, 
+                    // Regardless of the cell type,
                     // it should begin with a numeric.
                     state = S_NUMERIC_EMPTY;
                     eps = true;
@@ -461,7 +461,7 @@ public class PORMatrixParser
                         // This event should be signaled somehow.
                     }
                     else if (c == PORConstants.SYSMISS_MARKER) { // '*'
-                        // System missing value. 
+                        // System missing value.
                         // This is allowed only for NUMERIC data type.
                         if (xtype[xcur] != PORValue.TYPE_NUMERIC) {
                             // ERROR. Unallowed value.
@@ -552,7 +552,7 @@ public class PORMatrixParser
                     // The current char is '/'. Mark the next position
                     // (which is actually current vhead) as vbase.
 
-                    // vhead points now to the array location where 
+                    // vhead points now to the array location where
                     // the first actual content character will come.
                     // The position is recorded as the base offset
                     vbase = vhead;

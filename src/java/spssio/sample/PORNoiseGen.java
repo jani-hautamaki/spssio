@@ -101,7 +101,7 @@ public class PORNoiseGen {
             }
             else if (carg.startsWith("-")) {
                 error("Unrecognized option: %s", carg);
-            } 
+            }
             else {
                 // Not an option; assumed to be the output file.
                 if (opt.outputFilename != null) {
@@ -146,14 +146,14 @@ public class PORNoiseGen {
         throw new RuntimeException("Impossible");
     } // parseIntArg()
 
-    /** 
-     * Serialize Portable file to {@code OutputStream} 
+    /**
+     * Serialize Portable file to {@code OutputStream}
      * according to {@code Options}.
      */
     public static void outputPortable(
         OutputStream os,
         Options opt
-    ) 
+    )
         throws IOException
     {
 
@@ -278,8 +278,8 @@ public class PORNoiseGen {
                 // Draw a number from the normal distribution
                 randval = randn(); // N(1,0)
                 sysmiss = false;
-                if ((randval < -sysmiss_limit) 
-                    || (randval > sysmiss_limit)) 
+                if ((randval < -sysmiss_limit)
+                    || (randval > sysmiss_limit))
                 {
                     // Mark missing
                     sysmiss = true;
@@ -308,7 +308,7 @@ public class PORNoiseGen {
     public static void outputPortable2(
         OutputStream os,
         Options opt
-    ) 
+    )
         throws IOException
     {
         // Through PORFile object
@@ -406,9 +406,9 @@ public class PORNoiseGen {
         write variable records
             for x=0; x < cols
                 outputVariableRecord("x1", 0, 0, 0, "label")
-        write data; 
+        write data;
             for y=0; y < rows;
-                for x=0; x < cols; 
+                for x=0; x < cols;
                     outputNumeric(rand())
         outputEndOfData()
         */
@@ -419,7 +419,7 @@ public class PORNoiseGen {
      * A convenience method for throwing exceptions
      */
     private static void error(
-        String fmt, 
+        String fmt,
         Object... args
     ) {
         throw new RuntimeException(String.format(fmt, args));
@@ -430,7 +430,7 @@ public class PORNoiseGen {
      */
     private static void error(
         Exception ex,
-        String fmt, 
+        String fmt,
         Object... args
     ) {
         String msg = ex.getMessage();
@@ -481,7 +481,7 @@ public class PORNoiseGen {
 
 
     // Memory bean
-    private static MemoryMXBean 
+    private static MemoryMXBean
         mem_bean = ManagementFactory.getMemoryMXBean();
 
     protected static void printStatusHeaders() {
@@ -495,8 +495,8 @@ public class PORNoiseGen {
 
         MemoryUsage usage = mem_bean.getHeapMemoryUsage();
 
-        //System.out.printf("%3d%%                       %4d      %4d      %4d\n", 
-        System.out.printf(" %3d%%        %6d        %4d MB   %4d MB   %4d MB\n", 
+        //System.out.printf("%3d%%                       %4d      %4d      %4d\n",
+        System.out.printf(" %3d%%        %6d        %4d MB   %4d MB   %4d MB\n",
             (y*100)/sizey,
             y,
             usage.getUsed()         / (1024*1024),

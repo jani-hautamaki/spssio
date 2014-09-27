@@ -277,7 +277,7 @@ public class NumberSystemTool {
         }
         else if (args.length > 1) {
             error("Syntax error");
-        } 
+        }
         else {
             // Otherwise assume it is a number
             parseNumber(carg);
@@ -377,7 +377,7 @@ public class NumberSystemTool {
 
         output("dec:       %s   (Double.toString)\n", Double.toString(d));
         output("hex:       %16s   (doubleToLongBits)\n", Long.toHexString(bits));
-        output("exp/mant: %-3s %13s\n", 
+        output("exp/mant: %-3s %13s\n",
             Long.toHexString(exponent), Long.toHexString(mantissa));
 
         exponent = exponent - 1023;      // unbiasing
@@ -408,7 +408,7 @@ public class NumberSystemTool {
 
         output("dec:       %s   (Float.toString)\n", Float.toString(f));
         output("hex:       %8s  (floatToIntBits)\n", Integer.toHexString(bits));
-        output("exp/mant: %-2s %6s\n", 
+        output("exp/mant: %-2s %6s\n",
             Integer.toHexString(exponent), Integer.toHexString(mantissa));
 
         exponent = exponent - 127; // Unbiasing
@@ -563,14 +563,14 @@ public class NumberSystemTool {
             // in hexadecimal and in decimal.
             if (outputDoubleBits == false) {
                 if (inputMode == INPUT_JAVA_FLOAT) {
-                    output("dec: %s   (Float.toString)\n", 
+                    output("dec: %s   (Float.toString)\n",
                         Float.toString(valueFloat)
                     );
                     output("raw: %s   (floatToRawIntBits)\n",
                         Integer.toHexString(Float.floatToRawIntBits(valueFloat))
                     );
                 } else {
-                    output("dec: %s   (Double.toString)\n", 
+                    output("dec: %s   (Double.toString)\n",
                         Double.toString(value)
                     );
                     output("raw: %s   (doubleToRawLongBits)\n",
@@ -583,7 +583,7 @@ public class NumberSystemTool {
                 } else {
                     printDoubleBits(value);
                 }
-            } 
+            }
 
             String result = null;
 
@@ -606,7 +606,7 @@ public class NumberSystemTool {
         }
         catch(NumberFormatException ex) {
             System.out.printf("ERROR: NumberFormatException: %s\n, ex.getMessage()");
-        } 
+        }
         catch(Exception ex) {
             System.out.printf("Parse failed due to exception\n");
             ex.printStackTrace();
@@ -652,7 +652,7 @@ public class NumberSystemTool {
     private void doSetInputMode(String arg) {
         if (arg.equals("tool")) {
             inputMode = INPUT_NUMPARSER;
-        } 
+        }
         else if (arg.equals("java")) {
             inputMode = INPUT_JAVA_DOUBLE;
         }
@@ -674,7 +674,7 @@ public class NumberSystemTool {
     private void doSetOutputMode(String arg) {
         if (arg.equals("tool")) {
             outputMode = OUTPUT_NUMFORMATTER;
-        } 
+        }
         else if (arg.equals("java")) {
             outputMode = OUTPUT_JAVA_DOUBLE;
         }
@@ -725,7 +725,7 @@ public class NumberSystemTool {
                 sysout.setNumberSystem(sysout.getBase(), args[2]);
                 System.out.printf("Output digits set\n");
             } else {
-                error("Expected either \"in\" or \"out\", but found: %s", 
+                error("Expected either \"in\" or \"out\", but found: %s",
                     args[1]);
             }
         } else {
@@ -772,7 +772,7 @@ public class NumberSystemTool {
             inputMathContextName = context.a;
             outputMathContextName = context.a;
             System.out.printf("Input and output MathContext set\n");
-        } 
+        }
         else if (target.equals("in")) {
             parser.setMathContext(context.b);
             inputMathContextName = context.a;
@@ -822,7 +822,7 @@ public class NumberSystemTool {
                 nibble = (c - 'A') + 10;
             } else {
                 throw new RuntimeException(String.format(
-                    "Position %d contains an invalid hex char: \'%c\'", 
+                    "Position %d contains an invalid hex char: \'%c\'",
                     i+1, c));
             } // if-else
 
@@ -857,12 +857,12 @@ public class NumberSystemTool {
             case INPUT_RESHAPE:
                 if (outputMathContextName != null) {
                     rval = String.format("reshape b=%d to=%d m=%s",
-                        sysout.getBase(), 
+                        sysout.getBase(),
                         formatter.getPrecision(),
                         outputMathContextName);
                 } else {
                     rval = String.format("reshape b=%d to=%d m=double",
-                        sysout.getBase(), 
+                        sysout.getBase(),
                         formatter.getPrecision());
                 } // if-else: math context set
             default:
@@ -914,9 +914,9 @@ public class NumberSystemTool {
     } // class Tuple
 
     private Tuple<String, MathContext> parseMathContext(
-        String arg 
+        String arg
     ) {
-        Tuple<String, MathContext> rval 
+        Tuple<String, MathContext> rval
             = new Tuple<String, MathContext>(null, null);
 
         if (arg.equals("128")) {
@@ -946,7 +946,7 @@ public class NumberSystemTool {
         String arg1,
         String arg2
     ) {
-        Tuple<String, MathContext> rval 
+        Tuple<String, MathContext> rval
             = new Tuple<String, MathContext>(null, null);
 
         int digits = 0;
@@ -1031,7 +1031,7 @@ public class NumberSystemTool {
 
     // min_mantissa = 1.5
     // min_exponent = -219                == 79
-    // compare to   = 
+    // compare to   =
 
     // Very close to the Double.MIN_VALUE
     //      "1.F-79"                      == 1.0e-323 (double)
@@ -1061,7 +1061,7 @@ public class NumberSystemTool {
      * "27 23 f7 0c 92 52 93 3f" results in "GTECSL0R001-C"
      * "26 23 f7 0c 92 52 93 3f" results in "GTECSL0QTTT-C"
      */
-    /* 
+    /*
      *                    0.623560537            => IL6411E5L01-B
      *  .IL6411E5L01    = 0.623560536999999900   => IL6411E5KTT-B
      * 1.FBOP0S65C      = 1.51314201400000000    => 1FBOP0S65C-9

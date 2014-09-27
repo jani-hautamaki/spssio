@@ -222,7 +222,7 @@ public class SAVMatrixParser {
 
 
     // Expects a 8-byte array each time.
-    // 
+    //
     public int consume(byte[] data) {
 
         if (data == null) {
@@ -279,7 +279,7 @@ public class SAVMatrixParser {
             // String variable, non-virtual
             if (nextWidth >= 0) {
                 // Short string variable
-                // These cannot be sent as a pass-through, 
+                // These cannot be sent as a pass-through,
                 // because they need unpadding.
                 // consumeStringData()
 
@@ -302,10 +302,10 @@ public class SAVMatrixParser {
                 consumeStringBuffer();
 
             } else { // nextVar.width >= 0
-                // Long string variable MIDDLE 
+                // Long string variable MIDDLE
                 // Continue accumulation
             }
-        } // if-else: curVar.width 
+        } // if-else: curVar.width
 
         // If at the last column, emit row end
         if (nextIndex == 0) {
@@ -359,7 +359,7 @@ public class SAVMatrixParser {
         // Get the buffer contents as a String
         String value = deserializeStringBuffer();
         // Consume the buffer
-        stringBytes = 0; 
+        stringBytes = 0;
         // Emit the value
         emitString(value);
     }
@@ -387,7 +387,7 @@ public class SAVMatrixParser {
         if (dataLength > 0) {
             // Copy
             System.arraycopy(
-                data, 0, 
+                data, 0,
                 stringBuffer, stringBytes, data.length);
             // Move write head
             stringBytes += data.length;

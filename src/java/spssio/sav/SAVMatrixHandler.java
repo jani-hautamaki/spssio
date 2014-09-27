@@ -18,7 +18,7 @@
 
 package spssio.sav;
 
-/* 
+/*
  * Here is a list of all names considered:
  *
  *     SAVMatrixDataListener
@@ -29,9 +29,9 @@ package spssio.sav;
  *     SAVMatrixReceiver
  *     SAVMatrixVisitor
  *
- * Visitor was a good candidate. However, one of the primary 
- * characteristics of the visitor pattern the double dispatching, 
- * which is not found in this situation. 
+ * Visitor was a good candidate. However, one of the primary
+ * characteristics of the visitor pattern the double dispatching,
+ * which is not found in this situation.
  * Hence, the visitor suffix was dismissed.
  *
  * Receiver and DataReceiver were both also good candidates.
@@ -56,19 +56,19 @@ package spssio.sav;
  *     PORMatrix.emit(receiver)
  *
  * The verb "send" was dismissed, because it is strongly associated
- * with the idea that the object which is being sent will no longer 
+ * with the idea that the object which is being sent will no longer
  * be owned by the sender once it has been sent.
  *
- * The verb "accept" was dismissed, because it can be easily 
- * thought of as a passive action: either something happens 
+ * The verb "accept" was dismissed, because it can be easily
+ * thought of as a passive action: either something happens
  * or it is not allowed to happen. This is misleading, since
  * the method actually will do a lot of work, and the name should
  * reflect this fact. Hence, names like "executeAccept()" or something
- * like that 
+ * like that
  *
 
-// (transitive, computing) 
-// To visit all parts of; to explore thoroughly; 
+// (transitive, computing)
+// To visit all parts of; to explore thoroughly;
 // as, to traverse all nodes in a network.
 
 // send on huono sana, koska l‰hett‰miseen liittyy k‰sitys siit‰,
@@ -76,7 +76,7 @@ ett‰ jotain fyysist‰ vaihtaa paikkaa l‰hett‰j‰lt‰ vastaanottajalle,
 mink‰ j‰lkeen l‰hett‰j‰lle ei en‰‰ ole l‰hetetty‰ asiaa.
 
 // visit on parempi, koska siihen sis‰ltyy ymm‰rys, ett‰ paikat,
-joissa vieraillaan, s‰ilyv‰t. 
+joissa vieraillaan, s‰ilyv‰t.
 
 // visit on verbin‰ parempi kuin accept, koska visit ilmaisee enemm‰n
 // aktiivista toimintaa (vierailua) kuin vastaanottaminen, jossa
@@ -98,7 +98,7 @@ The term "Receiver", however, implies a passive recipient,
 which shouldn't be commanded to receive, since "receiving"
 implies that someone has WILLINGLY sent the data.
 
-According to 
+According to
 
     http://cafeconleche.org/books/xmljava/chapters/ch06s03.html
 
@@ -122,11 +122,11 @@ According to
 
     http://www.saxproject.org/event.html
 
-"An event-based API, on the other hand, reports parsing events 
- (such as the start and end of elements) directly to the application 
- through callbacks, and does not usually build an internal tree. 
- The application implements handlers to deal with the different events, 
- much like handling events in a graphical user interface. 
+"An event-based API, on the other hand, reports parsing events
+ (such as the start and end of elements) directly to the application
+ through callbacks, and does not usually build an internal tree.
+ The application implements handlers to deal with the different events,
+ much like handling events in a graphical user interface.
  SAX is the best known example of such an API. "
 
 
@@ -149,17 +149,17 @@ SAVMatrixIteratee
  * Iteratee is called repeatedly to process new chunks of data.
  *
  * This is an inversion of control with respect to Iterator design pattern.
- * You may think of Iteratee pattern as a single-dispatch variant of 
+ * You may think of Iteratee pattern as a single-dispatch variant of
  * the Visitor pattern.
  *
  * However, this does not come without problems; in the Iteratee design
  * pattern has a characterstic, that the iteratee has the control over
  * iteration, ie. whether to continue or stop (with a final return value).
- * The 
+ * The
  *
  * traverse() transforms the matrix data into a stream of *EVENTS*.
  * The events are then acted on *REACTIVELY*
- * 
+ *
  * See
  * http://www.playframework.com/documentation/2.0.2/Iteratees
  * http://en.wikipedia.org/wiki/Iteratee

@@ -81,7 +81,7 @@ public class PORTool {
         public boolean value_details_flag               = false;
         public boolean section_details_flag             = false;
 
-        public Vector<String> input_filenames 
+        public Vector<String> input_filenames
             = new Vector<String>();
 
         public String data_output_filename              = null;
@@ -99,7 +99,7 @@ public class PORTool {
 
         if (s == null) {
             return VALUE_UNSET;
-        } 
+        }
         // Otherwise use a quoted value
         return String.format("\"%s\"", s);
     }
@@ -146,7 +146,7 @@ public class PORTool {
 
     public static void printPORVariable(PORVariable pvar) {
         System.out.printf("Name:                \"%s\"\n", pvar.name);
-        System.out.printf("Width:               %d %s\n", 
+        System.out.printf("Width:               %d %s\n",
             pvar.width, pvar.width==0 ? "(numeric)" : "(string)");
 
         // Label iso optional
@@ -156,7 +156,7 @@ public class PORTool {
         System.out.printf("Output format:       %d:%d.%d\n",
             pvar.printfmt.type, pvar.printfmt.width, pvar.printfmt.decimals);
 
-        System.out.printf("Input format:        %d:%d.%d\n", 
+        System.out.printf("Input format:        %d:%d.%d\n",
             pvar.writefmt.type, pvar.writefmt.width, pvar.writefmt.decimals);
 
         // Missing value specifications are optional
@@ -189,24 +189,24 @@ public class PORTool {
                 break;
             case PORMissingValue.TYPE_RANGE_OPEN_LO:
                 s = String.format(
-                    "Missing value:       Open range:   --%s", 
+                    "Missing value:       Open range:   --%s",
                     pmv.values[0].value);
                 break;
             case PORMissingValue.TYPE_RANGE_OPEN_HI:
                 s = String.format(
-                    "Missing value:       Open range:   %s--", 
+                    "Missing value:       Open range:   %s--",
                     pmv.values[0].value);
                 break;
             case PORMissingValue.TYPE_RANGE_CLOSED:
                 s = String.format(
-                    "Missing value:       Closed range: %s--%s", 
+                    "Missing value:       Closed range: %s--%s",
                     pmv.values[0].value,
                     pmv.values[1].value);
                 break;
 
             default:
                 s = String.format(
-                    "Missing value:       <unknown type>     %d", 
+                    "Missing value:       <unknown type>     %d",
                     pmv.type);
                 break;
         } // switch
@@ -377,7 +377,7 @@ public class PORTool {
         printValueLabels(por.labels);
     }
 
-    public static void writeHeader(Writer out, PORFile por) 
+    public static void writeHeader(Writer out, PORFile por)
         throws IOException
     {
         // The first line is variable names
@@ -394,10 +394,10 @@ public class PORTool {
     } // writeHeader()
 
     public static void writeMatrix(
-        Writer out, 
-        PORFile por, 
+        Writer out,
+        PORFile por,
         Options opt
-    ) 
+    )
         throws IOException
     {
         // This is done differently.
@@ -413,7 +413,7 @@ public class PORTool {
 
         // Create the visitor
         MatrixOutputter visitor = new MatrixOutputter(
-            out, 
+            out,
             opt.data_output_method,
             opt.status_ysteps
         );
@@ -437,10 +437,10 @@ public class PORTool {
     } // writeMatrix()
 
     public static void writeObjectsArray(
-        Writer out, 
-        PORFile por, 
+        Writer out,
+        PORFile por,
         Options opt
-    ) 
+    )
         throws IOException
     {
 
@@ -500,7 +500,7 @@ public class PORTool {
     }
 
     private static void parse_error(
-        String fmt, 
+        String fmt,
         Object... args
     ) {
         throw new RuntimeException(String.format(
@@ -669,7 +669,7 @@ public class PORTool {
                 System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
             } catch(Exception ex) {
                 // Parse error. Display more detailed error message
-                System.out.printf("%s:%d:%d: %s\n", 
+                System.out.printf("%s:%d:%d: %s\n",
                     fname, preader.getRow(), preader.getColumn(),
                     ex.getMessage());
 
@@ -712,17 +712,17 @@ public class PORTool {
             // If output filename has been specified
             if (opt.data_output_filename != null) {
                 // Notify user
-                System.out.printf("Writing data to file %s\n", 
+                System.out.printf("Writing data to file %s\n",
                     opt.data_output_filename);
 
                 try {
                     File fout = new File(opt.data_output_filename);
 
-                    FileOutputStream fos 
+                    FileOutputStream fos
                         = new FileOutputStream(fout);
 
                     // TODO: Parametrize the encoding
-                    OutputStreamWriter osw 
+                    OutputStreamWriter osw
                         = new OutputStreamWriter(fos, "iso-8859-15");
 
                     // TODO: Parametrize the buffer size
@@ -766,7 +766,7 @@ public class PORTool {
         /*
         A matrix with dimensions 2448 x 136
         takes 8 seconds to write out if PrintStream is used.
-        However, if BufferedWriter chain is used, 
+        However, if BufferedWriter chain is used,
         it takes only about 2 seconds.
 
         A matrix with dimensions 30780 x 719 ( bytes)
@@ -897,8 +897,8 @@ public class PORTool {
 
             MemoryUsage usage = mem_bean.getHeapMemoryUsage();
 
-            //System.out.printf("%3d%%                       %4d      %4d      %4d\n", 
-            System.out.printf(" %3d%%        %6d        %4d MB   %4d MB   %4d MB\n", 
+            //System.out.printf("%3d%%                       %4d      %4d      %4d\n",
+            System.out.printf(" %3d%%        %6d        %4d MB   %4d MB   %4d MB\n",
                 (y*100)/sizey,
                 y,
                 usage.getUsed()         / (1024*1024),
@@ -945,24 +945,24 @@ public class PORTool {
 
         @Override
         public abstract void columnSysmiss(
-            int x, 
-            byte[] data, 
+            int x,
+            byte[] data,
             int len
         );
 
         @Override
         public abstract void columnNumeric(
-            int x, 
-            byte[] data, 
-            int len, 
+            int x,
+            byte[] data,
+            int len,
             double value
         );
 
         @Override
         public abstract void columnString(
             int x,
-            byte[] data, 
-            int len, 
+            byte[] data,
+            int len,
             int offset
         );
     } // abstract class AbstractMatrixWriter
@@ -1002,8 +1002,8 @@ public class PORTool {
 
         @Override
         public void columnSysmiss(
-            int x, 
-            byte[] data, 
+            int x,
+            byte[] data,
             int len
         ) {
             if (x > 0) write(',');
@@ -1011,9 +1011,9 @@ public class PORTool {
 
         @Override
         public void columnNumeric(
-            int x, 
-            byte[] data, 
-            int len, 
+            int x,
+            byte[] data,
+            int len,
             double value
         ) {
             // separator
@@ -1058,13 +1058,13 @@ public class PORTool {
 
         @Override
         public void columnString(
-            int x, 
+            int x,
             byte[] data,
             int base,
             int len
         ) {
             // separator
-            if (x > 0) write(','); 
+            if (x > 0) write(',');
 
             // Optimize empty strings (len=1, content=ws)
             if (((len-base) == 1) && (data[base] == ' ')) {
@@ -1072,8 +1072,8 @@ public class PORTool {
                 return;
             }
 
-            if ((meth == Options.METH_STRING_FORMAT) 
-                || (meth == Options.METH_TOSTRING)) 
+            if ((meth == Options.METH_STRING_FORMAT)
+                || (meth == Options.METH_TOSTRING))
             {
 
                 //String valstr = escapeString(new String(data, 0, len));
@@ -1140,7 +1140,7 @@ public class PORTool {
 
         @Override
         public void columnSysmiss(
-            int x, 
+            int x,
             byte[] data,
             int len
         ) {
@@ -1149,9 +1149,9 @@ public class PORTool {
 
         @Override
         public void columnNumeric(
-            int x, 
-            byte[] data, 
-            int len, 
+            int x,
+            byte[] data,
+            int len,
             double value
         ) {
             // Determine whether integer or double
@@ -1165,10 +1165,10 @@ public class PORTool {
 
         @Override
         public void columnString(
-            int x, 
+            int x,
             byte[] data,
             int base,
-            int len 
+            int len
         ) {
 
             // Optimize empty strings (len=1, content=ws)
@@ -1208,7 +1208,7 @@ public class PORTool {
             capacity = sbAppend(sb, '\"', capacity);
             for (int i = 0; i < len; i++) {
                 char c = s.charAt(i);
-                if ((c == '\"') 
+                if ((c == '\"')
                     || (c == '\'')
                     || (c == '\\')
                     || (c == '\t')

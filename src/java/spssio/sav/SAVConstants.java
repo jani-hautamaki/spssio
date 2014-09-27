@@ -26,7 +26,7 @@ import spssio.util.DataEndianness;
  * {@url http://www.gnu.org/software/pspp/pspp-dev/html_node/Data-Record.html#Data-Record}
  *
  *
- * Why SAVEndianness constants are in their own file 
+ * Why SAVEndianness constants are in their own file
  * while the compression codes are not? This is illogical.
  *
  */
@@ -55,16 +55,16 @@ public class SAVConstants {
         DEFAULT_SYSMISS_VALUE_RAW                       = 0xffefffffffffffffL;
 
 
-    public static final double 
+    public static final double
         DEFAULT_HIGHEST_VALUE                           = Double.longBitsToDouble(DEFAULT_HIGHEST_VALUE_RAW);
 
-    public static final double 
+    public static final double
         DEFAULT_LOWEST_VALUE                            = Double.longBitsToDouble(DEFAULT_LOWEST_VALUE_RAW);
 
-    public static final double 
+    public static final double
         DEFAULT_SYSMISS_VALUE                           = Double.longBitsToDouble(DEFAULT_SYSMISS_VALUE_RAW);
 
-    public static final String 
+    public static final String
         DEFAULT_STRING_ENCODING                         = "ISO-8859-15";
 
     public static final int

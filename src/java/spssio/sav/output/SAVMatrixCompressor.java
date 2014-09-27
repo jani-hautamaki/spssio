@@ -30,7 +30,7 @@ import spssio.util.DataEndianness;
 /**
  *
  */
-public class SAVMatrixCompressor 
+public class SAVMatrixCompressor
     extends OutputStream
 {
 
@@ -41,7 +41,7 @@ public class SAVMatrixCompressor
 
     /**
      * Configured compression bias
-     */ 
+     */
     private double bias;
 
     /**
@@ -75,7 +75,7 @@ public class SAVMatrixCompressor
 
     /**
      * Current control byte index
-     */ 
+     */
     private int cbyteIndex;
 
     /**
@@ -156,21 +156,21 @@ public class SAVMatrixCompressor
 
 
     @Override
-    public void write(int b) 
+    public void write(int b)
         throws IOException
     {
         throw new IOException("Do not call this method");
     }
 
     @Override
-    public void write(byte[] b) 
+    public void write(byte[] b)
         throws IOException
     {
         throw new IOException("Do not call this method");
     }
 
     @Override
-    public void write(byte[] b, int off, int len) 
+    public void write(byte[] b, int off, int len)
         throws IOException
     {
         if (len != 8) {
@@ -227,7 +227,7 @@ public class SAVMatrixCompressor
         bytes += 8;
     }
 
-    private void flushBuffer() 
+    private void flushBuffer()
         throws IOException
     {
         // TODO

@@ -22,13 +22,13 @@ package spssio.sav;
  * See PSPP documentation:
  * http://www.gnu.org/software/pspp/pspp-dev/html_node/Machine-Floating_002dPoint-Info-Record.html#Machine-Floating_002dPoint-Info-Record
  *
- * The PSPP system-missing value is represented by the largest possible negative number 
- * in the floating point format (-DBL_MAX). 
- * Two other values are important for use as missing values: HIGHEST, 
+ * The PSPP system-missing value is represented by the largest possible negative number
+ * in the floating point format (-DBL_MAX).
+ * Two other values are important for use as missing values: HIGHEST,
  * represented by the largest possible positive number (DBL_MAX),
- *  and LOWEST, represented by the second-largest negative number 
- * (in IEEE 754 format, 0xffeffffffffffffe). 
- * 
+ *  and LOWEST, represented by the second-largest negative number
+ * (in IEEE 754 format, 0xffeffffffffffffe).
+ *
  */
 public class SAVExtNumberConfig
     extends SAVExtensionRecord
@@ -37,7 +37,7 @@ public class SAVExtNumberConfig
     //==================
 
     /**
-     * The system missing value. 
+     * The system missing value.
      */
     public double sysmissValue;
 
@@ -47,7 +47,7 @@ public class SAVExtNumberConfig
     public double highestValue;
 
     /**
-     * The value used for LOWEST in missing values. 
+     * The value used for LOWEST in missing values.
      */
     public double lowestValue;
 
@@ -62,8 +62,8 @@ public class SAVExtNumberConfig
     }
 
     public SAVExtNumberConfig(
-        double sysmissValue, 
-        double highestValue, 
+        double sysmissValue,
+        double highestValue,
         double lowestValue
     ) {
         this.sysmissValue = sysmissValue;

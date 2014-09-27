@@ -76,7 +76,7 @@ public class SAVInjectHidden {
 
         @Override
         public void writeAlignedStringPadding(
-            String string, 
+            String string,
             int paddingLength
         ) {
             boolean ok = true;
@@ -139,8 +139,8 @@ public class SAVInjectHidden {
 
         } catch(Exception ex) {
             // Display more detailed error message
-            System.out.printf("%s: at %08x: %s\n", 
-                sourceFilename, 
+            System.out.printf("%s: at %08x: %s\n",
+                sourceFilename,
                 savReader.tell(),
                 ex.getMessage()
             );
@@ -156,7 +156,7 @@ public class SAVInjectHidden {
             File f = new File(dataFilename);
 
             // May throw FileNotFound
-            FileInputStream fis 
+            FileInputStream fis
                 = new FileInputStream(f);
 
             BufferedInputStream istream

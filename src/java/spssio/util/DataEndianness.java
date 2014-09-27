@@ -20,36 +20,36 @@ package spssio.util;
 
 
 /**
- * The class is used to encapsulate constants related to 
+ * The class is used to encapsulate constants related to
  * the data endianness.<p>
  *
  * The average home computer (PC) has Little-Endian architecture.<p>
  *
- * The name "Big-Endian" suggests that the byte sequence ends with 
- * the most significant byte (MSB). However, when looking at 
- * a memory dump, it would appear that in Big-Endian systems 
- * the opposite is true. Remember that binary values are read in 
- * the opposite order, from left to right. Once you remember that, 
+ * The name "Big-Endian" suggests that the byte sequence ends with
+ * the most significant byte (MSB). However, when looking at
+ * a memory dump, it would appear that in Big-Endian systems
+ * the opposite is true. Remember that binary values are read in
+ * the opposite order, from left to right. Once you remember that,
  * the endianness makes sense.<p>
- * 
+ *
  * Wikipedia article on the subject:
  * {@url http://en.wikipedia.org/wiki/Endianness}<p>
  *
  * According to the wiki article...<p>
  *
- * "The Intel x86 and x86-64 series of processors use the little-endian 
- * format, and for this reason, the little-endian format is also known 
- * as the <b>Intel convention</b>. Other well-known little-endian 
- * processor architectures are the 6502 (including 65802, 65C816), 
- * Z80 (including Z180, eZ80 etc.), MCS-48, 8051, DEC Alpha, 
+ * "The Intel x86 and x86-64 series of processors use the little-endian
+ * format, and for this reason, the little-endian format is also known
+ * as the <b>Intel convention</b>. Other well-known little-endian
+ * processor architectures are the 6502 (including 65802, 65C816),
+ * Z80 (including Z180, eZ80 etc.), MCS-48, 8051, DEC Alpha,
  * Altera Nios II, Atmel AVR, VAX, and, largely, PDP-11.<p>
  *
- * "The Motorola 6800 and 68k series of processors use the big-endian 
- * format, and for this reason, the big-endian format is also known 
- * as the <b>Motorola convention</b>. Other well-known processors that 
- * use the big-endian format include the Xilinx Microblaze, SuperH, 
- * IBM POWER, and System/360 and its successors such as System/370, 
- * ESA/390, and z/Architecture. The PDP-10 also used big-endian 
+ * "The Motorola 6800 and 68k series of processors use the big-endian
+ * format, and for this reason, the big-endian format is also known
+ * as the <b>Motorola convention</b>. Other well-known processors that
+ * use the big-endian format include the Xilinx Microblaze, SuperH,
+ * IBM POWER, and System/360 and its successors such as System/370,
+ * ESA/390, and z/Architecture. The PDP-10 also used big-endian
  * addressing for byte-oriented instructions."<p>
  *
  */
@@ -58,10 +58,10 @@ public class DataEndianness {
     // PRE-DEFINED OBJECTS
     //=====================
 
-    public static final DataEndianness BigEndian 
+    public static final DataEndianness BigEndian
         = new DataEndianness(DataEndianness.BIG_ENDIAN);
 
-    public static final DataEndianness LittleEndian 
+    public static final DataEndianness LittleEndian
         = new DataEndianness(DataEndianness.LITTLE_ENDIAN);
 
     // CONSTANTS
@@ -253,7 +253,7 @@ public class DataEndianness {
                 for (int i = 0; i < 8; i++, offset++) {
                     // MSB first
                     cbyte = ((long)bytes[offset]) & 0xff;
-                    raw = raw << 8; 
+                    raw = raw << 8;
                     raw = raw | cbyte;
                 }
                 break;
@@ -282,7 +282,7 @@ public class DataEndianness {
     //=================
 
     public void integerToBytes(
-        byte[] bytes, 
+        byte[] bytes,
         int offset,
         int value
     ) {
@@ -313,7 +313,7 @@ public class DataEndianness {
     }
 
     public void shortToBytes(
-        byte[] bytes, 
+        byte[] bytes,
         int offset,
         short svalue
     ) {
@@ -373,7 +373,7 @@ public class DataEndianness {
     }
 
     public void doubleToBytes(
-        byte[] bytes, 
+        byte[] bytes,
         int offset,
         double value
     ) {
@@ -407,7 +407,7 @@ public class DataEndianness {
     }
 
     public static void testInt(
-        DataEndianness endianness, 
+        DataEndianness endianness,
         byte[] buffer,
         int ivalue
     ) {
@@ -422,7 +422,7 @@ public class DataEndianness {
     }
 
     public static void testShort(
-        DataEndianness endianness, 
+        DataEndianness endianness,
         byte[] buffer,
         short svalue
     ) {
@@ -437,7 +437,7 @@ public class DataEndianness {
     }
 
     public static void testLong(
-        DataEndianness endianness, 
+        DataEndianness endianness,
         byte[] buffer,
         long lvalue
     ) {
@@ -451,11 +451,11 @@ public class DataEndianness {
     }
 
     public static void testDouble(
-        DataEndianness endianness, 
+        DataEndianness endianness,
         byte[] buffer,
         double dvalue
     ) {
-        System.out.printf("Input double: %g (%16x)\n", 
+        System.out.printf("Input double: %g (%16x)\n",
             dvalue, Double.doubleToLongBits(dvalue));
 
         System.out.printf("endianness: %s\n", endianness);

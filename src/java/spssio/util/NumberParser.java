@@ -83,7 +83,7 @@ public class NumberParser
     private NumberSystem sys;
 
     /**
-     * If not null, the intermediate results are calculated by using 
+     * If not null, the intermediate results are calculated by using
      * the BigDecimal data type. Otherwise, Java's "double" primitive is used.
      */
     private MathContext mctx;
@@ -93,8 +93,8 @@ public class NumberParser
 
     /**
      * Buffer for individual digits extracted from the input string.
-     * It is better to have this as a member variable rather than as a local 
-     * variable, because otherwise the method would need to allocate the array 
+     * It is better to have this as a member variable rather than as a local
+     * variable, because otherwise the method would need to allocate the array
      * from the heap every time the function is called.
      */
     private int dtab[];
@@ -105,13 +105,13 @@ public class NumberParser
     private int dlen;
 
     /**
-     * Base index for {@code dtab} array. 
+     * Base index for {@code dtab} array.
      * Designates the starting offset of the exponent's or mantissa's digits.
      */
     private int dbi;
 
     /**
-     * Mantissa's sign as parsed in the last operation. 
+     * Mantissa's sign as parsed in the last operation.
      * Set to -1 if negative sign, and 1 if positive sign.
      * Otherwise, set to 0 (eg. unsigned or unparsed).
      */
@@ -143,7 +143,7 @@ public class NumberParser
     private int state;
 
     /**
-     * Null-transition flag. 
+     * Null-transition flag.
      * If true, the next transition is a null-transition (non-consuming).
      */
     private boolean eps;
@@ -232,7 +232,7 @@ public class NumberParser
      * accuracy and speed. Using {@code BigDecimal}s give accuracy while
      * sacrificing speed.<p>
 
-     * To use {@code BigDecimal}s, pass non-{@code null} context with desired 
+     * To use {@code BigDecimal}s, pass non-{@code null} context with desired
      * precision and rounding mode. To use {@code double}s, pass {@code null}.
 
      * @param context the context to use, or {@code null}.
@@ -244,7 +244,7 @@ public class NumberParser
     /**
      * Get the currently used settings for {@code BigDecimal}s.
      *
-     * @return The currently used {@code} MathContext object, 
+     * @return The currently used {@code} MathContext object,
      *      or {@code null} if none.
      */
     public MathContext getMathContext() {
@@ -256,9 +256,9 @@ public class NumberParser
 
     /**
      * Returns the error code associated with the last operation.
-     * If the last operation was succesful, the value {@link #E_OK} 
+     * If the last operation was succesful, the value {@link #E_OK}
      * is returned.
-     * 
+     *
      * @return The error code, or [@code E_OK} if the last operation succeeded.
      */
     public int errno() {
@@ -306,16 +306,16 @@ public class NumberParser
 
     /**
      * Parses a number into a double.<p>
-     * 
-     * After the call, use {@link #errno()} to determine whether the operation 
-     * succeeded or not. If there's an error, it is possible to get 
-     * a human-readable error message with {@link #strerror()}. 
+     *
+     * After the call, use {@link #errno()} to determine whether the operation
+     * succeeded or not. If there's an error, it is possible to get
+     * a human-readable error message with {@link #strerror()}.
      *
      * @param text The string to parse
-     * 
+     *
      * @return The number's value as a double. Return value is valid
      *      only if {@code errno()} returns {@code E_OK}. Otherwise,
-     *      the return value is {@link #DBL_ERRVALUE} which can be 
+     *      the return value is {@link #DBL_ERRVALUE} which can be
      *      considered to be undefined.
      */
     public double parseDouble(String text) {
@@ -326,7 +326,7 @@ public class NumberParser
 
         reset();
 
-        // Verify the input string's length. 
+        // Verify the input string's length.
         // Do not process further, if the strng's too long.
         do {
             int c;
@@ -350,8 +350,8 @@ public class NumberParser
 
     /**
      * Reset the parser to initial state.
-     * This method needs to be called always before starting to 
-     * parse a new input. 
+     * This method needs to be called always before starting to
+     * parse a new input.
      */
     public void reset() {
 
@@ -385,9 +385,9 @@ public class NumberParser
      *
      * The return values of interest are:
      * <ul>
-     *    <li>{@code E_UNFINISHED} - The parsing hasn't finished yet. 
+     *    <li>{@code E_UNFINISHED} - The parsing hasn't finished yet.
      *        More input is expected
-     *    <li>{@code E_OK} - The parsing has finished succesfully, 
+     *    <li>{@code E_OK} - The parsing has finished succesfully,
      *        The result is available with {@link #lastvalue()}.
      *    <li>Other - The parsing has finished unsuccesfully.
      *        Error code and details are available with {@link #errno()}
@@ -395,12 +395,12 @@ public class NumberParser
      * </ul>
      * <p>
      *
-     * Once the parser has reached an ending state and the return value is 
+     * Once the parser has reached an ending state and the return value is
      * different than {@code E_UNFINISHED}, the parser has to be reset before
      * it can be used again. The resetting is done with {@link #reset()}.
      * <p>
-     * 
-     * Emitting {@code -1} will always cause the parser to finish with 
+     *
+     * Emitting {@code -1} will always cause the parser to finish with
      * either accepting or rejecting the input.<p>
      *
      * @return
@@ -479,12 +479,12 @@ public class NumberParser
             dlen--;
         }
 
-        // Reset base index; It is next used to find 
+        // Reset base index; It is next used to find
         // the starting point of non-zero digits in mantissa.
         dbi = 0;
 
-        // Leading zeros in the integer part were stripped by 
-        // the state machine. Consequently, if there are any leading 
+        // Leading zeros in the integer part were stripped by
+        // the state machine. Consequently, if there are any leading
         // zeros in dtab[], they all must belong to the fractional part.
 
         // Remove leading zeros of the fractional part, if any.
@@ -494,7 +494,7 @@ public class NumberParser
 
         // Convert the mantissa to a double or BigDecimal.
 
-        BigDecimal bvalue = null; 
+        BigDecimal bvalue = null;
         double dvalue = 0.0;
 
         if (mctx == null) {
@@ -511,7 +511,7 @@ public class NumberParser
         }
 
         // If the number does not have a fractional part nor exponent,
-        // do not bother to examine the numeric limits. 
+        // do not bother to examine the numeric limits.
 
         if ((exp == 0) && (digits_int == dlen-dbi)) {
             // No fractional part nor exponent. Faster exit.
@@ -523,7 +523,7 @@ public class NumberParser
         } else {
             // Final value can now be calculated as:
             //     dvalue*base^(-digits_frac) * base(exp)
-            // However, it is possible that this expression yields 
+            // However, it is possible that this expression yields
             // a number which exceeds the numeric limits of double.
             // Therefore, a more detailed calculation is required.
 
@@ -613,20 +613,20 @@ public class NumberParser
     /**
      * Calculate the {@code double} value of a floating-point number.
      * The mantissa's value has to be in given as an integer even though
-     * it is stored into a {@code double} or {@code BigDecimal}. 
+     * it is stored into a {@code double} or {@code BigDecimal}.
      * The method checks the numerical limits, and sets {@link #errno}
      * correspondingly if an error occurs.
      *
-     * @param dvalue 
+     * @param dvalue
      *      Mantissa's integer value as a double.
-     * @param bvalue 
+     * @param bvalue
      *      Mantissa's integer value as a BigDecimal.
      *      The parameter is used only if {@link #mctx} is not {@code null}.
-     * @param digits_int 
+     * @param digits_int
      *      Number of digits in the mantissa's integer part.
-     * @param digits_frac 
+     * @param digits_frac
      *      Number of digits in the mantissa's fractional part.
-     * @param exp 
+     * @param exp
      *      Exponent's value.
 
      * @return
@@ -643,11 +643,11 @@ public class NumberParser
 
         state = S_ACCEPT;
 
-        // Mantissa is normalized into form "a.bcdef", 
+        // Mantissa is normalized into form "a.bcdef",
         // if not already in that form.
         //
-        // If there's only 1 integer digit in the mantissa, 
-        // then it is already in the required form. 
+        // If there's only 1 integer digit in the mantissa,
+        // then it is already in the required form.
         //
         // If there are >1 integer digits in the mantissa (abcd.ef),
         // then the "decimal point" is shifted RIGHT by digits_int-1.
@@ -780,9 +780,9 @@ public class NumberParser
      * </ul>
      * <p>
      *
-     * @param c 
+     * @param c
      *      The current input character
-     * @param digit 
+     * @param digit
      *      The current character as a digit, or -1 if non-digit.
      *
      */
@@ -798,7 +798,7 @@ public class NumberParser
                 // Leading spaces are accepted.
                 if (c == ' ') {
                     // ok, ignore leading whitespaces
-                } 
+                }
                 else {
                     // expect the first letter of the actual number
                     state = S_OPTIONAL_SIGN;
@@ -838,7 +838,7 @@ public class NumberParser
             // Input "|.1234"
             case S_EMPTY_INTEGER:
                 if (digit != -1) {
-                    // It is a base-N digit. 
+                    // It is a base-N digit.
                     // This has become an unempty integer.
                     state = S_UNEMPTY_INTEGER;
                     eps = true;
@@ -853,7 +853,7 @@ public class NumberParser
                     // ERROR: unexpeced or eof
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "Syntax error; unexpected character or end-of-data: %s", 
+                        "Syntax error; unexpected character or end-of-data: %s",
                         c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 } // if-else
@@ -925,7 +925,7 @@ public class NumberParser
             // The current choice is to accept it. The behaviour
             // can be changed by skippin this state.
             case S_EMPTY_FRACTION_UNEMPTY_INTEGER:
-                // allowed here: eof (the number ends to a point), 
+                // allowed here: eof (the number ends to a point),
                 // allowed here: exponent "+123.+" ???
                 if (c == -1) {
                     // eof, accept
@@ -953,7 +953,7 @@ public class NumberParser
                     // or unexpected eof.
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "Syntax error; unexpected character or end-of-data: %s", 
+                        "Syntax error; unexpected character or end-of-data: %s",
                         c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 }
@@ -961,7 +961,7 @@ public class NumberParser
 
             case S_UNEMPTY_FRACTION:
                 // Allow: eof, digit, exponent sign
-                // Possible input so far: 
+                // Possible input so far:
                 // 1) "1.5"
                 // 2) "+2.5"
                 // 3) "-3.5"
@@ -1005,7 +1005,7 @@ public class NumberParser
                     // unexpected, unrecognized or eof.
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "Syntax error; unexpected character or end-of-data: %s", 
+                        "Syntax error; unexpected character or end-of-data: %s",
                         c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 }
@@ -1023,7 +1023,7 @@ public class NumberParser
                     // either unexpected, unrecognized or eof
                     errno = E_SYNTAX;
                     strerror = String.format(
-                        "Syntax error; unexpected character or end-of-data: %s", 
+                        "Syntax error; unexpected character or end-of-data: %s",
                         c > 0 ? String.format("%c", c) : "<eof>");
                     state = S_ERROR;
                 }

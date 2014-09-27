@@ -42,31 +42,31 @@ public class PORBaseReader {
     /**
      * Default value used for {@see #istreamBufferSize}.
      */
-    public static final int 
+    public static final int
         DEFAULT_ISTREAM_BUFFER_SIZE             = 0x4000; // 16 KBs
 
     /**
      * Default value used for {@see #lineLength}.
      */
-    public static final int 
+    public static final int
         DEFAULT_LINE_LENGTH                     = PORConstants.ROW_LENGTH;
 
     /**
      * Default value used for {@see #allowLongerLines}.
      */
-    public static final boolean 
+    public static final boolean
         DEFAULT_ALLOW_LONGER_LINES              = false;
 
     /**
      * Default value used to set {@see #charset}.
      */
-    public static final String 
+    public static final String
         DEFAULT_ENCODING                        = "Cp1252";
 
     /**
      * TODO: Use something from PORConstants
      */
-    public static final int 
+    public static final int
         DEFAULT_MAX_STRING_LENGTH               = 255;
 
     /**
@@ -79,8 +79,8 @@ public class PORBaseReader {
     //==========================
 
     /**
-     * Configuration variable which controls the buffer size parameter 
-     * of {@code BufferedInputStream}'s constructor. 
+     * Configuration variable which controls the buffer size parameter
+     * of {@code BufferedInputStream}'s constructor.
      */
     private int istreamBufferSize;
 
@@ -168,7 +168,7 @@ public class PORBaseReader {
         lineLength = DEFAULT_LINE_LENGTH;
         allowLongerLines = DEFAULT_ALLOW_LONGER_LINES;
         setEncoding(DEFAULT_ENCODING);
-        maxStringLength = DEFAULT_MAX_STRING_LENGTH; 
+        maxStringLength = DEFAULT_MAX_STRING_LENGTH;
         allowLongerStrings = DEFAULT_ALLOW_LONGER_STRINGS;
 
         row = 0;
@@ -218,7 +218,7 @@ public class PORBaseReader {
         return istream;
     }
 
-    public void close() 
+    public void close()
         throws IOException
     {
         if (istream == null) {
@@ -256,7 +256,7 @@ public class PORBaseReader {
                 charsetName));
         } catch(IllegalCharsetNameException ex) {
             throw new RuntimeException(String.format(
-                "The charset name contains illegal characters: %s", 
+                "The charset name contains illegal characters: %s",
                 charsetName));
         }
     }
@@ -303,18 +303,18 @@ public class PORBaseReader {
      * This method also appends the lines to row_length if newline is met
      * earlier than expected. If eof is reached, returns -1.
      */
-    public int read() 
+    public int read()
         throws IOException
     {
         int rval = -1;
 
         do {
             if (lastByte == '\n') {
-                // Interpreted as the end-of-line marker 
-                // for both Windows and Unix. 
+                // Interpreted as the end-of-line marker
+                // for both Windows and Unix.
 
                 if (column < lineLength) {
-                    // Keep filling with spaces until 
+                    // Keep filling with spaces until
                     // the nominal line length has been reached.
                     // The value fictiously read has to be whitespace (0x20)
                     // BEFORE the decoding takes place.
@@ -332,7 +332,7 @@ public class PORBaseReader {
 
             if (lastByte == -1) {
                 // End-of-file.
-                // Return immediately without increasing 
+                // Return immediately without increasing
                 // the column or the file offset.
                 return lastByte;
             }
@@ -341,7 +341,7 @@ public class PORBaseReader {
             }
             else if (lastByte == '\n') {
                 // Already handled. Read next.
-            } 
+            }
             else {
                 // Otherwise the byte read is valid for returning.
                 rval = lastByte;
@@ -426,7 +426,7 @@ public class PORBaseReader {
         while ((c = readChar()) == PORConstants.WHITESPACE);
 
         if (c == PORConstants.SYSMISS_MARKER) { // '*'
-            // The SYSMISS should never be encountered 
+            // The SYSMISS should never be encountered
             // when an unsigned integer is expected.
             errorUnexpectedSysmiss();
 
@@ -483,7 +483,7 @@ public class PORBaseReader {
             }
         }
 
-        // Fill the array. 
+        // Fill the array.
         for (int i = 0; i < encodedLength; i++) {
             stringBuffer[i] = (byte) readChar();
         }
@@ -498,7 +498,7 @@ public class PORBaseReader {
 
 
     public String readBytesAsString(int encodedLength) {
-        // Fill the array. 
+        // Fill the array.
         for (int i = 0; i < encodedLength; i++) {
             stringBuffer[i] = (byte) readChar();
         }
@@ -510,7 +510,7 @@ public class PORBaseReader {
     // readNumberAsString()
 
     /*
-    public String readNumber() 
+    public String readNumber()
         throws IOException
     {
         int c;

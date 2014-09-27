@@ -24,7 +24,7 @@ package spssio.por;
  */
 public class PORHeader {
 
-    /** 
+    /**
      * 5x 40-byte splash string.
      */
     public byte[] splash;
@@ -40,21 +40,21 @@ public class PORHeader {
     public String signature;
 
     /**
-      * A 1-byte character identifying the file format version. 
-      * The letter A represents version 0, and so on. 
+      * A 1-byte character identifying the file format version.
+      * The letter A represents version 0, and so on.
       */
     public char version;
 
-    /** 
+    /**
      * An 8-character string field giving the file creation date
-     * in the format YYYYMMDD. 
+     * in the format YYYYMMDD.
      */
     public String date;
 
     /**
-     * A 6-character string field giving the file creation time 
-     * in the format HHMMSS. 
-     */ 
+     * A 6-character string field giving the file creation time
+     * in the format HHMMSS.
+     */
     public String time;
 
     // CONSTRUCTORS
@@ -78,7 +78,7 @@ public class PORHeader {
         PORHeader header = new PORHeader();
 
         // TODO: default splashes
-        // header.splash = 
+        // header.splash =
 
         // TODO: default charset
 

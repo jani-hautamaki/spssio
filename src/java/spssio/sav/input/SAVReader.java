@@ -51,7 +51,7 @@ import spssio.util.DataEndianness;
  * SYSMIS is -DBL_MAX in PSPP, see
  * http://www.gnu.org/software/pspp/pspp-dev/html_node/Numeric-Values.html
  */
-public class SAVReader 
+public class SAVReader
     extends SAVBaseReader
 {
 
@@ -192,7 +192,7 @@ public class SAVReader
     //===========
 
     public void readAlignedStringPadding(
-        String string, 
+        String string,
         int paddingLength
     ) {
         // Use a constant byte array into which the padding is read
@@ -308,10 +308,10 @@ public class SAVReader
 
         if (v.hasLabel != 0) {
 
-            // This field is present only if has_var_label is set to 1. 
-            // It has length label_len, rounded up to the nearest multiple 
-            // of 32 bits. The first label_len characters are 
-            // the variable's variable label. 
+            // This field is present only if has_var_label is set to 1.
+            // It has length label_len, rounded up to the nearest multiple
+            // of 32 bits. The first label_len characters are
+            // the variable's variable label.
 
             v.label = readAlignedString(4, 4, 0);
         }
@@ -322,9 +322,9 @@ public class SAVReader
         // Q: What if the variable is a STRING variable?
         // A: String variables cannot have missing values or SYSMISS.
 
-        // If the variable has a range for missing variables, set to -2; 
-        // if the variable has a range for missing variables 
-        // plus a single discrete value, set to -3. 
+        // If the variable has a range for missing variables, set to -2;
+        // if the variable has a range for missing variables
+        // plus a single discrete value, set to -3.
 
         if (nvalues < 0) {
             // Has a range
@@ -396,7 +396,7 @@ public class SAVReader
         int arrayLength = readInt();
 
         // Allocate with guaranteed capacity
-        Vector<SAVVariable> varsArray 
+        Vector<SAVVariable> varsArray
             = new Vector<SAVVariable>(arrayLength);
 
         // Cache to a local the number of variables
@@ -420,7 +420,7 @@ public class SAVReader
             SAVVariable v = sav.variables.elementAt(indexNumber-1);
 
             // Sanity check on the resolved variable.
-            // The variable should be non-virtual, 
+            // The variable should be non-virtual,
             // that is, it should have width >= 0.
 
             if (v.width < 0) {
@@ -437,7 +437,7 @@ public class SAVReader
             if (i == 0) {
                 // Decide type
                 type = varType;
-                // The variable must have a valid type, 
+                // The variable must have a valid type,
                 // because at this point the width >= 0.
             } else if (type != varType) {
 
@@ -611,7 +611,7 @@ public class SAVReader
 
     private void expectExtensionSize(int elementSize, int numberOfElements) {
         if ((lastExt.elementSize != elementSize)
-            || (lastExt.numberOfElements != numberOfElements)) 
+            || (lastExt.numberOfElements != numberOfElements))
         {
             throw new RuntimeException(String.format(
                 "Extension record subtag=%d was expected to have elemsize=%d and nelem=%d, but found %d and %d",
@@ -778,7 +778,7 @@ public class SAVReader
             // errno should now be the same as decompressor.errno()
             /*
             System.out.printf("[debug] Decompression finished\n");
-            System.out.printf("[debug] File offset after the loop: %d/%d\n", 
+            System.out.printf("[debug] File offset after the loop: %d/%d\n",
                 tell(), length());
             System.out.printf("[debug] errno: %d\n", decompressor.errno());
             System.out.printf("[debug] strerror: %s\n", decompressor.strerror());
@@ -787,7 +787,7 @@ public class SAVReader
         }
 
         // Create RawMatrix
-        SAVMatrix dataMatrix 
+        SAVMatrix dataMatrix
             = new SAVRawMatrix(array, matrixParser, decompressor);
 
         sav.dataMatrix = dataMatrix;
@@ -801,7 +801,7 @@ public class SAVReader
     }
 
 
-    public static class SAVMatrixDebugHandler 
+    public static class SAVMatrixDebugHandler
         implements spssio.sav.SAVMatrixHandler
     {
 
@@ -855,7 +855,7 @@ public class SAVReader
         byte[] cmd = new byte[8];
         byte[] cfrag = new byte[8];
         int fraglen = 0;
-        //boolean 
+        //boolean
 
         int xpos = 0;
         int ypos = 0;
@@ -922,7 +922,7 @@ public class SAVReader
                     // Refresh current variable
                     currentVariable = sav.variables.elementAt(xpos);
                     /*
-                    System.out.printf("Reading variable [%s], width: %d, stringLength: %d, lw: %d\n", 
+                    System.out.printf("Reading variable [%s], width: %d, stringLength: %d, lw: %d\n",
                         currentVariable.name, currentVariable.width, stringLength, latestWidth);
                     */
 
@@ -1018,7 +1018,7 @@ public class SAVReader
                     // row finished
                     ypos++;
                     xpos=0;
-                    // TODO: When parsing variables 
+                    // TODO: When parsing variables
                     // assert that the first variable is non-virtual.
                 }
             } // for: each cmd byte

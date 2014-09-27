@@ -62,7 +62,7 @@ public class NumberFormatter {
     /**
      * Indicates the {@code MathContext} to be used with {@code BigDecimal}
      * data type for calculating the intermediate results.
-     * If null, then Java's {@code double}s are used instead 
+     * If null, then Java's {@code double}s are used instead
      * for the intermediate results.
      */
     private MathContext mctx;
@@ -73,7 +73,7 @@ public class NumberFormatter {
      */
     private int[] buffer;
 
-    /** 
+    /**
      * Writing head's position. The head also indicates the length
      * of valid data in the buffer.
      */
@@ -94,7 +94,7 @@ public class NumberFormatter {
     // CONSTRUCTORS
     //==============
 
-    /** 
+    /**
      * Create an uninitialized {@code NumberFormatter}.
      * The number system must be set before usage.
      */
@@ -136,7 +136,7 @@ public class NumberFormatter {
     /**
      * Create an initialized {@code NumberFormatter} with
      * the specified precision
-     * 
+     *
      * @param numsys The number system to be used
      * @param precision The precision to be used
      */
@@ -153,10 +153,10 @@ public class NumberFormatter {
     // OTHER METHODS
     //===============
 
-    /** 
+    /**
      * Set the number system, and use the default precision for it,
      * if the number system is initialized.
-     * 
+     *
      * @param numsys The number system to be used
      */
     public void setNumberSystem(NumberSystem numsys) {
@@ -178,7 +178,7 @@ public class NumberFormatter {
 
     /**
      * Set the number system and the precision.
-     * 
+     *
      * @param numsys The number system to be used.
      * @param precision The precision to be used.
      */
@@ -197,7 +197,7 @@ public class NumberFormatter {
 
     /**
      * Get the underlying {@code NumberSystem}.
-     * 
+     *
      * @return The underlying {@code NumberSystem} object.
      */
     public NumberSystem getNumberSystem() {
@@ -206,7 +206,7 @@ public class NumberFormatter {
 
     /**
      * Set the precision used by the formatter.
-     * 
+     *
      * @param newPrecision The precision to be used
      */
     public void setPrecision(int newPrecision) {
@@ -232,21 +232,21 @@ public class NumberFormatter {
      *
      * The default precision is defined as the number of digits required
      * in the specified {@code NumberSystem} to express the biggest value
-     * that can be stored into the mantissa/significand of Java's 
+     * that can be stored into the mantissa/significand of Java's
      * {@code double}s. They are IEEE double precision floating points.<p<
      *
      * The IEEE double precision floating point is defined to have 53 bits
      * in the mantissa, with 52 bits explicitly stored. If the radix
      * of the number system is N, the default precision is then given
      * by:<p>
-     * 
+     *
      *      logN(2^53)<p>
      *
      * which gives<p>
-     * 
+     *
      *      defaultPrecision = ln(2^53) / ln(N)<p>
-     * 
-     * To emphasize: the default precision is the number of base-N digits 
+     *
+     * To emphasize: the default precision is the number of base-N digits
      * needed to express the biggest mantissa value.
      *
      * @param numberSystem The number system for which to calculate
@@ -270,7 +270,7 @@ public class NumberFormatter {
         // so they have 53 bit mantissa's (with 52 bits explicitly stored).
         // Therefore, it takes
         //
-        //      53*ln(2) / ln(N) 
+        //      53*ln(2) / ln(N)
         //
         // base-N digits to express the mantissa completely.
 
@@ -282,21 +282,21 @@ public class NumberFormatter {
     }
 
     /**
-     * Get the precision used by the formatter. 
-     * 
+     * Get the precision used by the formatter.
+     *
      * @return The precision used by the formatter.
      */
     public int getPrecision() {
         return precision;
     }
 
-    /** 
+    /**
      * Set or unset the math context for {@code BigDecimal}s.
      * Setting the math context will enable the use of {@code BigDecimal}s
      * for intermediate calculations. They are more accurate than
      * Java's {@code double}s, but the calculations on them are slower.
      * So it is a trade-off between accuracy and speed.
-     * 
+     *
      * @param context The settings to be used with {@code BigDecimal}s.
      *      Pass {@code null} to unset the math context, and to use
      *      {@code double}s instead.
@@ -308,7 +308,7 @@ public class NumberFormatter {
     /**
      * Get the currently used settings for {@code BigDecimal}s.
      *
-     * @return The currently used {@code} MathContext object, 
+     * @return The currently used {@code} MathContext object,
      *      or {@code null} if none.
      */
     public MathContext getMathContext() {
@@ -318,7 +318,7 @@ public class NumberFormatter {
 
     /**
      * Return serialized number from the buffer as a {@code String}.
-     * 
+     *
      * @return The last serialization
      */
     public String getString() {
@@ -333,7 +333,7 @@ public class NumberFormatter {
      *
      * After a formatting call, the buffer contains a null-terminated
      * serialization.<p>
-     * 
+     *
      * @return Reference to the serialization buffer used.
      */
     public int[] getBuffer() {
@@ -343,12 +343,12 @@ public class NumberFormatter {
     /**
      * Set the serialization buffer used by the formatter.
      * An application can set the serialization buffer explicitly.
-     * This might be preferable if a same buffer in an object is used 
+     * This might be preferable if a same buffer in an object is used
      * for various serializations.<p>
-     * 
+     *
      * Setting the buffer causes a reallocation of an internal array
      * {@link #dtab}, so that their sizes match.<p>
-     * 
+     *
      * @param newBuffer Reference to the buffer to be used for
      * serializations. {@code null} is not allowed.
      */
@@ -366,11 +366,11 @@ public class NumberFormatter {
      * Format a double value into the serialization buffer.
      * The return value can be used to determine the end of the string
      * in the serialization buffer.
-     * 
+     *
      * @param value The value to be serialized
-     * 
+     *
      * @return Number of characters written to the serialization buffer.
-     * 
+     *
      */
     public int formatDouble(
         double value
@@ -437,10 +437,10 @@ public class NumberFormatter {
             // 0 <= value < base
             value = value / Math.pow(base, exp);
 
-            // NOTE 1:: There is a slight possibility that Math.log() 
-            // returned a bigger value than it should have. 
-            // For example, for double=656099999999.9994 the Math.Log() 
-            // for base=30 gives exactly 8.0, which will cause the value 
+            // NOTE 1:: There is a slight possibility that Math.log()
+            // returned a bigger value than it should have.
+            // For example, for double=656099999999.9994 the Math.Log()
+            // for base=30 gives exactly 8.0, which will cause the value
             // to become less than 1 in the division above.
             // NOTE 2: Math.log() may also return a smaller value than it
             // should. For example, with base=10, double=1000.0 returns
@@ -449,7 +449,7 @@ public class NumberFormatter {
             // Therefore, this is a dirty hack xxxx for asserting
             // that the first digit is never zero or >= base
             //
-            // TODO: Searching the log() value from a lookup table with 
+            // TODO: Searching the log() value from a lookup table with
             // comparision would avoid this.
             if (value < 1.0) {
                 value *= base;
@@ -495,7 +495,7 @@ public class NumberFormatter {
             }
 
             for (int i = 0; i < ndigits; i++) {
-                // Discard fractional part 
+                // Discard fractional part
                 int d = bvalue.intValue();
 
                 dtab[dlen++] = d;
@@ -509,7 +509,7 @@ public class NumberFormatter {
         // Save the remainder into a member variable for debugging
         remainder = value;
 
-        // Step the head backwards by one char. 
+        // Step the head backwards by one char.
         // Then it points to the last valid digit in the array.
         dlen--;
 
@@ -518,7 +518,7 @@ public class NumberFormatter {
         if (value >= numberSystem.base/2) {
             // Round upwards.
 
-            // Inspect digits right-to-left to find 
+            // Inspect digits right-to-left to find
             // the first digit which doesn't cause overflow.
             while ((dlen >= 0) && (dtab[dlen]+1 == numberSystem.base)) {
                 dlen--;
@@ -536,7 +536,7 @@ public class NumberFormatter {
             }
         } // if: round upwards
 
-        // Remove trailing zeros, if any. There can be trailing zeros, 
+        // Remove trailing zeros, if any. There can be trailing zeros,
         // if the rounding up didn't take place.
         while ((dlen > 0) && (dtab[dlen] == 0)) {
             dlen--;
@@ -597,9 +597,9 @@ public class NumberFormatter {
 
     /**
      * Format an integer into the serialization buffer.
-     * 
+     *
      * @param value The integer to be serialized
-     * 
+     *
      * @return Number of characters written into the buffer.
      */
     public int formatInt(int value) {
@@ -611,7 +611,7 @@ public class NumberFormatter {
 
     /**
      * Append the buffer by serializing an integer.
-     * 
+     *
      * @param value The integer to be serialized
      * @param signAlways Whether the sign should always be emitted.
      * @param buffer The buffer where the serialization is written to
@@ -619,7 +619,7 @@ public class NumberFormatter {
      * @return The new head value
      */
     protected int appendInt(
-        int value, 
+        int value,
         boolean signAlways,
         int[] buffer,
         int head
@@ -672,7 +672,7 @@ public class NumberFormatter {
      * Reformats a number to given precision. If the number is already
      * within the precision, the buffer is left untouched. Otherwise,
      * the number is reformatted.
-     * 
+     *
      * @param buffer The buffer containing the number to reformat
      * @param len Length of the buffer in number of characters.
      * @param newPrecision The new precision
@@ -686,7 +686,7 @@ public class NumberFormatter {
         // Offset for data[] array
         int pos = 0;
         // Current char
-        int c; 
+        int c;
         // Determines the number of digits the decimal point
         // has been shifted left.
         int lshift = -1;
@@ -785,7 +785,7 @@ public class NumberFormatter {
 
         // Set dlen to the last valid digit
         if (dlen > newPrecision) {
-            // The number had excess digits; last can be used 
+            // The number had excess digits; last can be used
             // as a remainder for rounding.
             dlen = newPrecision-1;
         } else {
@@ -795,7 +795,7 @@ public class NumberFormatter {
             // and then the dlen is decreased by one.
             dtab[dlen] = 0;
             dlen--;
-        } 
+        }
 
         // See if the number has to be rounded upwards
         if (dtab[dlen+1] >= numberSystem.base/2) {
@@ -803,7 +803,7 @@ public class NumberFormatter {
         // FROM THIS POINT ON THIS IS A COPY-PASTE FROM formatDouble()
         //=============================================================
 
-            // Inspect digits right-to-left to find 
+            // Inspect digits right-to-left to find
             // the first digit which doesn't cause overflow.
             while ((dlen >= 0) && (dtab[dlen]+1 == numberSystem.base)) {
                 dlen--;
@@ -821,7 +821,7 @@ public class NumberFormatter {
             }
         } // if: round upwards
 
-        // Remove trailing zeros, if any. There can be trailing zeros, 
+        // Remove trailing zeros, if any. There can be trailing zeros,
         // if the rounding up didn't take place.
         while ((dlen > 0) && (dtab[dlen] == 0)) {
             dlen--;

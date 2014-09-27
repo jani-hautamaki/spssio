@@ -25,20 +25,20 @@ package spssio.por;
  * According to PSPP's documentation
  * <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Portable-File-Characters.html#Portable-File-Characters">
  *   A.1 Portable File Characters
- * </a> 
+ * </a>
  * and
  * <a href="http://www.gnu.org/software/pspp/pspp-dev/html_node/Portable-File-Header.html#Portable-File-Header">
  *   A.3 Portable File Header
  * </a>:<p>
- * 
- * "The file contents may be in any character set; the file contains 
- *  a description of its own character set [...] Therefore, the `Z' character 
+ *
+ * "The file contents may be in any character set; the file contains
+ *  a description of its own character set [...] Therefore, the `Z' character
  * is not necessarily an ASCII `Z'."<p>
  *
- * "Symbols that are not defined in a particular character set are set to 
+ * "Symbols that are not defined in a particular character set are set to
  * the same value as symbol 64; i.e., to `0'."<p>
  *
- * The constant array {@link #DEFAULT_MAPPING} contains the following table 
+ * The constant array {@link #DEFAULT_MAPPING} contains the following table
  * which has been pulled out from the PSPP's documentation:<p>
  *
  * <code><pre>
@@ -89,7 +89,7 @@ public class PORCharset
      * The table has the following format:<br>
      * index {@code (k*2+0)} holds the symbol number, and <br>
      * index {@code (k*2+1)} holds the character meant by the symbol number.<br><p>
-     * 
+     *
      * When reading a portable file, the translation can be done as follows:<br>
      * 1) Read symbol x from the portable file.<br>
      * 2) Find the index for the symbol x in the character set defined in the
@@ -97,7 +97,7 @@ public class PORCharset
      * 3) Find the corresponding index number from the translation table.<br>
      * 4) Translate the input symbol x to the character found from the translation
      *    table having the same index number.<br><p>
-     * 
+     *
      * Writing a portable file can be done in the same manner.<p>
      *
      */
@@ -114,15 +114,15 @@ public class PORCharset
      *
      * If a translation table index number is not present,
      * the situation is interpreted as there would be an entry
-     * for it with the value of -1. Put concisely, if the translation table 
+     * for it with the value of -1. Put concisely, if the translation table
      * index is missing, the index number is re-intepreted as Java char directly.
      *
      */
     public static final int[] DEFAULT_MAPPING = {
-        // 0-60    Control characters. Not important enough to describe in full here. 
-        // 61-63   Reserved. 
+        // 0-60    Control characters. Not important enough to describe in full here.
+        // 61-63   Reserved.
 
-        // 64-73   Digits `0' through `9'. 
+        // 64-73   Digits `0' through `9'.
         64,     '0',
         65,     '1',
         66,     '2',
@@ -134,7 +134,7 @@ public class PORCharset
         72,     '8',
         73,     '9',
 
-        // 74-99   Capital letters `A' through `Z'. 
+        // 74-99   Capital letters `A' through `Z'.
         74,     'A',
         75,     'B',
         76,     'C',
@@ -162,7 +162,7 @@ public class PORCharset
         98,     'Y',
         99,     'Z',
 
-        // 100-125 Lowercase letters `a' through `z'. 
+        // 100-125 Lowercase letters `a' through `z'.
         100,    'a',
         101,    'b',
         102,    'c',
@@ -190,19 +190,19 @@ public class PORCharset
         124,    'y',
         125,    'z',
 
-        // 126     Space. 
+        // 126     Space.
         126,    ' ',
 
-        // 127-130 Symbols .<(+ 
+        // 127-130 Symbols .<(+
         127,    '.',
         128,    '<',
         129,    '(',
         130,    '+',
 
-        // 131     Solid vertical pipe. 
+        // 131     Solid vertical pipe.
         131,    -1,
 
-        // 132-142 Symbols &[]!$*);^-/ 
+        // 132-142 Symbols &[]!$*);^-/
         132,    '&',
         133,    '[',
         134,    ']',
@@ -215,10 +215,10 @@ public class PORCharset
         141,    '-',
         142,    '/',
 
-        // 143     Broken vertical pipe. 
-        // 144-150 Symbols ,%_>?`: 
-        // 151     British pound symbol. 
-        // 152-155 Symbols @'=". 
+        // 143     Broken vertical pipe.
+        // 144-150 Symbols ,%_>?`:
+        // 151     British pound symbol.
+        // 152-155 Symbols @'=".
         143,    '|', // ???
         144,    ',',
         145,    '%',
@@ -233,17 +233,17 @@ public class PORCharset
         154,    '=',
         155,    '\"',
 
-        // 156     Less than or equal symbol. 
-        // 157     Empty box. 
-        // 158     Plus or minus. 
-        // 159     Filled box. 
-        // 160     Degree symbol. 
-        // 161     Dagger. 
-        // 162     Symbol `~'. 
-        // 163     En dash. 
-        // 164     Lower left corner box draw. 
-        // 165     Upper left corner box draw. 
-        // 166     Greater than or equal symbol. 
+        // 156     Less than or equal symbol.
+        // 157     Empty box.
+        // 158     Plus or minus.
+        // 159     Filled box.
+        // 160     Degree symbol.
+        // 161     Dagger.
+        // 162     Symbol `~'.
+        // 163     En dash.
+        // 164     Lower left corner box draw.
+        // 165     Upper left corner box draw.
+        // 166     Greater than or equal symbol.
         156,    -1,
         157,    -1,
         158,    -1,
@@ -256,7 +256,7 @@ public class PORCharset
         165,    -1,
         166,    -1,
 
-        // 167-176 Superscript `0' through `9'. 
+        // 167-176 Superscript `0' through `9'.
         167,    -1,
         168,    -1,
         169,    -1,
@@ -268,13 +268,13 @@ public class PORCharset
         175,    -1,
         176,    -1,
 
-        // 177     Lower right corner box draw. 
-        // 178     Upper right corner box draw. 
-        // 179     Not equal symbol. 
-        // 180     Em dash. 
-        // 181     Superscript `('. 
-        // 182     Superscript `)'. 
-        // 183     Horizontal dagger (?). 
+        // 177     Lower right corner box draw.
+        // 178     Upper right corner box draw.
+        // 179     Not equal symbol.
+        // 180     Em dash.
+        // 181     Superscript `('.
+        // 182     Superscript `)'.
+        // 183     Horizontal dagger (?).
         177,    -1,
         178,    -1,
         179,    -1,
@@ -283,17 +283,17 @@ public class PORCharset
         182,    -1,
         183,    -1,
 
-        // 184-186 Symbols `{}\'. 
+        // 184-186 Symbols `{}\'.
         184,    '{',
         185,    '}',
         186,    '\\',
 
-        // 187     Cents symbol. 
-        // 188     Centered dot, or bullet. 
+        // 187     Cents symbol.
+        // 188     Centered dot, or bullet.
         187,    -1,
         188,    -1,
 
-        // 189-255 Reserved. 
+        // 189-255 Reserved.
     }; // TABLE
 
     // Some important constants
@@ -377,7 +377,7 @@ public class PORCharset
 
     public static void assignDefaultTranslation(byte[] translation) {
         System.arraycopy(
-            PORConstants.DEFAULT_TRANSLATION, 0, 
+            PORConstants.DEFAULT_TRANSLATION, 0,
             translation, 0,
             PORConstants.TRANSLATION_LENGTH
         );
@@ -405,7 +405,7 @@ public class PORCharset
      *
      */
     public static void computeDecodingTable(
-        int[] decodingTable, 
+        int[] decodingTable,
         byte[] translation
     ) {
         if ((decodingTable == null) || (translation == null)) {
@@ -424,8 +424,8 @@ public class PORCharset
             decodingTable[inByte] = -1;
         }
 
-        // In the translation table the unused entries are 
-        // marked with zero. Therefore, the byte value used to 
+        // In the translation table the unused entries are
+        // marked with zero. Therefore, the byte value used to
         // indiciate zero must be picked up.
         int zero = translation[DIGIT_0];
 
@@ -488,7 +488,7 @@ public class PORCharset
      * In this terminology, charset means a 256-element array, whose
      * elements are the codes corresponding to the pre-defined characters.
      *
-     * @param table 
+     * @param table
      *      [out] The array to populate, must contain exactly 256 elements.
      */
     public static void computeDefaultCharset(int[] table) {
@@ -636,7 +636,7 @@ public class PORCharset
                 // the input table entry has been marked with zero,
                 // so skip this entry.
                 // Make it passthrough:
-                // TODO: 
+                // TODO:
                 // This should be: enctab[inchar] = inchar?
                 //enctab[code] = code;
                 enctab[inchar] = inchar;

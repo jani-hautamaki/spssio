@@ -56,7 +56,7 @@ public class SAVExtractHidden {
     // HELPER CLASSES
     //================
 
-    public static class SAVExtraReader 
+    public static class SAVExtraReader
         extends SAVReader
     {
 
@@ -79,7 +79,7 @@ public class SAVExtractHidden {
 
         @Override
         public void readAlignedStringPadding(
-            String string, 
+            String string,
             int paddingLength
         ) {
             readBytes(buffer, 0, paddingLength);
@@ -123,7 +123,7 @@ public class SAVExtractHidden {
             File f = new File(dataFilename);
 
             // May throw FileNotFound
-            FileOutputStream fis 
+            FileOutputStream fis
                 = new FileOutputStream(f);
 
             BufferedOutputStream ostream
@@ -152,8 +152,8 @@ public class SAVExtractHidden {
 
         } catch(Exception ex) {
             // Display more detailed error message
-            System.out.printf("%s: at %08x: %s\n", 
-                fname, 
+            System.out.printf("%s: at %08x: %s\n",
+                fname,
                 savExtraReader.tell(),
                 ex.getMessage()
             );

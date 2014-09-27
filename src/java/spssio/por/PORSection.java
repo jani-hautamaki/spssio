@@ -58,7 +58,7 @@ public class PORSection
     //===========
 
     /**
-     * obj is PORHeader. 
+     * obj is PORHeader.
      * This is a pseudo-tag code used only by this program.
      */
     public static final int TAG_HEADER                  = '0';
@@ -145,7 +145,7 @@ public class PORSection
 
     /**
      * Tag code for the section.
-     * 
+     *
      */
     public int tag;
 
@@ -213,7 +213,7 @@ public class PORSection
     public static PORSection newMissingValueRecord(
         PORMissingValue miss
     ) {
-        // This is a bit more complicated. 
+        // This is a bit more complicated.
         // The actual tag code depends on the sub-type of the parameter.
         switch(miss.type) {
             case PORMissingValue.TYPE_DISCRETE_VALUE:

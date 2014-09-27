@@ -23,14 +23,14 @@ package spssio.por;
  *
  * Possible types (the tag code) and the corresponding definitions for values:
  * <ul>
- *    <li> 
+ *    <li>
  *    Tag code '8'. Discrete missing value. the value is in {@code value[0]}.
  *    There can up to three of these.
  *
  *    <li>
  *    Tag code '9'. Represents {@code LO THRU y}, where the value of {@code y}
  *    is in {@code value[0]}. May be followed by a discrete missing value.
- * 
+ *
  *    <li>
  *    Tag code 'A'. Represents [@code x THRU HI}, where the value of {@code x}
  *    is in {@code value[0]}. May be followed by a discrete missing value.
@@ -79,7 +79,7 @@ public class PORMissingValue
     // CONSTRUCTORS
     //==============
 
-    /** 
+    /**
      * Creates an uninitialized missing value specification
      */
     public PORMissingValue() {
@@ -87,7 +87,7 @@ public class PORMissingValue
         values = null;
     } // ctor
 
-    /** 
+    /**
      * Creates a missing value specification with a specified type,
      * and with empty array.
      */
@@ -117,7 +117,7 @@ public class PORMissingValue
                     "invalid type: \'%c\' (%d)", (char) type, type));
         } // switch
 
-        // Create an array for PORValue object references. 
+        // Create an array for PORValue object references.
         // These are initialized to null I think..
         this.values = new PORValue[size];
 

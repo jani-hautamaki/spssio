@@ -59,7 +59,7 @@ public class POROutputWriter {
 
     /**
      * Config variable; is used as the buffer size parameter for
-     * {@code BufferedOutputStream}'s constructor. 
+     * {@code BufferedOutputStream}'s constructor.
      * Initialized to the default value, {@link DEFAULT_BUFFER_SIZE}
      */
     private int ostreamBufferSize;
@@ -153,12 +153,12 @@ public class POROutputWriter {
         numberFormatter = new NumberFormatter(numberSystem);
         /*
         numberFormatter = new NumberFormatter(
-            numberSystem, 
+            numberSystem,
             NumberFormatter.getDefaultPrecision(numberSystem)
         );
         */
 
-        // Get a reference to the formatter's internal 
+        // Get a reference to the formatter's internal
         // buffer for faster access.
         buffer = numberFormatter.getBuffer();
 
@@ -174,7 +174,7 @@ public class POROutputWriter {
         // Validate; accept only Unix or Windows style.
         if ((eolMarker != EOL_CRLF) && (eolMarker != EOL_LF)) {
             throw new IllegalArgumentException(String.format(
-                "Illegal end-of-line marker specified: 0x%04x", 
+                "Illegal end-of-line marker specified: 0x%04x",
                 eolMarker & 0xffff));
         }
         // Update
@@ -249,13 +249,13 @@ public class POROutputWriter {
         // TODO: Should the encoding be reset?
     }
 
-    public void flush() 
+    public void flush()
         throws IOException
     {
         ostream.flush();
     }
 
-    public void close() 
+    public void close()
         throws IOException
     {
         ostream.close();
@@ -288,7 +288,7 @@ public class POROutputWriter {
 
     /**
      * Return the column of the next char
-     * 
+     *
      * @return The column of the next char
      */
     public int getColumn() {
@@ -297,10 +297,10 @@ public class POROutputWriter {
 
     /**
      * Set byte encoding according to charset.
-     * 
+     *
      * @param charset The character set to use in encoding,
      *      or {@code null} to disable encoding.
-     * 
+     *
      */
     public void setEncoding(int[] charset) {
         // TODO: calculate encoding table
@@ -320,12 +320,12 @@ public class POROutputWriter {
     /**
      * Write a base-30 number after reformatting it according to
      * to the current precision settings.
-     * 
-     * @param number The base-30 number pre-formatted as a {@code String} 
+     *
+     * @param number The base-30 number pre-formatted as a {@code String}
      *      that in the current NumberSystem that is to be serialized.
      *
      */
-    public void outputNumberAfterReformat(String number) 
+    public void outputNumberAfterReformat(String number)
         throws IOException
     {
 
@@ -351,12 +351,12 @@ public class POROutputWriter {
     /**
      * Write a string.
      *
-     * <b>TODO:</b> Should the 255 character string length 
+     * <b>TODO:</b> Should the 255 character string length
      * limit be obeyed here?
      *
      * @param string The string to be written.
      */
-    public void outputString(String string) 
+    public void outputString(String string)
         throws IOException
     {
         // UNROLLED outputInt()
@@ -377,7 +377,7 @@ public class POROutputWriter {
     }
 
     /**
-     * Write a decimal number in base-30 digits. Formatting is done 
+     * Write a decimal number in base-30 digits. Formatting is done
      * according to the current precision settings.<p>
      *
      * <b>TODO:</b> The method should be renamed into outputDouble()
@@ -412,10 +412,10 @@ public class POROutputWriter {
         write(PORConstants.SYSMISS_SEPARATOR);
     }
 
-    /** 
+    /**
      * Write a SYSMISS numeric value with a specified value separator.
      *
-     * @param sep The character to be used as a value separator 
+     * @param sep The character to be used as a value separator
      *      after SYSMISS value.
      */
     public void outputSysmiss(int sep)
@@ -429,7 +429,7 @@ public class POROutputWriter {
      * Write an integer number in base-30 digits.
      *
      * @param value An {@code int}-valued integer number.
-     * 
+     *
      */
     public void outputInt(int value)
         throws IOException
@@ -455,7 +455,7 @@ public class POROutputWriter {
     public void outputTag(int c)
         throws IOException
     {
-        // TODO!!!!!!!!!! 
+        // TODO!!!!!!!!!!
         // Study whether the tag codes are subject to decoding/encoding
         write(c);
     }
@@ -464,7 +464,7 @@ public class POROutputWriter {
      * Write end-of-file markers ('Z') to complete the current line.
      *
      */
-    public void outputEofMarkers() 
+    public void outputEofMarkers()
         throws IOException
     {
         // Write end-marker
@@ -491,7 +491,7 @@ public class POROutputWriter {
      * http://docs.oracle.com/javase/7/docs/api/java/lang/String.html#getBytes%28java.lang.String%29
      *
      */
-    public void write(String string) 
+    public void write(String string)
         throws IOException
     {
         int len = string.length();
@@ -533,7 +533,7 @@ public class POROutputWriter {
 
 
     /**
-     * Write a sequence to output stream with the current encoding. 
+     * Write a sequence to output stream with the current encoding.
      * A new line sequence is emitted if the line exceeds the current
      * row length setting.
      *
@@ -541,7 +541,7 @@ public class POROutputWriter {
      * @param from First array position to write.
      * @param to First array position not to write.
      */
-    public void write(int[] array, int from, int to) 
+    public void write(int[] array, int from, int to)
         throws IOException
     {
         int c;
@@ -583,16 +583,16 @@ public class POROutputWriter {
     } // write(array)
 
     /**
-     * Write a byte to output stream with the current encoding. 
+     * Write a byte to output stream with the current encoding.
      * A new line sequence is emitted if the line exceeds the current
      * row length setting.
      *
      * @param c The byte to write
      */
-    public void write(int c) 
+    public void write(int c)
         throws IOException
     {
-        // Apparently SPSS writes an end-of-line sequence 
+        // Apparently SPSS writes an end-of-line sequence
         // after the 'Z' sequence used as eof marker.
         // The following implementation replicates this behaviour.
 

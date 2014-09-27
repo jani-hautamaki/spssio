@@ -60,7 +60,7 @@ public class PORFile {
     //==================
 
     /**
-     * Portable file header. 
+     * Portable file header.
      *
      */
     public PORHeader header;
@@ -75,44 +75,44 @@ public class PORFile {
     public String software;
 
     /**
-     * Tag code '2', the name of the person who caused the portable file 
-     * to be written (optional). Portable file max 255 chars, System files 
+     * Tag code '2', the name of the person who caused the portable file
+     * to be written (optional). Portable file max 255 chars, System files
      * don't have author information in the header. If the field is not
      * present, this is set to {@code null}.
      */
     public String author;
 
     /**
-     * Tag code '3', the file label (optional). Portable file max 255 chars, 
-     * System files max 64 chars. PSPP calls this field as "subproduct 
+     * Tag code '3', the file label (optional). Portable file max 255 chars,
+     * System files max 64 chars. PSPP calls this field as "subproduct
      * identification" in Portable files, but in System files this is file label.
      * If the field is not present, this is set to {@code null}.
      */
     public String title;
 
     /**
-     * Tag code '4', the number of variables in the file 
+     * Tag code '4', the number of variables in the file
      * dictionary (mandatory).
      */
     public int variableCount;
 
     /**
      * Tag code '5', the precision used for Portable file base-30 floating point
-     * numbers (mandatory). No equivalent in the System file, and PSPP has not 
+     * numbers (mandatory). No equivalent in the System file, and PSPP has not
      * documented this field. Typical value is 11.
      */
     public int precision;
 
     /**
      * Tag code '6', the case weight variable's index number (optional).
-     * If the cases are unweighted, this is set to -1. In Portable file this 
-     * is actually given as a string containing the name of the variable. 
+     * If the cases are unweighted, this is set to -1. In Portable file this
+     * is actually given as a string containing the name of the variable.
      * Translation is done by the parser after the variables have been read.
      */
     public PORVariable weightVariable;
 
-    /** 
-     * The actual weight variable name found from the Portable file. 
+    /**
+     * The actual weight variable name found from the Portable file.
      */
     public String weightVariableName;
 

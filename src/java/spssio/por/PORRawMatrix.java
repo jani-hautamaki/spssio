@@ -27,16 +27,16 @@ import spssio.util.SequentialByteArray;
  * The data matrix of a Portable file.<p>
  *
  * It is not a wise idea to convert the data values of a Portable file into
- * into {@code String} and {@code Double} objects. The additional memory 
+ * into {@code String} and {@code Double} objects. The additional memory
  * overhead caused by Java for any {@code Object} is very in terms of both
  * memory (vtable+gc) and time (gc).<p>
- * 
+ *
  * For instance, a portable file of 20 MBs would need  more than 1024 MBs
  * of memory before Java would be able to convert it into {@code Double}s
  * and {code String}s. 20 MBs shouldn't be that much of trouble nowaways,
  * when computers have, like, at least 2048 MBs of RAM memory by default.
  * That's Java for you.<p>
- * 
+ *
  */
 public class PORRawMatrix
     implements PORMatrix

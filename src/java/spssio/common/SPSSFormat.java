@@ -19,7 +19,7 @@
 
 package spssio.common;
 
-/** 
+/**
  * This is the format specification used for specying the print and the write
  * format by both Portable and System files.<p>
  *

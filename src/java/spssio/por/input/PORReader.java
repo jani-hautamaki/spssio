@@ -101,7 +101,7 @@ public class PORReader
      * @param filename The name of the file to parse.
      * @return The {@code PORFile} representing the parsed Portable file.
      */
-    public PORFile parse(String filename) 
+    public PORFile parse(String filename)
         throws FileNotFoundException, IOException, SecurityException
     {
         File f = new File(filename);
@@ -117,10 +117,10 @@ public class PORReader
 
         try {
 
-            // Get file length. May throw SecurityException 
+            // Get file length. May throw SecurityException
             fileSize = f.length();
 
-            // Wrap the stream into a BufferedInputStream 
+            // Wrap the stream into a BufferedInputStream
             // and bind the underlying PORBaseReader to it.
             is = bind(is, true);
 
@@ -316,7 +316,7 @@ public class PORReader
 
     protected void parseFormatSignature() {
 
-        String signature 
+        String signature
             = readBytesAsString(PORConstants.SIGNATURE_LENGTH);
 
         // Do not validate at all?
@@ -567,13 +567,13 @@ public class PORReader
 
             if (vartype == PORValue.TYPE_UNASSIGNED) {
                 // Assign the type
-                vartype = cvar.width == 0 ? 
+                vartype = cvar.width == 0 ?
                     PORValue.TYPE_NUMERIC : PORValue.TYPE_STRING;
             } else {
                 // Verify the type
-                if (((vartype == PORValue.TYPE_NUMERIC) 
-                    && (cvar.width != 0)) 
-                    || ((vartype == PORValue.TYPE_STRING) 
+                if (((vartype == PORValue.TYPE_NUMERIC)
+                    && (cvar.width != 0))
+                    || ((vartype == PORValue.TYPE_STRING)
                     && (cvar.width == 0)))
                 {
                     error_parse("Value labels list contain contradictory value types");
@@ -802,9 +802,9 @@ public class PORReader
     }
 
     protected static void error_cell(
-        int x, 
-        int y, 
-        String fmt, 
+        int x,
+        int y,
+        String fmt,
         Object... args
     ) {
         throw new RuntimeException(String.format(

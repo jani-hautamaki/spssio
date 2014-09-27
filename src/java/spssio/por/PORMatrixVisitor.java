@@ -27,7 +27,7 @@ public interface PORMatrixVisitor {
 
     /**
      * Matrix begins.
-     * This is called before any {code rowXxxx} 
+     * This is called before any {code rowXxxx}
      * or {@code columnXxxx} methods.
      *
      * @param xdim      Length of the x dimension, ie. number of columns.

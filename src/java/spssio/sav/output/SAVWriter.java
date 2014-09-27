@@ -52,7 +52,7 @@ public class SAVWriter
     // CONSTRUCTORS
     //==============
 
-    public SAVWriter() { 
+    public SAVWriter() {
         sav = null;
     }
 
@@ -66,7 +66,7 @@ public class SAVWriter
     // OTHER METHODS
     //===============
 
-    public void output(SAVFile sav, String filename) 
+    public void output(SAVFile sav, String filename)
         throws FileNotFoundException, IOException, SecurityException
     {
         // Remember the SAVFile object being outputted
@@ -126,7 +126,7 @@ public class SAVWriter
 }
     */
 
-    public void outputSections(SAVFile sav, String filename) 
+    public void outputSections(SAVFile sav, String filename)
         throws FileNotFoundException, IOException, SecurityException
     {
 
@@ -333,7 +333,7 @@ public class SAVWriter
         for (String line : list) {
             byte[] encoded = encodeString(line);
 
-            // If the length is more than 80 chars, 
+            // If the length is more than 80 chars,
             // the extra characters are ignored silently.
             // Another option would be to wrap to the next line.
             // However, that would require pre-calculations.
@@ -468,7 +468,7 @@ public class SAVWriter
         // Set the output stream to which the matrix is serialized to.
         matrixWriter.setOutputStream(ostream);
 
-        // Set the column widths; this is needed to determine how 
+        // Set the column widths; this is needed to determine how
         // many bytes should an encoded string variable value occupy.
         matrixWriter.setColumnWidths(columnWidths);
 

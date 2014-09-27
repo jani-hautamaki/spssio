@@ -26,9 +26,9 @@ import java.text.SimpleDateFormat;
 
 
 
-/** 
+/**
  * File Header record.
- * 
+ *
  * See documentation at {@url http://www.gnu.org/software/pspp/pspp-dev/html_node/File-Header-Record.html#File-Header-Record}
  */
 public class SAVHeader {
@@ -44,19 +44,19 @@ public class SAVHeader {
     /**
      * Product identification string, 60 chars.
      * This always begins with the characters "{@code @(#) SPSS DATA FILE}".
-     * The string is truncated if it would be longer than 60 characters; 
-     * otherwise it is padded on the right with spaces. 
+     * The string is truncated if it would be longer than 60 characters;
+     * otherwise it is padded on the right with spaces.
      */
     public String software;
 
     /**
-     * File layout code. Normally set to 2. 
+     * File layout code. Normally set to 2.
      * This value is used to determine the file's integer endianness.
      */
     public int layout;
 
     /**
-     * Number of data elements per case. 
+     * Number of data elements per case.
      */
     public int variableCount;
 
@@ -71,7 +71,7 @@ public class SAVHeader {
      * this is the 1-based variable number, otherwise set to zero.
      */
     public int weightVariableIndex;
-    //public PORVariable weightVariable; 
+    //public PORVariable weightVariable;
 
     /**
      * Number of cases in the file, if known. Otherwise, set to -1.
@@ -87,7 +87,7 @@ public class SAVHeader {
      */
     public double bias;
 
-    /** 
+    /**
      * Date of creation of the system file in {@code dd mmm yy} format,
      * with the mont as standard English abbreviations.
      */
@@ -96,7 +96,7 @@ public class SAVHeader {
     /**
      * Time of creation of the system file, in {@code hh:mm:ss} format
      * using 24-hour time.
-     */ 
+     */
     public String time;
 
     /**
@@ -138,7 +138,7 @@ public class SAVHeader {
         // According to PSPP, "Nominally set to 2", and
         // "PSPP use this value to determine the file's integer endianness".
         // TODO: What is this really?
-        header.layout = 2; 
+        header.layout = 2;
 
         // No weight variable
         header.weightVariableIndex = -1;
@@ -151,7 +151,7 @@ public class SAVHeader {
         header.touchTimestamp();
 
         // No title
-        header.setTitle(""); 
+        header.setTitle("");
 
         // Padding
         header.padding[0] = 0x20;
@@ -271,7 +271,7 @@ public class SAVHeader {
         SimpleDateFormat sdfDate
             = new SimpleDateFormat("dd MMM yy", Locale.US);
 
-        SimpleDateFormat sdfTime 
+        SimpleDateFormat sdfTime
             = new SimpleDateFormat("HH:mm:ss", Locale.US);
 
         setDateString(sdfDate.format(timestamp));

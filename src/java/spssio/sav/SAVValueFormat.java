@@ -29,11 +29,11 @@ public class SAVValueFormat {
     //==================
 
     /**
-     * The least-significant byte of the int32 represents 
-     * the number of decimal places, 
-     * and the next two bytes in order of increasing significance represent 
-     * field width and format type, respectively. 
-     * The most-significant byte is not used and should be set to zero. 
+     * The least-significant byte of the int32 represents
+     * the number of decimal places,
+     * and the next two bytes in order of increasing significance represent
+     * field width and format type, respectively.
+     * The most-significant byte is not used and should be set to zero.
      */
     public int raw;
 

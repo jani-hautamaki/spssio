@@ -43,18 +43,18 @@ public class PORVariable {
     //==================
 
     /**
-     * Width of the variable. This is 0 for a numeric variable, 
-     * and a number between 1 and 255 for a string variable. 
+     * Width of the variable. This is 0 for a numeric variable,
+     * and a number between 1 and 255 for a string variable.
      */
     public int width;
 
     /**
-     * Short name of the variable. 1-8 characters long. 
-     * Must be in all capitals. 
+     * Short name of the variable. 1-8 characters long.
+     * Must be in all capitals.
      */
     public String name;
 
-    /** 
+    /**
      * Print format. Same as in SAVFile.
      */
     public SPSSFormat printfmt;
@@ -86,8 +86,8 @@ public class PORVariable {
     public PORVariable() {
         width = -1;
         name = null;
-        printfmt = new SPSSFormat(); 
-        writefmt = new SPSSFormat(); 
+        printfmt = new SPSSFormat();
+        writefmt = new SPSSFormat();
         missvalues = new Vector<PORMissingValue>(3);
         label = null;
     } // ctor
@@ -97,11 +97,11 @@ public class PORVariable {
      *
      * @param name The variable name (1-8 chars)
      * @param label The variable's label/description
-     * 
+     *
      * @return The {@code PORVariable}
      */
     public static PORVariable createNumeric(
-        String name, 
+        String name,
         String label
     ) {
         // TODO: Validate input

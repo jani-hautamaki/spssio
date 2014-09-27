@@ -81,8 +81,8 @@ public class PORDump {
         } catch(Exception ex) {
             // Display more detailed error message
             /*
-            System.out.printf("%s: at %08x: %s\n", 
-                fname, 
+            System.out.printf("%s: at %08x: %s\n",
+                fname,
                 savReader.tell(),
                 ex.getMessage()
             );

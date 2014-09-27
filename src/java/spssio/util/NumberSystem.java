@@ -23,25 +23,25 @@ package spssio.util;
  * The following diagram is meant to clarify the terminology,
  * especially the meaning of the terms <i>underflow</i> and <i>overflow</i>
  * <code><pre>
- *  
+ *
  *          -MAX_VALUE   -MIN_VALUE     ZERO      MIN_VALUE   +MAX_VALUE
- *                 |        |             |             |        |                 
- *       Negative  |        |  Negative   |  Positive   |        |  Positive       
- *       Overflow  |        |  Underflow  |  Underflow  |        |  Overflow       
- *                 |        |             |             |        |                 
+ *                 |        |             |             |        |
+ *       Negative  |        |  Negative   |  Positive   |        |  Positive
+ *       Overflow  |        |  Underflow  |  Underflow  |        |  Overflow
+ *                 |        |             |             |        |
  * </code></pre>
  * <p>
- * 
+ *
  * <h4>TODO</h4>
  * <ul>
  *   <li>The numeric limits are properties that emerge from the relationship
- *     between a NumberSystem and a data type (eg. {@code double}, 
+ *     between a NumberSystem and a data type (eg. {@code double},
  *     {@code float}, or {@code BigDecimal}). Therefore, the limits should be
- *     separated from the {@code NumberSystem} classinto their own class (eg. 
- *     {@code SystemLimits}, which associates to a {@code NumberSystem} and 
+ *     separated from the {@code NumberSystem} classinto their own class (eg.
+ *     {@code SystemLimits}, which associates to a {@code NumberSystem} and
  *     to a {@code Class<?>} corresponding to the underlying data type.</li>
  * </ul>
- *   
+ *
  */
 public class NumberSystem
 {
@@ -87,7 +87,7 @@ public class NumberSystem
     /**
      * Quick conversion table from integer to ASCII char.
      * The length of the array is expected to be equal to {@code opt_base}.<p>
-     * 
+     *
      * These are the digits of the number system from zero to {@code opt_base-1}.
      */
     int[] tochar = null;
@@ -99,13 +99,13 @@ public class NumberSystem
     int base;
 
     /**
-     * Maximum positive double value which can be multiplied by  the base 
+     * Maximum positive double value which can be multiplied by  the base
      * without overflow.
      */
     double max_double;
 
     /**
-     * Smallest POSITIVE double value which can be divided by the base without 
+     * Smallest POSITIVE double value which can be divided by the base without
      * underflow.
      */
     double min_double;
@@ -134,7 +134,7 @@ public class NumberSystem
 
     /**
      * The highest possible mantissa value when exponent==max_exponent within
-     * the numeric limits of {@code Double} data type. 
+     * the numeric limits of {@code Double} data type.
      * Otherwise the data type overflows.
      */
     double max_mantissa;
@@ -147,8 +147,8 @@ public class NumberSystem
     double min_mantissa;
 
     /**
-     * Powers of the base up to the numeric limit of double, 
-     * and {@code pow.length-1} is the maximum exponent a number may 
+     * Powers of the base up to the numeric limit of double,
+     * and {@code pow.length-1} is the maximum exponent a number may
      * have in the current base.
      */
     double[] pow;
@@ -156,8 +156,8 @@ public class NumberSystem
     // CONSTRUCTORS
     //==============
 
-    /** 
-     * Default constructor; leaves the base (and digits) unset. 
+    /**
+     * Default constructor; leaves the base (and digits) unset.
      * The base (and digits) must be set before usage.
      */
     public NumberSystem() {
@@ -165,7 +165,7 @@ public class NumberSystem
         // (whereas tochar[] table is reallocated when the radix changes)
         toint = new int[256];
 
-        // Keep the base unset. The number system is not initialized 
+        // Keep the base unset. The number system is not initialized
         // until user explicitly requests so.
         base = BASE_UNSET;
     } // ctor
@@ -173,10 +173,10 @@ public class NumberSystem
     /**
      * Construct with the given radix and digits.
      *
-     * @param base 
+     * @param base
      *      The radix to use
-     * @param digits 
-     *      The digits to use, or {@code null} if automatically 
+     * @param digits
+     *      The digits to use, or {@code null} if automatically
      *      generated digits shall be used instead.
      *
      */

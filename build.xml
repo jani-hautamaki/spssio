@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="ISO-8859-15"?>
 
 <!--*******************************{begin:header}******************************
-                  spssio - http://code.google.com/p/spssio/                    
+                  spssio - http://code.google.com/p/spssio/
 *******************************************************************************
 
-        Java classes for reading and writing 
+        Java classes for reading and writing
         SPSS/PSPP Portable and System files
 
         Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
@@ -121,8 +121,8 @@
     <!-- Execute javac -->
     <javac srcdir="${jsources.dir}"
            destdir="${build.dir}"
-           includeAntRuntime="no" 
-           fork="no" 
+           includeAntRuntime="no"
+           fork="no"
            listfiles="yes"
            debug="${compile.debug}"
            optimize="${compile.optimize}"
@@ -141,8 +141,8 @@
   <target name="jar"
           depends="compile"
           description="Create a single jar package">
-    <jar destfile="${build.dir}/${jar.file}" 
-         basedir="${build.dir}" 
+    <jar destfile="${build.dir}/${jar.file}"
+         basedir="${build.dir}"
          includes="**/*.class">
       <zipgroupfileset dir="${lib.dir}" includes="**/*.jar">
         <exclude name="META-INF/*" />
@@ -325,7 +325,7 @@
     </exec>
 
     <!-- Push it into a source file; a temp file is used -->
-    <copy tofile="${jsources.dir}/${buildinfo.file}.new" 
+    <copy tofile="${jsources.dir}/${buildinfo.file}.new"
           file="${jsources.dir}/${buildinfo.file}"
           overwrite="true">
       <filterchain>
@@ -340,7 +340,7 @@
     <move file="${jsources.dir}/${buildinfo.file}.new"
           tofile="${jsources.dir}/${buildinfo.file}"
           overwrite="true" />
-  </target>  
+  </target>
 
   <!-- =================================================================== -->
   <!-- Unstamp rev info from a source file                                 -->
@@ -348,7 +348,7 @@
   <target name="untag"
           depends=""
           description="Untag build info">
-    <copy tofile="${jsources.dir}/${buildinfo.file}.new" 
+    <copy tofile="${jsources.dir}/${buildinfo.file}.new"
           file="${jsources.dir}/${buildinfo.file}"
           overwrite="true">
       <filterchain>
@@ -363,7 +363,7 @@
     <move file="${jsources.dir}/${buildinfo.file}.new"
           tofile="${jsources.dir}/${buildinfo.file}"
           overwrite="true" />
-  </target>  
+  </target>
 
   <!-- =================================================================== -->
   <!-- Create a release                                                    -->

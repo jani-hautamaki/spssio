@@ -106,7 +106,7 @@ public class SAVMatrixDecompressor {
 
     /**
      * Configured compression bias
-     */ 
+     */
     private double bias;
 
     /**
@@ -141,7 +141,7 @@ public class SAVMatrixDecompressor {
     //==========================
 
     /**
-     * Receiver of the uncompressed data, 
+     * Receiver of the uncompressed data,
      * or {@code null} if no receiver.
      */
     private SAVMatrixParser dataReceiver;
@@ -288,7 +288,7 @@ public class SAVMatrixDecompressor {
     private void emitRaw(byte[] data) {
         // Send to the parser
         if (dataReceiver != null) {
-            // Send raw data to the data receiver 
+            // Send raw data to the data receiver
 
             int recvErrno = dataReceiver.consume(data);
 
@@ -363,7 +363,7 @@ public class SAVMatrixDecompressor {
 
     // Expects an 8-byte array each time
     public int consume(byte[] data) {
-        // Validate input: the data should 
+        // Validate input: the data should
         // either be null or have length == 8
 
         if ((data != null) && (data.length != 8)) {

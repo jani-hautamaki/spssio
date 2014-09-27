@@ -25,7 +25,7 @@ import java.util.List;
 
 
 
-/** 
+/**
  * System file.
  *
  *
@@ -47,7 +47,7 @@ public class SAVFile {
     /**
      * Variable definitions, including filler variables.
      * NOTE: SPSS v20.0 ignores dummy variables completely.
-     * 
+     *
      */
     public Vector<SAVVariable> variables;
 

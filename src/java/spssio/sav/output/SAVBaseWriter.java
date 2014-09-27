@@ -48,7 +48,7 @@ public class SAVBaseWriter
     public static final int DEFAULT_BUFFER_SIZE = 0x10000; // 64 kbs
 
     /**
-     * Controls the size of an internal byte buffer used 
+     * Controls the size of an internal byte buffer used
      * for serializing numbers.
      */
     public static final int BYTES_BUFFER_SIZE = 16;
@@ -58,7 +58,7 @@ public class SAVBaseWriter
 
     /**
      * Config variable; is used as the buffer size parameter for
-     * {@code BufferedOutputStream}'s constructor. 
+     * {@code BufferedOutputStream}'s constructor.
      * Initialized to the default value, {@link DEFAULT_BUFFER_SIZE}
      */
     private int ostreamBufferSize;
@@ -86,7 +86,7 @@ public class SAVBaseWriter
     /**
      * Internal buffer used ONLY for serializing numbers.
      * Strings do not need a separate buffer, because
-     * {@code String.getBytes()} creates a new byte array 
+     * {@code String.getBytes()} creates a new byte array
      * every time
      */
     private byte[] bytes;
@@ -115,13 +115,13 @@ public class SAVBaseWriter
         this.ostream = new BufferedOutputStream(ostream, ostreamBufferSize);
     }
 
-    public void flush() 
+    public void flush()
         throws IOException
     {
         ostream.flush();
     }
 
-    public void close() 
+    public void close()
         throws IOException
     {
         ostream.close();
@@ -186,23 +186,23 @@ public class SAVBaseWriter
     }
 
     /**
-     * TODO: This is common to both BaseReader and BaseWriter, 
+     * TODO: This is common to both BaseReader and BaseWriter,
      * so it should be put into a separate file.
      */
     public static int calculateAlignedLength(
-        int length, 
-        int alignment, 
+        int length,
+        int alignment,
         int offset
     ) {
         // Turns the alignment into a consequtive bit seqeuence.
-        // For instance if aligment is 2^4, 
+        // For instance if aligment is 2^4,
         // that is, 000 1000, it will be 0000 0111 after this.
         alignment--;
 
-        // Take a bitwise complement of the alignment. 
-        // For instance, if the alignment is now 0000 0111, 
-        // after this it will be 1111 1000. The bitwise complement is then 
-        // used as a bitmask in an AND-operation which essentially performs 
+        // Take a bitwise complement of the alignment.
+        // For instance, if the alignment is now 0000 0111,
+        // after this it will be 1111 1000. The bitwise complement is then
+        // used as a bitmask in an AND-operation which essentially performs
         //an integer division using {@code alignment} as the divider.
         int mask = ~alignment;
 
@@ -260,13 +260,13 @@ public class SAVBaseWriter
 
     public void writeAlignedString(
         int widthOfLength,
-        String string, 
-        int alignment, 
+        String string,
+        int alignment,
         int offset
     ) {
         byte[] encoded = encodeString(string);
 
-        int alignedLength 
+        int alignedLength
             = calculateAlignedLength(encoded.length, alignment, offset);
 
         // Calculate the required padding
@@ -290,7 +290,7 @@ public class SAVBaseWriter
     }
 
     public void writeAlignedStringPadding(String string, int paddingLength) {
-        // Default behaviour is to output whitespaces for padding 
+        // Default behaviour is to output whitespaces for padding
         writeBytesRepeat((byte) 0x20, paddingLength);
     }
 

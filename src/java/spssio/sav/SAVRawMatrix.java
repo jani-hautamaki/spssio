@@ -24,7 +24,7 @@ import spssio.sav.input.SAVMatrixDecompressor;
 import spssio.util.SequentialByteArray;
 
 
-public class SAVRawMatrix 
+public class SAVRawMatrix
     implements SAVMatrix
 {
 
@@ -32,7 +32,7 @@ public class SAVRawMatrix
     //==================
 
     /**
-     * The streaming parser used to convert 
+     * The streaming parser used to convert
      * the data stream into parsing events.
      */
     private SAVMatrixParser parser;

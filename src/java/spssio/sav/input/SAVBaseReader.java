@@ -47,13 +47,13 @@ public class SAVBaseReader {
     //==================
 
     /**
-     * Configuration variable which controls the buffer size parameter 
-     * of {@code BufferedInputStream}'s constructor. 
+     * Configuration variable which controls the buffer size parameter
+     * of {@code BufferedInputStream}'s constructor.
      */
     private int bufferSize;
 
     /**
-     * Configuration variable which determines the encoding used 
+     * Configuration variable which determines the encoding used
      * for strings.
      */
     private String stringEncoding;
@@ -68,7 +68,7 @@ public class SAVBaseReader {
      */
     private DataEndianness floatingEndianness;
 
-    /** 
+    /**
      * The input stream
      */
     private BufferedInputStream istream;
@@ -85,7 +85,7 @@ public class SAVBaseReader {
 
     /**
      * Internal buffer used for reading numbers.
-     * The size is fixed to 8 bytes, which is 
+     * The size is fixed to 8 bytes, which is
      * the number of bytes needed for a double.
      */
     private byte[] numberBuffer;
@@ -124,11 +124,11 @@ public class SAVBaseReader {
     /**
      * Binds the reader to the specified {@code InputStream}.
      *
-     * @param is 
+     * @param is
      *     The input stream to bind to
-     * @param offset 
+     * @param offset
      *     The offset of the next byte
-     * @param size 
+     * @param size
      *     The length of the stream if known, or -1 if not known.
      *     Note, the biggest supported file length is 0x7FFFFFFF.
      */
@@ -206,23 +206,23 @@ public class SAVBaseReader {
     }
 
     /**
-     * TODO: This is common to both BaseReader and BaseWriter, 
+     * TODO: This is common to both BaseReader and BaseWriter,
      * so it should be put into a separate file.
      */
     public static int calculateAlignedLength(
-        int length, 
-        int alignment, 
+        int length,
+        int alignment,
         int offset
     ) {
         // Turns the alignment into a consequtive bit seqeuence.
-        // For instance if aligment is 2^4, 
+        // For instance if aligment is 2^4,
         // that is, 000 1000, it will be 0000 0111 after this.
         alignment--;
 
-        // Take a bitwise complement of the alignment. 
-        // For instance, if the alignment is now 0000 0111, 
-        // after this it will be 1111 1000. The bitwise complement is then 
-        // used as a bitmask in an AND-operation which essentially performs 
+        // Take a bitwise complement of the alignment.
+        // For instance, if the alignment is now 0000 0111,
+        // after this it will be 1111 1000. The bitwise complement is then
+        // used as a bitmask in an AND-operation which essentially performs
         //an integer division using {@code alignment} as the divider.
         int mask = ~alignment;
 
@@ -253,7 +253,7 @@ public class SAVBaseReader {
 
     /**
      * Converts byte sequence into an integer according to
-     * the integer endianness. 
+     * the integer endianness.
      * Used to lift access to integerEndianness to sub-classes.
      */
     public int bytesToInteger(byte[] buffer, int offset) {
@@ -262,7 +262,7 @@ public class SAVBaseReader {
 
     /**
      * Converts byte sequence into a double according to
-     * the floating-point endianness. 
+     * the floating-point endianness.
      * Used to lift access to floatingEndianness to sub-classes.
      */
     public double bytesToDouble(byte[] buffer, int offset) {
@@ -276,7 +276,7 @@ public class SAVBaseReader {
      * Read a single byte, and keeps count of the location.
      * If eof is reached, returns -1.
      */
-    protected int read() 
+    protected int read()
         throws IOException
     {
         int rval = istream.read(); // may throw
@@ -422,7 +422,7 @@ public class SAVBaseReader {
 
     public String readAlignedString(
         int widthOfLength,
-        int alignment, 
+        int alignment,
         int offset
     ) {
         String rval = null;
@@ -440,21 +440,21 @@ public class SAVBaseReader {
                 "widthOfLength must be either 1 or 4"));
         }
 
-        int alignedLength 
+        int alignedLength
             = calculateAlignedLength(encodedLength, alignment, offset);
 
         // Calculate the required padding
         int paddingLength = alignedLength - encodedLength;
 
-        // Read the whole aligned length into 
+        // Read the whole aligned length into
         // a newly created byte buffer
         byte[] encoded = new byte[alignedLength];
         //readBytes(encoded, 0, alignedLength);
         readBytes(encoded, 0, encodedLength);
 
         // Decode the string according to the current charset.
-        // Unpadding is not needed, since the unpadded 
-        // encoded length is already known. 
+        // Unpadding is not needed, since the unpadded
+        // encoded length is already known.
         rval = decodeString(encoded, 0, encodedLength);
 
         // Read padding

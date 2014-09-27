@@ -34,7 +34,7 @@ import spssio.util.DataEndianness;
 /*
  * TBC: The renaming of the class?
  */
-public class SAVMatrixWriter 
+public class SAVMatrixWriter
     implements SAVMatrixHandler
 {
 
@@ -161,12 +161,12 @@ public class SAVMatrixWriter
     //=================
 
     /**
-     * TODO: This is common to both BaseReader and BaseWriter, 
+     * TODO: This is common to both BaseReader and BaseWriter,
      * so it should be put into a separate file.
      */
     private static int calculateAlignedLength(
-        int length, 
-        int alignment, 
+        int length,
+        int alignment,
         int offset
     ) {
         alignment--;
@@ -278,19 +278,19 @@ public class SAVMatrixWriter
 
     public void onCellSysmiss(int x) {
         int width = getNextWidth();
-        // Verify width? 
+        // Verify width?
         serializeDouble(sysmiss);
     }
 
     public void onCellNumber(int x, double value) {
         int width = getNextWidth();
-        // Verify width? 
+        // Verify width?
         serializeDouble(value);
     }
 
     public void onCellInvalid(int x) {
         int width = getNextWidth();
-        // Verify width? 
+        // Verify width?
         // TODO: raise an error?
         serializeDouble(sysmiss);
     }
@@ -299,7 +299,7 @@ public class SAVMatrixWriter
         int width = getNextWidth();
         //int width = 8;
         //System.out.printf("Serializng \"%s\", width: %d\n", value, width);
-        // Verify width? 
+        // Verify width?
 
         // Serialize string to that length, and padd to align
         serializeString(value, width);

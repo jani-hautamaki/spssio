@@ -91,8 +91,8 @@ public class SAVDump {
 
         } catch(Exception ex) {
             // Display more detailed error message
-            System.out.printf("%s: at %08x: %s\n", 
-                fname, 
+            System.out.printf("%s: at %08x: %s\n",
+                fname,
                 savReader.tell(),
                 ex.getMessage()
             );
@@ -264,7 +264,7 @@ public class SAVDump {
 
 
     public static void displayExtensionRecords(
-        Vector<SAVExtensionRecord> records, 
+        Vector<SAVExtensionRecord> records,
         SAVReader savReader
     ) {
         int num = 0;
@@ -276,7 +276,7 @@ public class SAVDump {
     }
 
     public static void displaySAVExtensionRecord(
-        SAVExtensionRecord extRecord, 
+        SAVExtensionRecord extRecord,
         SAVReader savReader
     ) {
         System.out.printf("  Sub-tag:                   %d (hex %x)\n", extRecord.subtag, extRecord.subtag);
@@ -438,11 +438,11 @@ public class SAVDump {
         SAVExtNumberConfig ext
     ) {
         System.out.printf("  Special symbols encoding\n");
-        System.out.printf("  Sysmiss:                   %16x\n", 
+        System.out.printf("  Sysmiss:                   %16x\n",
             Double.doubleToLongBits(ext.sysmissValue));
-        System.out.printf("  Highest:                   %16x\n", 
+        System.out.printf("  Highest:                   %16x\n",
             Double.doubleToLongBits(ext.highestValue));
-        System.out.printf("  Lowest:                    %16x\n", 
+        System.out.printf("  Lowest:                    %16x\n",
             Double.doubleToLongBits(ext.lowestValue));
 
     }

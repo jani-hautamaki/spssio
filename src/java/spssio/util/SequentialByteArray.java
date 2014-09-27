@@ -21,13 +21,13 @@ package spssio.util;
 /**
  * Sequentially writable and readable byte array.<p>
  *
- * Converting the data matrix into a long array of {@code Double} 
+ * Converting the data matrix into a long array of {@code Double}
  * and {@code String} objects is not a scalable solution. This is
- * due to the overhead caused by Java. The overhead for any {@code Object} 
+ * due to the overhead caused by Java. The overhead for any {@code Object}
  * is rather high in terms of both space (vtable) and time (gc).<p>
  *
  * The read and write operations are marked as {@code final} for speed.
- * 
+ *
  */
 public class SequentialByteArray
 {
@@ -84,7 +84,7 @@ public class SequentialByteArray
 
     /**
      * Creates an initialized {@code SequentialByteArray}.
-     * 
+     *
      * @param size_bytes The amount of memory to allocate in bytes
      *
      */
@@ -134,7 +134,7 @@ public class SequentialByteArray
         int elems_new = (size_new + BYTES_IN_ELEMENT - 1) / BYTES_IN_ELEMENT;
 
         // Create a new array of the desired size.
-        // TODO: What if out of memory? 
+        // TODO: What if out of memory?
         int[] data_new = new int[elems_new];
 
         // If memory allocation was successful, ...
@@ -164,23 +164,23 @@ public class SequentialByteArray
     } // reallocate()
 
     /**
-     * Writes the specified byte into the array. 
-     * The internal head is moved forward. The first byte of 
-     * the element is written to the most signicant end. 
+     * Writes the specified byte into the array.
+     * The internal head is moved forward. The first byte of
+     * the element is written to the most signicant end.
      * This enables easier sequential read, which is desirable
      * since it is expected that the data is written once, and
      * read multiple times.<p>
      *
      * TODO: The method should probably fail silently if not enough space,
      * similarly to read()
-     * 
-     * @param c 
-     *      The byte to write. 
+     *
+     * @param c
+     *      The byte to write.
      *      Only the least-significant 8 bits are written.
      *
      * @exception RuntimeException
      *      Buffer overflow; the buffer is full, and the byte was not written.
-     * 
+     *
      */
     public final void write(int c) {
         if (cbyte == size) {
@@ -210,15 +210,15 @@ public class SequentialByteArray
     } // write()
 
     /**
-     * Writes {@code len} bytes from the specified byte array 
-     * starting at offset {@code offset} to this output stream. 
-     * 
+     * Writes {@code len} bytes from the specified byte array
+     * starting at offset {@code offset} to this output stream.
+     *
      * @param buffer The data
-     * 
+     *
      * @param offset The start offset in the data
-     * 
+     *
      * @param len The number of bytes to write
-     * 
+     *
      * @return
      *     The number of bytes written.
      *
@@ -253,15 +253,15 @@ public class SequentialByteArray
         write(c);
     }
 
-    /** 
+    /**
      * Writes the specified word (2-byte) into the array.
      *
      * @param word The word (2-byte) to write.
      *             Only the least-significant 16 bits are written.
-     * 
+     *
      * @exception RuntimeException
      *      Buffer overflow; the buffer is full, and the word was not written.
-     * 
+     *
      *
      */
     public final void write2(int word) {
@@ -275,13 +275,13 @@ public class SequentialByteArray
         }
     } // write2()
 
-    /** 
+    /**
      * Writes the specified dword (4-byte) into the array
      * using {@link #write(int)}.
      *
      * @param word The dword (4-byte) to write.
      *             All 32 bits of the int are written.
-     * 
+     *
      * @exception RuntimeException
      *      Buffer overflow; the buffer is full, and the dword was not written.
      *
@@ -297,13 +297,13 @@ public class SequentialByteArray
         }
     } // write4()
 
-    /** 
+    /**
      * Writes the specified qword (8-byte) into the array
      * using {@link #write(int)}.
      *
      * @param word The qword (8-byte) to write.
      *             All 64 bits of the long are written.
-     * 
+     *
      * @exception RuntimeException
      *      Buffer overflow; the buffer is full, and the qword was not written.
      *
@@ -352,19 +352,19 @@ public class SequentialByteArray
 
 
     /**
-     * Reads up to {@code len} bytes of data into an array of bytes. 
-     * An attempt is made to read as many as {@code len bytes}, 
+     * Reads up to {@code len} bytes of data into an array of bytes.
+     * An attempt is made to read as many as {@code len bytes},
      * but a smaller number may be read if end-of-array is met.
      *
-     * @param buffer 
+     * @param buffer
      *     The into which the data is read
-     * @param offset 
+     * @param offset
      *     The start offset in the array at which the data is written
      * @param len
      *     The maximum number of bytes to read
      *
      * @return
-     *     The total number of bytes read into the buffer, 
+     *     The total number of bytes read into the buffer,
      *     or -1 if there is no more data because the end of the array
      *     has been reached.
      *
@@ -393,7 +393,7 @@ public class SequentialByteArray
     /**
      * Reads a byte (2-byte) currently under the read/write head.
      * The read/write head is moved forward by one byte.<p>
-     * 
+     *
      * This method differs from {@link #read()} by throwing an exception
      * when not enough data available in the buffer.
      *
@@ -493,9 +493,9 @@ public class SequentialByteArray
 
     /**
      * Flushes the current data element to the array.
-     * Flushing is required after a write sequence. 
+     * Flushing is required after a write sequence.
      * Otherwise, some of the last bytes written may be lost.
-     * 
+     *
      */
     public void flush() {
         // Flushing is required only if there are written bytes in
@@ -507,13 +507,13 @@ public class SequentialByteArray
 
     /**
      * Seeks to read/write head to the specified byte offset.
-     * 
-     * @param tobyte 
+     *
+     * @param tobyte
      *      The byte offset to seek to.
-     * 
+     *
      * @exception RuntimeException
      *      When the seek position is beyond the buffer boundaries.
-     * 
+     *
      */
     public void seek(int tobyte) {
         if ((tobyte < 0) || (tobyte > size)) {
@@ -610,7 +610,7 @@ public class SequentialByteArray
         matrix.seek(0);
         for (int i = 0; i < len/8; i++) {
             long c = matrix.read8();
-            System.out.printf("data[%d] = %08x%08x\n", 
+            System.out.printf("data[%d] = %08x%08x\n",
                 i, c >>> 32, (c & 0xffffffffL));
         }
 
@@ -622,7 +622,7 @@ public class SequentialByteArray
         matrix.seek(0);
         for (int i = 0; i < len/8; i++) {
             long c = matrix.read8();
-            System.out.printf("data[%d] = %08x%08x\n", 
+            System.out.printf("data[%d] = %08x%08x\n",
                 i, c >>> 32, (c & 0xffffffffL));
         }
 
@@ -638,7 +638,7 @@ public class SequentialByteArray
         matrix.seek(0);
         for (int i = 0; i < len/8; i++) {
             long c = matrix.read8();
-            System.out.printf("data[%d] = %08x%08x\n", 
+            System.out.printf("data[%d] = %08x%08x\n",
                 i, c >>> 32, (c & 0xffffffffL));
         }
 

@@ -36,7 +36,7 @@ public class SAVSection {
      *  6       Documents           List<String>
      *  7       ExtensionRecord     SAVExtensionRecord, see subtag.
      *  999     DataMatrix          SAVMatrix
-     * 
+     *
      */
 
     // CONSTANTS
