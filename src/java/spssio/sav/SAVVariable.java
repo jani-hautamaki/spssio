@@ -82,19 +82,19 @@ public class SAVVariable {
 
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * 0 for numeric,
      * 0-255 width of a short string
      * -1 string, non-first entry
      */
     public int width;
-    
+
     /**
      * Set to 1 if the variable has a label
      */
     public int hasLabel;
-    
+
     /**
      * Number of missing values (0-3).
      */
@@ -104,12 +104,12 @@ public class SAVVariable {
      * The format expected when parsing the value
      */
     public SAVValueFormat inputFormat;
-    
+
     /**
      * The format used when printing the value
      */
     public SAVValueFormat outputFormat;
-    
+
     /**
      * Variable name, max 8 chars.
      * According to PSPP:
@@ -125,7 +125,7 @@ public class SAVVariable {
     // The following fiels are present 
     // only if hasLabel is non-zero.
     //=================================
-    
+
     /**
      * Field is present only if hasLabel is non-zero 
      * The label has alignment (4, 0) in the file.
@@ -141,135 +141,135 @@ public class SAVVariable {
     //==============
 
     public SAVVariable() {
-        
+
     }
-    
+
     public static SAVVariable createNew() {
         SAVVariable v = new SAVVariable();
-        
+
         v.width = -1;
         v.inputFormat = new SAVValueFormat();
         v.outputFormat = new SAVValueFormat();
         v.name = ""; // No name
-        
+
         // No label
         v.hasLabel = 0;
         v.label = null;
-        
+
         v.numberOfMissingValues = 0;
         v.missingValues = null;
-        
+
         return v;
     }
-    
+
     public static SAVVariable createNew(int width, String name) {
         SAVVariable v = new SAVVariable();
-        
+
         v.width = width;
         v.inputFormat = new SAVValueFormat();
         v.outputFormat = new SAVValueFormat();
         v.name = name;
-        
+
         // No label
         v.hasLabel = 0;
         v.label = null;
-        
+
         v.numberOfMissingValues = 0;
         v.missingValues = null;
-        
+
         return v;
     }
-    
 
-    
+
+
     public SAVVariable createDummy() {
         SAVVariable v = new SAVVariable();
-        
+
         v.width = -1;
         v.inputFormat = new SAVValueFormat(inputFormat.raw);
         v.outputFormat = new SAVValueFormat(outputFormat.raw);
         // No name
         v.name = "";
-        
+
         // No label
         v.hasLabel = 0;
         v.label = null;
-        
+
         v.numberOfMissingValues = 0;
         v.missingValues = null;
-        
+
         return v;
     }
-    
+
     // OTHER METHODS
     //===============
 
-    
+
     public int getType() {
         if (width == 0) {
             return SAVValue.TYPE_NUMERIC;
         } else if (width > 0) {
             return SAVValue.TYPE_STRING;
         }
-        
+
         return SAVValue.TYPE_UNASSIGNED;
     }
-    
+
     public int getWidth() {
         return width;
     }
-    
+
     public void setWidth(int width) {
         this.width = width;
     }
-    
+
     public int getHasLabel() {
         return hasLabel;
     }
-    
+
     public void setHasLabel(int hasLabel) {
         this.hasLabel = hasLabel;
     }
-    
+
     public String getLabel() {
         return label;
     }
-    
+
     public void setLabel(String label) {
         if (label != null) {
             this.hasLabel = 1;
         } else {
             this.hasLabel = 0;
         }
-        
+
         this.label = label;
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public int getNumberOfMissingValues() {
         return numberOfMissingValues;
     }
-    
+
     public void setNumberOfMissingValues(int numberOfMissingValues) {
         this.numberOfMissingValues = numberOfMissingValues;
     }
-    
+
     public double[] getMissingValues() {
         return missingValues;
     }
-    
+
     public void setMissingValues(double[] missingValues) {
         // TODO: Should clone
         this.missingValues = missingValues;
     }
-    
+
 } // class SAVVariable
 
 

@@ -35,32 +35,32 @@ public class SAVExtNumberConfig
 {
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * The system missing value. 
      */
     public double sysmissValue;
-    
+
     /**
      * The value used for HIGHEST in missing values.
      */
     public double highestValue;
-    
+
     /**
      * The value used for LOWEST in missing values. 
      */
     public double lowestValue;
-    
-    
+
+
     // CONSTRUCTORS
     //==============
-    
+
     public SAVExtNumberConfig() {
         sysmissValue = SAVConstants.DEFAULT_SYSMISS_VALUE;
         highestValue = SAVConstants.DEFAULT_HIGHEST_VALUE;
         lowestValue = SAVConstants.DEFAULT_LOWEST_VALUE;
     }
-    
+
     public SAVExtNumberConfig(
         double sysmissValue, 
         double highestValue, 
@@ -70,33 +70,33 @@ public class SAVExtNumberConfig
         this.highestValue = highestValue;
         this.lowestValue = lowestValue;
     }
-    
+
     // OTHER METHODS
     //===============
-    
+
     public void setSysmissValue(double sysmissValue) {
         this.sysmissValue = sysmissValue;
     }
-    
+
     public void setHighestValue(double highestValue) {
         this.highestValue = highestValue;
     }
-    
+
     public void setLowestValue(double lowestValue) {
         this.lowestValue = lowestValue;
     }
-    
+
     public double getSysmissValue() {
         return sysmissValue;
     }
-    
+
     public double getHighestValue() {
         return highestValue;
     }
-    
+
     public double getLowestValue() {
         return lowestValue;
     }
-    
-    
+
+
 } // class SAVExtNumberConfig

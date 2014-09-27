@@ -32,46 +32,46 @@ package spssio.common;
  * </ul>
  */
 public class SPSSFormat {
-    
+
     // CONSTANTS
     //===========
-    
+
     /**
      * Used as an invalid value for {@link #type}.
      */
     public static final int INVALID_TYPE = -1;
-    
+
     /**
      * Used as an invalid value for {@link #width}.
      */
     public static final int INVALID_WIDTH = -1;
-    
+
     /**
      * Used as an invalid value for {@link #decimals}.
      */
     public static final int INVALID_DECIMALS = -1;
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Format type.
      */
     public int type;
-    
+
     /**
      * Format width, 1-40.
      */
     public int width;
-    
+
     /**
      * Number of decimal places 1-40.
      */
     public int decimals;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /**
      * Initialize all member variables to their invalid values.
      */
@@ -80,7 +80,7 @@ public class SPSSFormat {
         width = INVALID_WIDTH;
         decimals = INVALID_DECIMALS;
     } // ctor
-    
+
     /**
      * Initialize member variables to specified values.
      */
@@ -89,10 +89,10 @@ public class SPSSFormat {
         width = w;
         decimals = d;
     } // ctor
-    
+
     // OTHER METHODS
     //===============
-    
+
 } // class FmtSpec
 
-    
+

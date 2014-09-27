@@ -24,7 +24,7 @@ package spssio.por;
  *
  */
 public interface PORMatrixVisitor {
-    
+
     /**
      * Matrix begins.
      * This is called before any {code rowXxxx} 
@@ -35,13 +35,13 @@ public interface PORMatrixVisitor {
      * @param xtypes    Columns' data types as {@link PORValue} types.
      */
     public void matrixBegin(int xdim, int ydim, int[] xtypes);
-    
+
     /**
      * Matrix ended.
      * This is called after all rows and columns have been traversed.
      */
     public void matrixEnd();
-    
+
     /**
      * Matrix row begins.
      *
@@ -49,14 +49,14 @@ public interface PORMatrixVisitor {
      *
      */
     public void rowBegin(int y);
-    
+
     /**
      * Matrix row ended.
      *
      * @param y         Finished row's number.
      */
     public void rowEnd(int y);
-    
+
     /**
      * Data column with NUMERIC type, and value SYSMISS.
      *
@@ -65,7 +65,7 @@ public interface PORMatrixVisitor {
      * @param len       Length of valid array.
      */
     public void columnSysmiss(int x, byte[] data, int len);
-    
+
     /**
      * Data column with NUMERIC type and valid number.
      *
@@ -74,8 +74,8 @@ public interface PORMatrixVisitor {
      * @param len       Length of valid array.
      */
     public void columnNumeric(int x, byte[] data, int len, double value);
-    
-    
+
+
     /**
      * Data column with STRING type, and valid contents.
      *
@@ -89,7 +89,6 @@ public interface PORMatrixVisitor {
      * @param offset    Offset to the first character in the string.
      */
     public void columnString(int x, byte[] data, int offset, int len);
-    
-    
+
+
 } // public interface
-    

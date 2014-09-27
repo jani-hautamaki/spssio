@@ -34,7 +34,7 @@ import spssio.por.PORValueLabels;
 public class PORSection
 {
     // Quick summary:
-    
+
     /*
     0: header:          STRUCT
     1: software:        String
@@ -62,27 +62,27 @@ public class PORSection
      * This is a pseudo-tag code used only by this program.
      */
     public static final int TAG_HEADER                  = '0';
-     
+
     /**
      * obj is String.
      */
     public static final int TAG_SOFTWARE                = '1';
-    
+
     /**
      * obj is String.
      */
     public static final int TAG_AUTHOR                  = '2';
-    
+
     /**
      * obj is String.
      */
     public static final int TAG_TITLE                   = '3';
-    
+
     /**
      * obj is Integer.
      */
     public static final int TAG_VARIABLE_COUNT          = '4';
-    
+
     /**
      * obj is Integer.
      */
@@ -92,76 +92,76 @@ public class PORSection
      * obj is Integer.
      */
     public static final int TAG_WEIGHT_VARIABLE         = '6';
-    
+
     /**
      * obj is PORVariable.
      */
     public static final int TAG_VARIABLE_RECORD         = '7';
-    
+
     /**
      * obj is PORMissingValue.
      */
     public static final int TAG_MISSING_DISCRETE        = '8';
-    
+
     /**
      * obj is PORMissingValue.
      */
     public static final int TAG_MISSING_OPEN_LO         = '9';
-    
+
     /**
      * obj is PORMissingValue.
      */
     public static final int TAG_MISSING_OPEN_HI         = 'A';
-    
+
     /**
      * obj is PORMissingValue.
      */
     public static final int TAG_MISSING_RANGE           = 'B';
-    
+
     /**
      * obj is String.
      */
     public static final int TAG_VARIABLE_LABEL          = 'C';
-    
+
     /**
      * obj is PORValueLabels
      * TODO: Rename into       TAG_VALUE_LABELS_RECORD
      */
     public static final int TAG_VALUE_LABELS            = 'D';
-    
+
     /**
      * Not implemented.
      */
     public static final int TAG_DOCUMENTS_RECORD        = 'E';
-    
+
     /**
      * obj is PORMatrix.
      */
     public static final int TAG_DATA_MATRIX             = 'F';
-    
-    
+
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Tag code for the section.
      * 
      */
     public int tag;
-    
+
     /**
      * Object related to the section, and type determined by the tag code.
      */
     public Object obj;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     public PORSection(int tag, Object obj) {
         this.tag = tag;
         this.obj = obj;
     }
-    
+
     // OTHER METHODS
     //===============
 
@@ -169,47 +169,47 @@ public class PORSection
     public int getTag() {
         return tag;
     }
-    
+
     public Object getObject() {
         return obj;
     }
     */
-    
+
     // FACTORY METHODS
     //=================
 
     public static PORSection newHeader(PORHeader header) {
         return new PORSection(TAG_HEADER, header);
     }
-    
+
     public static PORSection newSoftware(String software) {
         return new PORSection(TAG_SOFTWARE, software);
     }
-    
+
     public static PORSection newAuthor(String author) {
         return new PORSection(TAG_AUTHOR, author);
     }
-    
+
     public static PORSection newTitle(String title) {
         return new PORSection(TAG_TITLE, title);
     }
-    
+
     public static PORSection newVariableCount(int count) {
         return new PORSection(TAG_VARIABLE_COUNT, new Integer(count));
     }
-    
+
     public static PORSection newPrecision(int precision) {
         return new PORSection(TAG_PRECISION, precision);
     }
-    
+
     public static PORSection newWeightVariable(String variableName) {
         return new PORSection(TAG_WEIGHT_VARIABLE, variableName);
     }
-    
+
     public static PORSection newVariableRecord(PORVariable v) {
         return new PORSection(TAG_VARIABLE_RECORD, v);
     }
-    
+
     public static PORSection newMissingValueRecord(
         PORMissingValue miss
     ) {
@@ -229,7 +229,7 @@ public class PORSection
         } // switch
         // never reached
     }
-    
+
     public static PORSection newVariableLabel(String label) {
         return new PORSection(TAG_VARIABLE_LABEL, label);
     }
@@ -239,13 +239,13 @@ public class PORSection
     ) {
         return new PORSection(TAG_VALUE_LABELS, vallabels);
     }
-    
+
     public static PORSection newDocumentsRecord(Vector<String> documents) {
         return new PORSection(TAG_DOCUMENTS_RECORD, documents);
     }
-    
+
     public static PORSection newDataMatrix(PORMatrix matrix) {
         return new PORSection(TAG_DATA_MATRIX, matrix);
     }
-    
+
 } // class PORWriter

@@ -23,24 +23,24 @@ public class PORValue
 {
     // CONSTANTS
     //===========
-    
+
     /** The cell has unassigned type. */
     public static final int TYPE_UNASSIGNED     = -1;
-    
+
     /** The cell has numeric type. */
     public static final int TYPE_NUMERIC        =  0;
-    
+
     /** The cell has textual type. */
     public static final int TYPE_STRING         =  1;
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Determines the type of the cell:
      */
     public int type;
-    
+
     /**
      * The literal contents of the cell, or {@code null} if the cell is empty.
      * If the type is numeric, then this is the numeric value represented as
@@ -51,7 +51,7 @@ public class PORValue
 
     // CONSTRUCTORS
     //==============
-    
+
     /**
      * Creates an empty cell with unassigned type.
      */
@@ -67,9 +67,9 @@ public class PORValue
         this.type = type;
         this.value = value;
     } // ctor
-    
+
     // OTHER METHODS
     //===============
-    
-    
+
+
 } // class PORValue

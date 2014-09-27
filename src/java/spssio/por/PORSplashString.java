@@ -56,7 +56,7 @@ package spssio.por;
  */
 public class PORSplashString
 {
-    
+
     /**
      * Literal <code>"SPSSPORT"</code>.
      * The 8-byte tag string consists of the exact characters SPSSPORT in 
@@ -66,7 +66,7 @@ public class PORSplashString
     public static final int[] SIGNATURE = {
         0x53, 0x50, 0x53, 0x53, 0x50, 0x4f, 0x52, 0x54
     }; // SIGNATURE
-    
+
     /**
      * 1st section:
      * <code>"?????@????@????@????@@@@@@@@@@@@@@@@"</code> (EBCDIC)
@@ -77,7 +77,7 @@ public class PORSplashString
         0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 
         0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40 
     };
-    
+
     /**
      * 2nd section:
      * <code>"ASCII SPSS PORT FILE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"</code> (7-bit ASCII)
@@ -88,7 +88,7 @@ public class PORSplashString
         0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 
         0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
     }; 
-    
+
     /**
      * 3rd section:
      * <code>"00000-0000-0000-0000--------------------"</code> (CDC 6-bit ASCII)
@@ -99,7 +99,7 @@ public class PORSplashString
         0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 
         0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x2d 
     }; 
-    
+
     /**
      * 4th section:
      * <code>"!3#))0303300/240&),%000000000000000000000"</code> (6-bit ASCII)
@@ -110,7 +110,7 @@ public class PORSplashString
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 
     }; 
-    
+
     /**
      * 5th section:
      * <code>"20200002'220'&)3000#000000000000000000000"</code> (Honeywell 6-bit ASCII)
@@ -121,14 +121,14 @@ public class PORSplashString
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
         0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 
     }; 
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /**
      * Constructor intentionally disabled.
      */
     private PORSplashString() {
     } // ctor
-    
+
 } // class PORSplash

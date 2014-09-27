@@ -37,7 +37,7 @@ package spssio.sav;
  * Receiver and DataReceiver were both also good candidates.
  *
  */
- 
+
 /*
  * Here is a list of all method names considered for the Matrix class:
  *
@@ -93,7 +93,7 @@ which does the reading (active work) on command.
 For instance:
 
     dataReader.read()
-    
+
 The term "Receiver", however, implies a passive recipient,
 which shouldn't be commanded to receive, since "receiving"
 implies that someone has WILLINGLY sent the data.
@@ -101,7 +101,7 @@ implies that someone has WILLINGLY sent the data.
 According to 
 
     http://cafeconleche.org/books/xmljava/chapters/ch06s03.html
-    
+
 SAX uses the Observer pattern to tell client applications what's
 in a document.
 
@@ -121,14 +121,14 @@ This implies unpredictable event stream
 According to
 
     http://www.saxproject.org/event.html
-    
+
 "An event-based API, on the other hand, reports parsing events 
  (such as the start and end of elements) directly to the application 
  through callbacks, and does not usually build an internal tree. 
  The application implements handlers to deal with the different events, 
  much like handling events in a graphical user interface. 
  SAX is the best known example of such an API. "
- 
+
 
 
 SAVMatrixHandler
@@ -165,26 +165,26 @@ SAVMatrixIteratee
  * http://en.wikipedia.org/wiki/Iteratee
  *
  */
- 
+
 //public interface SAVMatrixIteratee {
 
 public interface SAVMatrixHandler {
-    
+
     public void onMatrixBegin(int xsize, int ysize, int[] columnWidths);
-    
+
     public void onMatrixEnd();
-    
+
     public void onRowBegin(int y);
-    
+
     public void onRowEnd(int y);
-    
+
     public void onCellSysmiss(int x);
-    
+
     public void onCellNumber(int x, double value);
-    
+
     public void onCellInvalid(int x);
-    
+
     public void onCellString(int x, String value);
-    
+
 } // class
 

@@ -20,17 +20,17 @@ package spssio.sav;
 
 
 public interface SAVMatrix {
-    
+
     /**
      * Return the number of columns
      */
     public int sizeX();
-    
+
     /**
      * Returns the number of rows (cases)
      */
     public int sizeY();
-    
+
     /**
      * Returns the number of bytes used to store the matrix.
      */
@@ -41,17 +41,17 @@ public interface SAVMatrix {
      *
      */
     public int[] getColumnWidths();
-    
+
     /**
      * Visits all data cells in the matrix in row-major order.
      *
      * @param contentHandler The handler.
      */
     public void traverse(SAVMatrixHandler contentHandler);
-    
+
     /*
      * For sequential access.
      */
     //public SAVMatrixReader getReader();
-    
+
 } // SAVMatrix

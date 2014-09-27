@@ -42,65 +42,65 @@ import spssio.util.NumberFormatter;
  * and {@link NumberFormatter}.
  */
 public class NumberSystemTool {
-    
+
     // CONSTANTS
     //===========
-    
+
     private static final int INPUT_NUMPARSER            = 0;
     private static final int INPUT_JAVA_DOUBLE          = 1;
     private static final int INPUT_JAVA_FLOAT           = 2;
     private static final int INPUT_HEX                  = 3;
     private static final int INPUT_RESHAPE              = 4;
-    
+
     private static final int OUTPUT_NUMFORMATTER        = 0;
     private static final int OUTPUT_JAVA_FORMAT         = 1;
     private static final int OUTPUT_JAVA_DOUBLE         = 2;
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     private boolean quit = false;
     private NumberSystem sysin = null;
     private NumberSystem sysout = null;
     private NumberParser parser = null;
     private NumberFormatter formatter = null;
-    
+
     private int inputMode  = INPUT_NUMPARSER;
     private int outputMode = OUTPUT_NUMFORMATTER;
-    
+
     private String inputMathContextName = null;
     private String outputMathContextName = null;
-    
+
     private String outputFormat = null;
     private boolean outputDoubleBits = false;
     private int lastPromptLength = 0;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     public NumberSystemTool() {
         sysin = new NumberSystem();
         sysout = new NumberSystem();
-        
+
         parser = new NumberParser();
         formatter = new NumberFormatter();
-        
+
         // Associate number system with the parser and with the formatter.
         parser.setNumberSystem(sysin);
         formatter.setNumberSystem(sysout);
     } // ctor
-    
+
     // OTHER METHODS
     //===============
-    
+
     public void run() {
         BufferedReader br = null;
 
         System.out.printf("numsystool (c) 2013 jani.hautamaki@hotmail.com\n");
-        
+
         String revision = spssio.BuildInfo.REVISION;
         String btime = spssio.BuildInfo.TIMESTAMP;
-        
+
         //revision = revision != null ? revision : "<untagged>";
         //btime = btime != null ? btime : "<untagged>";
         if ((revision != null) && (btime != null)) {
@@ -108,7 +108,7 @@ public class NumberSystemTool {
             System.out.printf("Build time  %s\n", btime);
         }
         System.out.printf("\n");
-        
+
         try {
             br = new BufferedReader(new InputStreamReader(System.in));
         } catch(Exception ex) {
@@ -120,22 +120,22 @@ public class NumberSystemTool {
         sysout.setBase(10);
         formatter.setDefaultPrecision();
         outputFormat = "%.18g";
-        
+
         // Show number system details at the beginning.
         printLimits();
-        
+
         quit = false;
         do {
             String line = null;
             String prompt = null;
             String stin = null;
-            
+
             try {
                 // Output command prompt
                 System.out.printf("\n");
-                
+
                 stin = getInputMode();
-                
+
                 //prompt = "numsystool>> ";
                 prompt = String.format("%s> ", stin);
                 System.out.printf(prompt);
@@ -145,37 +145,37 @@ public class NumberSystemTool {
             } catch(IOException ex) {
                 error("BufferedReader.readLine() raised an exception");
             } // try-catch
-            
+
             // split into arguments
             String[] args = line.split(" ");
-            
+
             if ((args.length == 0) || (line.length() == 0))  {
                 System.out.printf("\n");
                 System.out.printf("input:   %s\n", stin);
                 System.out.printf("output:  %s\n", getOutputMode());
                 continue;
             }
-            
+
             try {
                 parseCommand(args);
             } catch(Exception ex) {
                 System.out.printf("Error: %s\n", ex.getMessage());
             } // try-catch
-            
+
         } while (!quit);
-        
+
     } // run()
-    
+
     private void parseCommand(String[] args) {
         String carg = args[0];
-        
+
         boolean iscmd = false;
-        
+
         if (carg.startsWith("\\")) {
             iscmd = true;
             System.out.printf("\n");
         }
-        
+
         if (carg.equals("\\q")) {
             expectArgs(args, 1);
             System.out.printf("Exiting\n");
@@ -283,13 +283,13 @@ public class NumberSystemTool {
             parseNumber(carg);
         } // if-else
     } // parse()
-    
+
     private void printVersion() {
         String version = spssio.BuildInfo.VERSION;
         String revision = spssio.BuildInfo.REVISION;
         String btime = spssio.BuildInfo.TIMESTAMP;
-        
-        
+
+
         System.out.printf("Version:       %s\n",
             version != null ? version : "<untagged>");
         System.out.printf("Revision:      %s\n",
@@ -297,7 +297,7 @@ public class NumberSystemTool {
         System.out.printf("Build time:    %s\n",
             btime != null ? btime : "<untagged>");
     }
-    
+
     private void printHelp() {
         System.out.printf("Commands:\n");
         System.out.printf("\n");
@@ -346,7 +346,7 @@ public class NumberSystemTool {
         System.out.printf("Note: every other single argument input is considered a number!\n");
         System.out.printf("\n");
     } // printHelp()
-    
+
     private void printLimits() {
         System.out.printf("Input number system details:\n");
         System.out.printf("Base:       %d\n", sysin.getBase());
@@ -363,10 +363,10 @@ public class NumberSystemTool {
         System.out.printf("Double.MAX:        %.18g\n", Double.MAX_VALUE);
         System.out.printf("Double.MIN:        %.18g\n", Double.MIN_VALUE);
     } // printLimits()
-    
+
     private void printDoubleBits(double d) {
         long bits = Double.doubleToLongBits(d);
-        
+
         // Extract separate parts
         long msign =    bits & 0x8000000000000000L;
         long exponent = bits & 0x7ff0000000000000L;
@@ -374,12 +374,12 @@ public class NumberSystemTool {
 
         //exponent = (exponent >> 52) - 1023; // shift and unbiasing
         exponent = exponent >> 52; // shift
-        
+
         output("dec:       %s   (Double.toString)\n", Double.toString(d));
         output("hex:       %16s   (doubleToLongBits)\n", Long.toHexString(bits));
         output("exp/mant: %-3s %13s\n", 
             Long.toHexString(exponent), Long.toHexString(mantissa));
-        
+
         exponent = exponent - 1023;      // unbiasing
         mantissa |= 0x0010000000000000L; // normalizing
         double frac = ((double) mantissa) * Math.pow(2.0, -52);
@@ -395,17 +395,17 @@ public class NumberSystemTool {
                 exponent, Math.pow(2.0, -exponent));
         }
     } // printDoubleBits()
-    
+
     private void printFloatBits(float f) {
         int bits = Float.floatToIntBits(f);
-        
+
         // Extract separate parts
         int msign =    bits & 0x80000000;
         int exponent = bits & 0x7f800000;
         int mantissa = bits & 0x007fffff;
-        
+
         exponent = exponent >> 23; // Shift
-        
+
         output("dec:       %s   (Float.toString)\n", Float.toString(f));
         output("hex:       %8s  (floatToIntBits)\n", Integer.toHexString(bits));
         output("exp/mant: %-2s %6s\n", 
@@ -419,21 +419,21 @@ public class NumberSystemTool {
         output("exponent:  %d\n", exponent);
         output("mantissa:  %s\n", Float.toString(frac));
     } // printFloatBits()
-    
+
 
     private void printBase() {
         System.out.printf("Input base:       %d\n", sysin.getBase());
         System.out.printf("Output base:      %d\n", sysout.getBase());
         System.out.printf("Output precision: %d\n", formatter.getPrecision());
     }
-    
+
     private void printPrecision() {
         System.out.printf("Output precision: %d\n", formatter.getPrecision());
     }
-    
+
     private void printMathContext() {
         MathContext mc = null;
-        
+
         mc = parser.getMathContext();
         System.out.printf("Input:\n");
         if (mc != null) {
@@ -443,7 +443,7 @@ public class NumberSystemTool {
         } else {
             System.out.printf("   type:           double\n");
         }
-        
+
         mc = formatter.getMathContext();
         System.out.printf("Output:\n");
         if (mc != null) {
@@ -454,53 +454,53 @@ public class NumberSystemTool {
             System.out.printf("   type:           double\n");
         }
     }
-    
+
     private void printOutputFormat() {
         System.out.printf("Output format: %s\n", outputFormat);
     }
-    
+
     private void printDigits() {
         System.out.printf("       0         1         2         3         4         5         6         \n");
         System.out.printf("Digit: 0123456789012345678901234567890123456789012345678901234567890123456789\n");
         System.out.printf("Input: %s\n", sysin.getDigits());
         System.out.printf("Output %s\n", sysout.getDigits());
     }
-    
+
     private void outputIndent() {
         for (int i = 0; i < lastPromptLength; i++) {
             System.out.printf(" ");
         }
     }
-    
+
     private void output(String fmt, Object... args) {
         outputIndent();
         System.out.printf(fmt, args);
     }
-    
+
     private void output2(String prefix, String fmt, Object... args) {
         int indentLength = lastPromptLength - prefix.length();
         for (int i = 0; i < indentLength; i++) {
             System.out.printf(" ");
         }
-        
+
         System.out.printf(prefix);
         System.out.printf(fmt, args);
     }
-    
-    
+
+
     private void parseNumber(String arg) {
         try {
             // result value is stored here
             double value = 0.0;
             float valueFloat = 0.0f;
-            
+
             // The parse result defaults to invalid
             boolean valid = false;
-            
+
             if (inputMode == INPUT_NUMPARSER) {
                 // Parse using NumberParser
                 value = parser.parseDouble(arg);
-                
+
                 // Pick the error code and inspect error status
                 int errno = parser.errno();
                 if (errno != NumberParser.E_OK) {
@@ -554,11 +554,11 @@ public class NumberSystemTool {
             } else {
                 error("Unexpected input mode (this is a bug)");
             }
-            
+
             if (valid == false) {
                 return;
             }
-            
+
             // If succesfully parsed, output the value
             // in hexadecimal and in decimal.
             if (outputDoubleBits == false) {
@@ -584,9 +584,9 @@ public class NumberSystemTool {
                     printDoubleBits(value);
                 }
             } 
-            
+
             String result = null;
-            
+
             if (outputMode == OUTPUT_NUMFORMATTER) {
                 formatter.formatDouble(value);
                 result = formatter.getString();
@@ -597,12 +597,12 @@ public class NumberSystemTool {
             } else {
                 error("Unexpected output mode (this is a bug)");
             }
-            
+
             //output("%s   (%s)\n", result, stout);
             System.out.printf("\n");
             output("%s\n", result);
             output("^ %s\n", getOutputMode());
-            
+
         }
         catch(NumberFormatException ex) {
             System.out.printf("ERROR: NumberFormatException: %s\n, ex.getMessage()");
@@ -612,22 +612,22 @@ public class NumberSystemTool {
             ex.printStackTrace();
         } // try-catch
     } // parseNumber()
-    
+
     private void doSetBase(String arg1, String arg2) {
         int value = parseInt(arg2);
 
         if (value < 1) {
             error("The base must be greater than zero");
         }
-        
+
         if ((arg1 == null) || arg1.equals("both")) {
             // Set input number system base
             sysin.setBase(value);
-            
+
             // Set output number system base, and update precision
             sysout.setBase(value);
             formatter.setDefaultPrecision();
-            
+
             System.out.printf("Input and output base set\n");
         } else if (arg1.equals("in")) {
             sysin.setBase(value);
@@ -639,7 +639,7 @@ public class NumberSystemTool {
         } else {
             error("Expected \"in\", \"out\" or \"both\", but found: %s", arg1);
         } // if-else
-        
+
         printBase();
     } // doSetBase()
 
@@ -692,9 +692,9 @@ public class NumberSystemTool {
             printOutputFormat();
             return;
         }
-        
+
         String fmt = args[1];
-        
+
         try {
             String.format(fmt, 0.0);
         } catch(Exception ex) {
@@ -733,13 +733,13 @@ public class NumberSystemTool {
         }
         printDigits();
     } // doSetDigits()
-    
+
     private void doSetMathContext(String[] args) {
         Tuple<String, MathContext> context = null;
-        
+
         // null: both, otherwise either "in" or "out"
         String target = null;
-        
+
         if (args.length == 1) {
             printMathContext();
             return;
@@ -763,12 +763,12 @@ public class NumberSystemTool {
         } else {
             error("Syntax error");
         }
-        
+
         if (target == null) {
             // set both
             parser.setMathContext(context.b);
             formatter.setMathContext(context.b);
-            
+
             inputMathContextName = context.a;
             outputMathContextName = context.a;
             System.out.printf("Input and output MathContext set\n");
@@ -785,12 +785,12 @@ public class NumberSystemTool {
         } else {
             error("Unexpected target: %s (this is a bug)", target);
         }
-        
+
         printMathContext();
-        
+
     } // doSetMathContext()
-    
-    
+
+
     private int parseInt(String s) {
         int value = 0;
         try {
@@ -800,16 +800,16 @@ public class NumberSystemTool {
         } // try-catch
         return value;
     }
-    
+
     private static double parseDoubleHex(String s) {
         int len = s.length();
         if (len != 16) {
             throw new RuntimeException(
                 "Input hex string length must be exaclty 16");
         }
-        
+
         long val = 0;
-        
+
         for (int i = 0; i < len; i++) {
             char c = s.charAt(i);
             // convert c from hex char into an int
@@ -825,14 +825,14 @@ public class NumberSystemTool {
                     "Position %d contains an invalid hex char: \'%c\'", 
                     i+1, c));
             } // if-else
-            
+
             val = val | (nibble << ((15-i)*4));
             //val = val | (nibble << (i*4));
         } // for
-        
+
         return Double.longBitsToDouble(val);
     } // parseHexdouble()
-    
+
     private String getInputMode() {
         String rval = null;
         switch(inputMode) {
@@ -871,7 +871,7 @@ public class NumberSystemTool {
         } // switch
         return rval;
     }
-    
+
     private String getOutputMode() {
         String rval = null;
         switch(outputMode) {
@@ -898,7 +898,7 @@ public class NumberSystemTool {
                 error("Unexpected output mode: %d (this is a bug)", outputMode);
                 break;
         } // switch
-        
+
         return rval;
     }
 
@@ -906,7 +906,7 @@ public class NumberSystemTool {
     private static class Tuple<S, T> {
         public S a;
         public T b;
-        
+
         public Tuple(S a, T b) {
             this.a = a;
             this.b = b;
@@ -918,7 +918,7 @@ public class NumberSystemTool {
     ) {
         Tuple<String, MathContext> rval 
             = new Tuple<String, MathContext>(null, null);
-        
+
         if (arg.equals("128")) {
             rval.a = "128";
             rval.b = MathContext.DECIMAL128;
@@ -938,37 +938,37 @@ public class NumberSystemTool {
         else {
             error("Unrecognized MathContext: \"%s\"", arg);
         }
-        
+
         return rval;
     } // parseMathContext()
-    
+
     private Tuple<String, MathContext> parseMathContext(
         String arg1,
         String arg2
     ) {
         Tuple<String, MathContext> rval 
             = new Tuple<String, MathContext>(null, null);
-        
+
         int digits = 0;
         try {
             digits = Integer.parseInt(arg1);
         } catch(Exception ex) {
             error("Cannot parse integer: \"%s\"", arg1);
         } // try-catch
-        
+
         RoundingMode rm = null;
         try {
             rm = RoundingMode.valueOf(arg2);
         } catch(IllegalArgumentException ex) {
             error("Unrecognized rounding mode: \"%s\" (expected: UP, DOWN, CEILING, FLOOR, HALF_UP, HALF_DOWN, HALF_EVEN, UNNECESSARY)", arg2);
         } // try-catch
-        
+
         MathContext mctx = new MathContext(digits, rm);
         String name = String.format("%d/%s", digits, arg2);
-        
+
         return new Tuple<String, MathContext>(name, mctx);
     }
-    
+
 
     private void toggleShowDoubleBits() {
         if (outputDoubleBits == true) {
@@ -979,17 +979,17 @@ public class NumberSystemTool {
         outputDoubleBits = !outputDoubleBits;
     } // toggleDoubleBits()
 
-    
+
     private void expectArgs(String[] args, int len) {
         if (args.length != len) {
             error("Expected %d arguments, got %d\n", len, args.length);
         }
     }
-    
+
     private final void error(String fmt, Object... args) {
         throw new RuntimeException(String.format(fmt, args));
     } // error()
-    
+
     /**
      * Application entry point
      */
@@ -1017,44 +1017,44 @@ public class NumberSystemTool {
     // Should result in the same as the values
     //      ".0A9E17IR6IFL+70"
     //      ".000A9E17IR6IFL+72"
-    
+
     // These should overflow:
     //      ".000A9E17IR6IFL+80"        (exponent too big)
     //      ".000A9E17IR6JFL+72"        (mantissa too big)
-    
+
     // Double.MAX_VALUE         = 1.79769313486231570e+308
     // Double.MIN_VALUE         = 4.90000000000000000e-324
-    
+
     // max_mantissa = 10.3156020126482610
     // max_exponent = 208                 == 6S
     // compare to     10.3156020126482600 == A.9E17IR6IFL+6S
-    
+
     // min_mantissa = 1.5
     // min_exponent = -219                == 79
     // compare to   = 
-    
+
     // Very close to the Double.MIN_VALUE
     //      "1.F-79"                      == 1.0e-323 (double)
-    
+
     // These should underflow:
     //      "1.F-7A"                    (exponent too small)
     //      "1.E-79"                    (mantissa too small)
-    
+
     // Also look at
     //      http://steve.hollasch.net/cgindex/coding/ieeefloat.html
     // Approx decimal:
     //  double limits: ~10**(-323.3) to ~10**(308.3)
-    
+
     // N-7A gives with BigDecimal:
     // 4.90000000000000000e-324 which seems to be the smallest non-zero
     // Minimum exponent is 218 (dec), ie. 78 (trig)
     // Minimum mantissa is then 0.05
-    
+
     // Numeric limits in base-10:
     // Max double: 5.99231044954105300e+306
     // Min double: 1.50000000000000000e-322
-    
-    
+
+
     /*
      * Some examples. First, converting IEEE 64-bit floating points into
      * base-30 string representations:
@@ -1069,5 +1069,5 @@ public class NumberSystemTool {
      * 4JGBA84O-9       = 0.00516836800000000040 => (ok)
      *
      */
-    
+
 } // class NumberSystemTool

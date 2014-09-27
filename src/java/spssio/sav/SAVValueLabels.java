@@ -36,29 +36,29 @@ public class SAVValueLabels {
      * See SAVValue.
      */
     public int type;
-    
+
     /**
      * Actual mapping of values to labels.
      * The labels have (8, 1) alignment in the System file format.
      */
     public Map<SAVValue, String> map;
-    
+
     /**
      * List of associated variables
      */
     public Vector<SAVVariable> variables;
-    
-    
+
+
     // CONSTRUCTORS
     //==============
-    
+
     public SAVValueLabels() {
         type = SAVValue.TYPE_UNASSIGNED;
         map = new LinkedHashMap<SAVValue, String>();
         variables = new Vector<SAVVariable>();
     }
-    
+
     // OTHER METHODS
     //===============
-    
+
 }

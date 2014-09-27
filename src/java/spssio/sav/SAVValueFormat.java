@@ -24,10 +24,10 @@ package spssio.sav;
  * or how the value is expected to be formatted when parsing (input).
  */
 public class SAVValueFormat {
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * The least-significant byte of the int32 represents 
      * the number of decimal places, 
@@ -36,11 +36,11 @@ public class SAVValueFormat {
      * The most-significant byte is not used and should be set to zero. 
      */
     public int raw;
-    
-    
+
+
     // CONSTRUCTORS
     //==============
-    
+
     public SAVValueFormat() {
         raw = 0;
     }
@@ -48,7 +48,7 @@ public class SAVValueFormat {
     public SAVValueFormat(int raw) {
         this.raw = raw;
     }
-    
+
     public SAVValueFormat(int width, int decimals, int type) {
         // truncate
         width = width & 0xff;
@@ -57,14 +57,14 @@ public class SAVValueFormat {
         // assign
         this.raw = (decimals << 16) | (width << 8) | (type);
     }
-    
+
     // OTHER METHODS
     //===============
-    
+
     public Object clone() {
         return new SAVValueFormat(this.raw);
     }
-    
+
     public int getWidth() {
         return (raw >>> 8) & 0xff;
     }
@@ -76,7 +76,7 @@ public class SAVValueFormat {
     public int getType() {
         return (raw >>> 0) & 0xff;
     }
-    
+
     public void setWidth(int width) {
         raw &= ~(0xff << 8);
         raw |= (width & 0xff) << 8;
@@ -91,5 +91,5 @@ public class SAVValueFormat {
         raw &= ~(0xff << 0);
         raw |= (type & 0xff) << 0;
     }
-    
+
 }

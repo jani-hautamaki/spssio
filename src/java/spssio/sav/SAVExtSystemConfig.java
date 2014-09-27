@@ -35,7 +35,7 @@ public class SAVExtSystemConfig
 {
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Software version number, major part
      */
@@ -55,34 +55,34 @@ public class SAVExtSystemConfig
      * Machine code
      */
     public int machineCode;
-    
+
     /**
      * Floating-point representation format
      */
     public int fpFormat;
-    
+
     /**
      * Compression code ??
      */
     public int compression;
-    
+
     /**
      * System endiannes.
      * Values: 1 (Big-Endian), 2 (Little-Endian).
      */
     public int systemEndianness;
-    
+
     /**
      * Code page used in string encoding.
      * Values: 1 (EBCDIC), 2 (7-bit ASCII), 3 (8-bit ASCII), 4 (DEC Kanji),
      * Windows code page numbers are also valid.
      */
     public int stringCodepage;
-    
-    
+
+
     // CONSTRUCTORS
     //==============
-    
+
     public SAVExtSystemConfig() {
         versionMajor = 0;
         versionMinor = 0;
@@ -93,5 +93,5 @@ public class SAVExtSystemConfig
         systemEndianness = 0;
         stringCodepage = 0;
     }
-    
+
 } // class SAVExtSystemConfig

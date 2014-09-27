@@ -47,31 +47,31 @@ import java.util.Vector;
  */
 public class PORValueLabels
 {
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Determines the type of the values.
      * Uses same constants are PORValue
      */
     public int type;
-    
+
     /**
      * List of the variables.
      * TODO: rename into variables
      */
     public Vector<PORVariable> vars;
-    
+
     /**
      * List of the (value, label) pairs. The {@code Map} is an order-preserving map.
      * TODO: rename into map
      */
     public Map<PORValue, String> mappings;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /**
      * Creates an empty value labels record.
      */
@@ -80,10 +80,9 @@ public class PORValueLabels
         vars = new Vector<PORVariable>();
         mappings = new LinkedHashMap<PORValue, String>();
     } // ctor
-    
+
     // OTHER METHODS
     //===============
-    
-    
+
+
 } // class PORValueLabels
-    

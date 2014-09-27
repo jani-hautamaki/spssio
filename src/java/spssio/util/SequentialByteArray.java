@@ -33,40 +33,40 @@ public class SequentialByteArray
 {
     // CONSTANTS
     //===========
-    
+
     /**
      * Number of bytes in an array element. For int[] array this needs
      * to be 4, and for long[] array this needs to be 8.
      */
     private static final int BYTES_IN_ELEMENT               = 4;
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /** The data array */
     private int[] data;
 
     /** Size in bytes */
     private int size;
-    
+
     // Reading/Writing at byte-level
     //===============================
-    
+
     /** Current array element number */
     private int offset;
-    
+
     /** Current total byte offset. */
     private int cbyte;
 
     /** Current byte number within the array element */
     private int bytenum;
-    
+
     /** Current array element value */
     private int elem;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /**
      * Creates an uninitialized {@code SequentialByteArray}.
      * The byte array needs to be allocated with {@link #allocate(int)}
@@ -75,13 +75,13 @@ public class SequentialByteArray
     public SequentialByteArray() {
         data = null;
         size = 0;
-        
+
         offset = 0;
         cbyte = 0;
         bytenum = 0;
         elem = 0;
     } // ctor
-    
+
     /**
      * Creates an initialized {@code SequentialByteArray}.
      * 
@@ -90,14 +90,14 @@ public class SequentialByteArray
      */
     public SequentialByteArray(int size_bytes) {
         this(); // call default ctor
-        
+
         // Allocate
         allocate(size_bytes);
     } // ctor
-    
+
     // OTHER METHODS
     //===============
-    
+
     /**
      * Allocates memory for the given number of bytes.
      * The allocation loses any previously allocated data.
@@ -108,14 +108,14 @@ public class SequentialByteArray
         size = size_bytes;
         int elems = (size + BYTES_IN_ELEMENT - 1) / BYTES_IN_ELEMENT;
         data = new int[elems];
-        
+
         // Reset head position
         offset = 0;
         cbyte = 0;
         bytenum = 0;
         elem = 0;
     } // allocate
-    
+
     /**
      * Limits the current size
      */
@@ -123,12 +123,12 @@ public class SequentialByteArray
         if (size >= this.size) {
             throw new IllegalArgumentException();
         }
-        
+
         this.size = size;
-        
+
         // TODO: Does not saturate the offset
     }
-    
+
     public void reallocate(int size_bytes_new) {
         int size_new = size_bytes_new;
         int elems_new = (size_new + BYTES_IN_ELEMENT - 1) / BYTES_IN_ELEMENT;
@@ -138,7 +138,7 @@ public class SequentialByteArray
         int[] data_new = new int[elems_new];
 
         // If memory allocation was successful, ...
-        
+
         // Copy the contents from the original array to the new array,
         // using java.lang.System.arraycopy
         int elems_to_copy;
@@ -149,20 +149,20 @@ public class SequentialByteArray
             // Array is shrunk by realloc
             elems_to_copy = data_new.length;
         }
-        
+
         System.arraycopy(this.data, 0, data_new, 0, elems_to_copy);
-        
+
         // Put new array into operation
         this.size = size_new;
         this.data = data_new;
-        
+
         // Move head backwards if neccessary
         if (cbyte >= size) {
             seek(size);
         }
-        
+
     } // reallocate()
-    
+
     /**
      * Writes the specified byte into the array. 
      * The internal head is moved forward. The first byte of 
@@ -186,13 +186,13 @@ public class SequentialByteArray
         if (cbyte == size) {
             throw new RuntimeException("Cannot write; not enough space");
         }
-        
+
         // Clear out the previous byte in the data element.
         elem &= ~((int)0xff << (bytenum << 3));
-        
+
         // Use bitwise OR to include the input byte to the data element.
         elem |= (c & 0xff) << (bytenum << 3);
-        
+
         // Head forward
         bytenum++;
         cbyte++;
@@ -229,18 +229,18 @@ public class SequentialByteArray
         int len
     ) {
         int bytesWritten = 0;
-        
+
         // Otherwise, there's at least one byte to read
         while ((bytesWritten < len) && (cbyte < size)) {
             write( ((int) buffer[offset]) & 0xff );
             offset++;
             bytesWritten++;
         }
-        
+
         return bytesWritten;
     } // read()
-    
-    
+
+
     /**
      * For symmetry and completeness.
      * Currently identical to {@link #write(int)}.
@@ -249,10 +249,10 @@ public class SequentialByteArray
         if (cbyte == size) {
             throw new RuntimeException("Cannot write; not enough space");
         }
-        
+
         write(c);
     }
-    
+
     /** 
      * Writes the specified word (2-byte) into the array.
      *
@@ -268,7 +268,7 @@ public class SequentialByteArray
         if (cbyte >= size-1) {
             throw new RuntimeException("Cannot write; not enough space");
         }
-        
+
         for (int i = 0; i < 2; i++) {
             write(word & 0xff);
             word = word >>> 8; // Unsigned shift right
@@ -290,7 +290,7 @@ public class SequentialByteArray
         if (cbyte >= size-3) {
             throw new RuntimeException("Cannot write; not enough space");
         }
-        
+
         for (int i = 0; i < 4; i++) {
             write(dword & 0xff);
             dword = dword >>> 8; // Unsigned shift right
@@ -312,13 +312,13 @@ public class SequentialByteArray
         if (cbyte >= size-7) {
             throw new RuntimeException("Cannot write; not enough space");
         }
-        
+
         for (int i = 0; i < 8; i++) {
             write((int)(qword & 0xff));
             qword = qword >>> 8; // Unsigned shift right
         }
     } // write4()
-    
+
     /**
      * Reads a byte currently under the read/write head.
      * The read/write head is moved forward by one byte.
@@ -327,30 +327,30 @@ public class SequentialByteArray
      *      The byte read, or -1 if end-of-data.
      */
     public final int read() {
-        
+
         if (cbyte == size) {
             return -1;
         }
-        
+
         // Otherwise, the byte under the head at "cbyte" can be read.
-        
+
         if (bytenum == BYTES_IN_ELEMENT) {
             // Read next byte
             offset++;
             elem = data[offset];
             bytenum = 0;
         }
-        
+
         // Read the byte at the "bytenum" position in the data element
         int rval = (elem >>> (bytenum << 3)) & 0xff;
-        
+
         bytenum++;
         cbyte++;
-        
+
         return rval;
     } // read()
 
-    
+
     /**
      * Reads up to {@code len} bytes of data into an array of bytes. 
      * An attempt is made to read as many as {@code len bytes}, 
@@ -377,19 +377,19 @@ public class SequentialByteArray
         if (cbyte == size) {
             return -1;
         }
-        
+
         int bytesRead = 0;
-        
+
         // Otherwise, there's at least one byte to read
         while ((bytesRead < len) && (cbyte < size)) {
             buffer[offset] = (byte) read();
             offset++;
             bytesRead++;
         }
-        
+
         return bytesRead;
     } // read()
-    
+
     /**
      * Reads a byte (2-byte) currently under the read/write head.
      * The read/write head is moved forward by one byte.<p>
@@ -408,11 +408,11 @@ public class SequentialByteArray
         if (cbyte >= size) {
             throw new RuntimeException("Cannot read; not enough data");
         }
-        
+
         return read();
     }
 
-    
+
     /**
      * Reads a word (2-byte) currently under the read/write head.
      * The read/write head is moved forward by one word.
@@ -428,13 +428,13 @@ public class SequentialByteArray
         if (cbyte >= size-1) {
             throw new RuntimeException("Cannot read; not enough data");
         }
-        
+
         int rval = 0;
         for (int i = 0; i < 2; i++) {
             int c = read();
             rval |= (c << (i*8));
         }
-        
+
         return rval;
     }
 
@@ -453,13 +453,13 @@ public class SequentialByteArray
         if (cbyte >= size-3) {
             throw new RuntimeException("Cannot read; not enough data");
         }
-        
+
         int rval = 0;
         for (int i = 0; i < 4; i++) {
             int c = read();
             rval |= (c << (i*8));
         }
-        
+
         return rval;
     }
 
@@ -478,7 +478,7 @@ public class SequentialByteArray
         if (cbyte >= size-7) {
             throw new RuntimeException("Cannot read; not enough data");
         }
-        
+
         long rval = 0;
         for (int i = 0; i < 8; i++) {
             // Must cast from int to long!
@@ -487,7 +487,7 @@ public class SequentialByteArray
             long c = (long) read();
             rval |= (c << (i*8));
         }
-        
+
         return rval;
     }
 
@@ -525,16 +525,16 @@ public class SequentialByteArray
         offset = tobyte / BYTES_IN_ELEMENT;
         // Set in-element offset
         bytenum = tobyte % BYTES_IN_ELEMENT;
-        
+
         // Pick the corresponding data element, if within boundaries
         if (offset < data.length) {
             elem = data[offset];
         } else {
             elem = 0;
         }
-        
+
     } // seek()
-    
+
     /**
      * Get the size of the array in bytes.
      * @return The array size in bytes.
@@ -542,7 +542,7 @@ public class SequentialByteArray
     public int size() {
         return size;
     }
-    
+
     /**
      * Get the reading/writing head position (in bytes).
      * @return The current byte offset
@@ -550,33 +550,33 @@ public class SequentialByteArray
     public int pos() {
         return cbyte;
     }
-    
+
     // for testing
     public static void main(String[] args) {
         SequentialByteArray matrix = new SequentialByteArray();
         int len = 16; // divisible by 2, 4, and 8
         matrix.allocate(len);
-        
+
         for (int i = 0; i < len; i++) {
             matrix.write(i);
         }
         matrix.flush();
-        
+
         int pos = 5;
         matrix.seek(pos);
         for (int i = pos; i < len+6; i++) {
             int c = matrix.read();
             System.out.printf("data[%d] = %d\n", i, c);
         }
-        
+
         // Test write2/read2
         System.out.printf("read/write 2\n");
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/2; i++) {
             matrix.write2(0xaabb);
         }
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/2; i++) {
             int c = matrix.read2();
@@ -586,12 +586,12 @@ public class SequentialByteArray
         // Test write4/read4
         System.out.printf("read/write 4\n");
 
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/4; i++) {
             matrix.write4(0xaabbccdd);
         }
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/4; i++) {
             int c = matrix.read4();
@@ -599,23 +599,23 @@ public class SequentialByteArray
         }
 
         // Test write8/read8
-        
+
         System.out.printf("read/write 8\n");
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/8; i++) {
             matrix.write8(0x12345678abcdef0L);
         }
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/8; i++) {
             long c = matrix.read8();
             System.out.printf("data[%d] = %08x%08x\n", 
                 i, c >>> 32, (c & 0xffffffffL));
         }
-        
+
         System.out.printf("reallocate: expand\n");
-        
+
         len = matrix.size()*2;
         matrix.reallocate(len);
 
@@ -627,9 +627,9 @@ public class SequentialByteArray
         }
 
         // Test write8/read8
-        
+
         System.out.printf("read/write 8 after realloc\n");
-        
+
         matrix.seek(0);
         for (int i = 0; i < len/8; i++) {
             matrix.write8(0xfedcba9876543210L);
@@ -652,8 +652,8 @@ public class SequentialByteArray
 
         System.out.printf("After reallocate, the head is at %d\n",
             matrix.pos());
-        
-        
+
+
     } // main()
-    
+
 } // PORDataMatrix

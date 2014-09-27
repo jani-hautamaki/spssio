@@ -38,50 +38,50 @@ import spssio.common.SPSSFormat;
  * TBC: Rename {@code printfmt} and {@code writefmt} into readfmt and writefmt?
  */
 public class PORVariable {
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Width of the variable. This is 0 for a numeric variable, 
      * and a number between 1 and 255 for a string variable. 
      */
     public int width;
-    
+
     /**
      * Short name of the variable. 1-8 characters long. 
      * Must be in all capitals. 
      */
     public String name;
-    
+
     /** 
      * Print format. Same as in SAVFile.
      */
     public SPSSFormat printfmt;
-    
+
     /**
      * Write format. Same as in SAVFile.
      */
     public SPSSFormat writefmt;
     // TBC: parsefmt?
-    
+
     /**
      * Tag codes '8', '9', 'A' and 'B', missing value specifications (optional).
      * If there aren't any missing values, the vector length is zero.
      */
     public Vector<PORMissingValue> missvalues;
     // TBC: missings?
-    
+
     /**
      * Tag code 'C', variable label (optional).
      * Portable files max 255 chars while System files max 120 chars.
      * If the field is not present, this is set to {@code null}.
      */
     public String label;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /** Create an uninitialized variable */
     public PORVariable() {
         width = -1;
@@ -91,7 +91,7 @@ public class PORVariable {
         missvalues = new Vector<PORMissingValue>(3);
         label = null;
     } // ctor
-    
+
     /**
      * Creates a numeric variable.
      *
@@ -105,43 +105,43 @@ public class PORVariable {
         String label
     ) {
         // TODO: Validate input
-        
+
         PORVariable v = new PORVariable();
         v.width = 0; // zero width indicates numeric variable
         v.name = name; // TODO: Check limits
         v.label = label; // TODO: Check limits
-        
+
         return v;
     } // createNumeric()
-    
+
     public static PORVariable createString(
         String name,
         int width,
         String label
     ) {
         // TODO: Validate input
-        
+
         PORVariable v = new PORVariable();
         v.width = width;
         v.name = name;
         v.label = label;
-        
+
         return v;
     } // createTextual()
-    
+
     // OTHER METHODS
     //===============
-    
+
     public String getName() {
         return name;
     }
-    
+
     public String getLabel() {
         return label;
     }
-    
+
     public int getWidth() {
         return width;
     }
-    
+
 } // class PORVariable

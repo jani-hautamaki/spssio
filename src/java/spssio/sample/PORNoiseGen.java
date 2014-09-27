@@ -42,10 +42,10 @@ import spssio.por.PORFile;
  *
  */
 public class PORNoiseGen {
-    
+
     // CONSTANTS
     //===========
-    
+
     /**
      * Exit code for succesful run.
      */
@@ -55,7 +55,7 @@ public class PORNoiseGen {
      * Exit code for unsuccesful run.
      */
     public static final int EXIT_FAILURE = 1;
-    
+
     /**
      * Command-line options
      */
@@ -69,7 +69,7 @@ public class PORNoiseGen {
         public String outputFilename = null;
         public int bufferSize = 0;
     } // class Options
-    
+
     public static void parseArguments(String[] args, Options opt) {
         for (int i = 0; i < args.length; i++) {
             String carg = args[i];
@@ -111,7 +111,7 @@ public class PORNoiseGen {
             } // if-else
         } // for: each arg
     } // parseArgs()
-    
+
     public static void usage() {
         System.out.printf("Options:\n");
         System.out.printf("   -rows=n         Set number of rows to n (default: 100)\n");
@@ -121,7 +121,7 @@ public class PORNoiseGen {
         System.out.printf("    -sysmiss=c      Set values above/below c*sigma to SYSMISS (default: 3.0)\n");
         System.out.printf("    -bufsize=n      Set output buffer size to n\n");
     }
-    
+
     protected static int parseIntArg(String carg) {
         String s = carg.substring(carg.indexOf('=')+1);
         try {
@@ -129,7 +129,7 @@ public class PORNoiseGen {
         } catch(NumberFormatException ex) {
             error("Not an integer: %s\n", s);
         } // try-catch
-        
+
         // Never reached
         throw new RuntimeException("Impossible");
     } // parseIntArg()
@@ -141,11 +141,11 @@ public class PORNoiseGen {
         } catch(NumberFormatException ex) {
             error("Not a number: %s\n", s);
         } // try-catch
-        
+
         // Never reached
         throw new RuntimeException("Impossible");
     } // parseIntArg()
-    
+
     /** 
      * Serialize Portable file to {@code OutputStream} 
      * according to {@code Options}.
@@ -156,7 +156,7 @@ public class PORNoiseGen {
     ) 
         throws IOException
     {
-        
+
         // Create PORWriter for the OutputStream object
         PORWriter writer = new PORWriter(os);
 
@@ -172,34 +172,34 @@ public class PORNoiseGen {
 
         // Software
         writer.outputSoftware("PORNoiseGen");
-        
+
         // Author
         writer.outputAuthor("John Doe");
-        
+
         // Title
         writer.outputTitle(String.format(
             "normal distr (mean=%g, std=%g)", opt.mean, opt.stddev));
 
         // Variable count
         writer.outputVariableCount(opt.cols);
-        
+
         // Numeric precision
         writer.outputNumericPrecision(
             writer.getNumberFormatter().getPrecision());
-        
+
         // Save the generated variable names into this
         Vector<String> varnames = new Vector<String>(opt.cols);
-        
+
         // Write variable records
         for (int i = 0; i < opt.cols; i++) {
-            
+
             // Generate variable name, and record it to the vector
             String name = String.format("V_%04d", i);
             varnames.add(name);
-            
+
             // For a list of print/write format types, see
             // http://www.gnu.org/software/pspp/pspp-dev/html_node/Variable-Record.html#Variable-Record
-            
+
             // Write variable record
             writer.outputVariableRecord(
                 0,          // variable width (0: numeric)
@@ -207,14 +207,14 @@ public class PORNoiseGen {
                 5, 40, 40,  // print type/width/decimals
                 5, 40, 40   // write type/width/decimals
             );
-            
+
             // Output missing values here, if any
-            
+
             // Finally output the variable label
-            
+
             String label = String.format(
                 "[%s] Automatically generated variable", name);
-            
+
             /*
             StringBuilder sb = new StringBuilder(100);
             sb.append(String.format("%3d ", i+10));
@@ -223,13 +223,13 @@ public class PORNoiseGen {
             }
             String label = sb.toString();
             */
-            
+
             writer.outputVariableLabel(label);
         } // for: each variable
-        
+
         double std = opt.stddev;
         double mean = opt.mean;
-        
+
         // Create value-label mapping as a linear array:
         Object[] vallabels = new Object[] {
             -3.0*std, "-3*sigma (cumulative: 0.1%) ",
@@ -240,22 +240,22 @@ public class PORNoiseGen {
              2.0*std, "+2*sigma (within CI: 95.5%)",
              3.0*std, "+3*sigma (within CI: 99.7%)",
         };
-        
-        
+
+
         // Output value-label pairs
         writer.outputValueLabelsRecord(
             varnames, Arrays.asList(vallabels));
-        
+
         System.out.printf("rows=%d, cols=%d\n", opt.rows, opt.cols);
-        
+
         printStatusHeaders();
 
         int ynext = 0;
         int ystep = opt.rows / 20;
-        
+
         // Write data matrix tag code
         writer.outputTag('F');
-        
+
         /*
         for (int y = 0; y < opt.rows; y++) {
             for (int x = 0;  x < opt.cols; x++) {
@@ -268,7 +268,7 @@ public class PORNoiseGen {
             }
         } // for: each row
         */
-        
+
         // Serialize data
         double sysmiss_limit = opt.stddev * opt.sigmaSysmiss;
         double randval;
@@ -284,7 +284,7 @@ public class PORNoiseGen {
                     // Mark missing
                     sysmiss = true;
                 } // if: over sysmiss sigma limit
-                
+
                 if (sysmiss == false) {
                     writer.outputDouble(randval*opt.stddev+opt.mean);
                 } else {
@@ -296,15 +296,15 @@ public class PORNoiseGen {
                 printStatusLine(y, opt.rows);
             }
         } // for: each row
-        
-        
-        
+
+
+
         printStatusLine(opt.rows, opt.rows);
-        
+
         // Write end-of-file
         writer.outputEofMarkers();
     } // outputPortable()
-    
+
     public static void outputPortable2(
         OutputStream os,
         Options opt
@@ -313,24 +313,24 @@ public class PORNoiseGen {
     {
         // Through PORFile object
         PORFile por = new PORFile();
-        
+
     }
-    
-    
+
+
     public static void main(String[] args) {
-        
+
         if (args.length == 0) {
             usage();
             System.exit(EXIT_SUCCESS);
         }
-        
+
         // Instantiate new container for command-line options.
         Options opt = new Options();
-        
+
         // Parse command-line arguments.
         try {
             parseArguments(args, opt);
-            
+
             // Verify settings
             if (opt.outputFilename == null) {
                 error("No output file specified");
@@ -344,31 +344,31 @@ public class PORNoiseGen {
             } // if-else
             System.exit(EXIT_FAILURE);
         } // try-catch
-        
+
         OutputStream os = null;
         try {
-            
+
             // Try to open the output file
             try {
                 // Create new file output stream
                 os = new FileOutputStream(new File(
                     opt.outputFilename));
-                
+
                 // Wrap to a buffer
                 if (opt.bufferSize > 0) {
                     os = new BufferedOutputStream(os, opt.bufferSize);
                 } else {
                     os = new BufferedOutputStream(os);
                 }
-                
+
             } catch(Exception ex) {
                 // rephrase error
                 error(ex, "Cannot open file (%s)", opt.outputFilename);
             } // try-catch
-            
+
             // Start timing
             long startTime = System.nanoTime();
-        
+
             outputPortable(os, opt);
 
             // Stop timing
@@ -376,10 +376,10 @@ public class PORNoiseGen {
 
             // Calculate duration
             long duration = endTime - startTime;
-            
+
             // Notify
             System.out.printf("Spent %.2f seconds in writing\n", duration/1.0e9);
-            
+
         } catch(Exception ex) {
             String msg = ex.getMessage();
             if ((opt.debugFlag == true) || (msg == null)) {
@@ -398,7 +398,7 @@ public class PORNoiseGen {
                 } // try-catch
             } // if: file open
         }// try-catch
-        
+
         // Execute
         /*
         open file
@@ -412,7 +412,7 @@ public class PORNoiseGen {
                     outputNumeric(rand())
         outputEndOfData()
         */
-        
+
     } // main()
 
     /*
@@ -437,17 +437,17 @@ public class PORNoiseGen {
         if (msg == null) {
             msg = ex.getClass().getName();
         }
-        
+
         throw new RuntimeException(String.format("%s: %s",
         String.format(fmt, args), msg), ex);
     } // rephrase()
 
-    
+
     private static boolean s_randvalUsed = true;
     private static double s_randval = 0.0;
     private static Random s_rand = new Random();
-    
-    
+
+
     public static double randn() {
         if (s_randvalUsed == false) {
             s_randvalUsed = true;
@@ -460,26 +460,26 @@ public class PORNoiseGen {
                 x2 = 2.0 * s_rand.nextDouble() - 1.0;
                 w = (x1*x1)+(x2*x2);
             } while (w >= 1.0);
-            
+
             // Apply Box-Muller transformation.
             // Generates two normal deviates.
-            
+
             w = Math.sqrt( (-2.0*Math.log(w)) / w );
-            
+
             x1 = x1 * w;
             x2 = x2 * w;
-            
+
             // Record one for later use...
             s_randval = x2;
             s_randvalUsed = false;
             /// .. And return the other now.
             return x1;
         } // if-else
-        
+
     } // randn()
 
 
-                
+
     // Memory bean
     private static MemoryMXBean 
         mem_bean = ManagementFactory.getMemoryMXBean();
@@ -487,14 +487,14 @@ public class PORNoiseGen {
     protected static void printStatusHeaders() {
         System.out.printf("progress        row           used    commit       max\n");
     }
-    
+
     protected static void printStatusLine(int y, int sizey) {
         // Do garbage collectioning prior to memory status
         // (Enabling the gc will choke Java VM on big files)
         //Runtime.getRuntime().gc();
-        
+
         MemoryUsage usage = mem_bean.getHeapMemoryUsage();
-        
+
         //System.out.printf("%3d%%                       %4d      %4d      %4d\n", 
         System.out.printf(" %3d%%        %6d        %4d MB   %4d MB   %4d MB\n", 
             (y*100)/sizey,

@@ -39,15 +39,15 @@ import spssio.sav.output.SAVWriter;
 
 
 public class SAVExtractHidden {
-    
+
     // CONSTANTS
     //===========
-    
+
     /**
      * Exit code for succesful execution.
      */
     public static final int EXIT_SUCCESS = 0;
-    
+
     /**
      * Exit code for failed execution.
      */
@@ -55,28 +55,28 @@ public class SAVExtractHidden {
 
     // HELPER CLASSES
     //================
-    
+
     public static class SAVExtraReader 
         extends SAVReader
     {
-        
+
         // MEMBER VARIABLES
         //==================
-        
+
         private OutputStream ostream;
         private byte[] buffer;
-        
+
         // CONSTRUCTORS
         //==============
-        
+
         public SAVExtraReader() {
             ostream = null;
             buffer = new byte[16]; // 16 bytes is enough
         }
-        
+
         // OTHER METHODS
         //===============
-        
+
         @Override
         public void readAlignedStringPadding(
             String string, 
@@ -90,50 +90,50 @@ public class SAVExtractHidden {
                 throw new RuntimeException(ex);
             }
         }
-        
+
         public void setOutputStream(OutputStream ostream) {
             this.ostream = ostream;
         }
     }
-    
+
     // MAIN
     //======
-    
+
     public static void main(String[] args) {
         if (args.length < 2) {
             usage();
             System.exit(EXIT_SUCCESS);
         }
-        
+
         SAVFile sav = null;
         String fname = null;
 
         SAVExtraReader savExtraReader = new SAVExtraReader();
-        
+
         String sourceFilename = args[0];
         String dataFilename = args[1];
-        
+
         try {
-            
+
             // READING
             System.out.printf("Extracting %s -> %s\n",
                 sourceFilename, dataFilename);
-            
+
             // Create a fname object
             File f = new File(dataFilename);
-        
+
             // May throw FileNotFound
             FileOutputStream fis 
                 = new FileOutputStream(f);
-            
+
             BufferedOutputStream ostream
                 = new BufferedOutputStream(fis);
-            
+
             savExtraReader.setOutputStream(ostream);
 
             // Start timing
             long startTime = System.nanoTime();
-            
+
             // ============== PARSING ==============
             sav = savExtraReader.parse(sourceFilename);
             // =====================================
@@ -145,11 +145,11 @@ public class SAVExtractHidden {
             // Finish timing and calculate duration
             long endTime = System.nanoTime();
             long duration = endTime - startTime;
-            
+
             // Display the time spent
             System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
 
-            
+
         } catch(Exception ex) {
             // Display more detailed error message
             System.out.printf("%s: at %08x: %s\n", 
@@ -157,17 +157,17 @@ public class SAVExtractHidden {
                 savExtraReader.tell(),
                 ex.getMessage()
             );
-            
+
             // Dump the stack trace if debugging enabled
             ex.printStackTrace();
-            
+
             System.exit(EXIT_FAILURE);
         } // try-catch
     } // main()
-    
+
     // OTHER METHODS
     //===============
-    
+
     public static void usage() {
         System.out.printf("SAVExtractHidden (C) 2014 Jani Hautamaki <jani.hautamaki@hotmail.com>\n");
         System.out.printf("\n");
@@ -176,5 +176,5 @@ public class SAVExtractHidden {
         System.out.printf("     SAVExtractHidden <input_sav> <raw_data_output>\n");
         System.out.printf("\n");
     }
-    
+
 }

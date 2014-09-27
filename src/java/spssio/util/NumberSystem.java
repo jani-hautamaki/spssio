@@ -45,45 +45,45 @@ package spssio.util;
  */
 public class NumberSystem
 {
-    
+
     // CONSTANTS
     //===========
-    
+
     /**
      * The initial value for the base indicating that the base hasn't
      * been set yet.
      */
     public static final int BASE_UNSET = -1;
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * The character used for plus sign (default '+').
      */
     char plus_char = '+';
-    
+
     /**
      * The character used for minus sign (default '-').
      */
     char minus_char = '-';
-    
+
     /**
      * The character used for dot/point (default '.').
      */
     char point_char = '.';
-    
+
     /**
      * Quick conversion table from ASCII char to integer.
      * The length of the array is expected to be 256. Invalid entries are
      * marked with -1.
      */
     int[] toint = null;
-    
+
     // TODO:
     // if lowercase letters are equated with the uppercase letters,
     // then populate those too into toint[] array.
-    
+
     /**
      * Quick conversion table from integer to ASCII char.
      * The length of the array is expected to be equal to {@code opt_base}.<p>
@@ -97,24 +97,24 @@ public class NumberSystem
      *  If unset, the base is set to -1.
      */
     int base;
-    
+
     /**
      * Maximum positive double value which can be multiplied by  the base 
      * without overflow.
      */
     double max_double;
-    
+
     /**
      * Smallest POSITIVE double value which can be divided by the base without 
      * underflow.
      */
     double min_double;
-    
+
     /**
      * Maximum long value which can be multiplied by the base without overflow.
      */
     long max_long;
-    
+
     /**
      * Maximum int value which can be multiplied by the base without overflow.
      */
@@ -131,14 +131,14 @@ public class NumberSystem
      * of {@code Double} data type. Otherwise the data type underflows.
      */
     int min_exponent;
-    
+
     /**
      * The highest possible mantissa value when exponent==max_exponent within
      * the numeric limits of {@code Double} data type. 
      * Otherwise the data type overflows.
      */
     double max_mantissa;
-    
+
     /**
      * The smallest possible mantissa value when exponent==min_exponent within
      * the numeric limits of {@code Double} data type.
@@ -152,10 +152,10 @@ public class NumberSystem
      * have in the current base.
      */
     double[] pow;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /** 
      * Default constructor; leaves the base (and digits) unset. 
      * The base (and digits) must be set before usage.
@@ -164,12 +164,12 @@ public class NumberSystem
         // toint[] array is allocated only once,
         // (whereas tochar[] table is reallocated when the radix changes)
         toint = new int[256];
-        
+
         // Keep the base unset. The number system is not initialized 
         // until user explicitly requests so.
         base = BASE_UNSET;
     } // ctor
-    
+
     /**
      * Construct with the given radix and digits.
      *
@@ -182,17 +182,17 @@ public class NumberSystem
      */
     public NumberSystem(int base, String digits) {
         this();
-        
+
         if (digits != null) {
             setNumberSystem(base, digits);
         } else {
             setBase(base);
         }
     } // ctor
-    
+
     // CONFIGURATION METHODS
     //=======================
-    
+
     /**
      * Sets the base and digits of the number system.
      *
@@ -201,37 +201,37 @@ public class NumberSystem
      *      must be equal to the base.
      */
     public void setNumberSystem(int base, String digits) {
-        
+
         if (base < 2) {
             throw new IllegalArgumentException(String.format(
                 "Invalid base; base=%d, but it must be greather than or equal to 2",
                 base));
         } // if: invalid base
-        
+
         // Get the length of digits string
         int len = digits.length();
-        
+
         if (len != base) {
             throw new IllegalArgumentException(String.format(
                 "Invalid number of digits; base=%d, digits.length()=%d",
                 base, len));
         } // if: invalid number of digits
-        
+
         // Record the base
         this.base = base;
-        
+
         // Clear toint[] table
         for (int i = 0; i< toint.length; i++) {
             toint[i] = -1;
         }
-        
+
         // Allocate new tochar[] table
         tochar = new int[base];
-        
+
         for (int i = 0; i < base; i++) {
             // Get the character at index "i".
             char c = digits.charAt(i);
-            
+
             // Verify that "c" isn't already used
             for (int j = 0; j < i; j++) {
                 if (tochar[j] == c) {
@@ -240,40 +240,40 @@ public class NumberSystem
                         c, i, j));
                 } // if: duplicate digit
             } // for: each digit already specified
-            
+
             // Convert to an integer, and get rid of the sign expansion,
             // which happens for values 0x7F < x <= 0xFF.
             int cval = ((int) c) & 0xff;
-            
+
             // Put the values to the tables.
             tochar[i] = cval;
             toint[cval] = i;
-            
+
             // and possibly the lowercase letter's cval too?
         } // for: each digit
-        
+
         // Calculate maximum and minimum double values feasible for multiplication
         // and division by the base.
-        
+
         max_double = Double.MAX_VALUE / (double) base;
         min_double = Double.MIN_VALUE * (double) base;
-        
+
         // These need to be rounded down in order to work.
         max_long = Long.MAX_VALUE / base;
         max_int = Integer.MAX_VALUE / base;
-        
+
         // Type cast rounds this towards zero.
         max_exponent = (int) (Math.log(Double.MAX_VALUE) / Math.log(base));
         // (when base=30, this results npow = 208 = 0xD0)
-        
+
         // Type cast rounds this towards zero.
         min_exponent = (int) (Math.log(Double.MIN_VALUE) / Math.log(base));
 
         // Calcualte maximum and minimum allowed mantissa values when
         // exponent is set to maximum/minimum value
-        
+
         max_mantissa = Double.MAX_VALUE / Math.pow(base, max_exponent);
-        
+
         min_mantissa = Double.MIN_VALUE / Math.pow(base, min_exponent);
 
         // Minimum mantissa has to be corrected in this way, because Math.pow()
@@ -284,18 +284,18 @@ public class NumberSystem
         // Allocate new array for powers, garbaging the old.
         // The +1 is there so that max_exponent will be the last valid position.
         pow = new double[max_exponent+1];
-        
+
         // Precalc the powers.
         for (int cexp = 0; cexp < pow.length; cexp++) {
             pow[cexp] = Math.pow(base, (double) cexp);
         } // for
 
     } // setNumberSystem()
-    
+
     //          1         2
     // 12345678901234567890123456
     // ABCDEFGHIJKLMNOPQRSTUVWXYZ
-    
+
     /**
      * Convenience method for setting the number system. The method will
      * automatically calculate the digits up to base-64.
@@ -308,11 +308,11 @@ public class NumberSystem
             throw new RuntimeException(String.format(
                 "Invalid base; cannot automatically generate digits for bases greater than 64"));
         } // if: base too big
-        
+
         StringBuilder sb = new StringBuilder(base);
         for (int i = 0; i < base; i++) {
             int c = -1;
-            
+
             if (i < 10) {
                 c = '0';
                 c += i;
@@ -324,7 +324,7 @@ public class NumberSystem
             else if (i < (10+26+26)) {
                 c = 'a';
                 c += (i-10-26);
-                
+
             }
             else if (i == (10+26+26+0)) {
                 c = '+';
@@ -334,48 +334,48 @@ public class NumberSystem
             }
             sb.append( (char) c);
         } // for
-        
+
         setNumberSystem(base, sb.toString());
     } // setBase()
-    
+
     // OTHER METHODS
     //===============
-    
+
     public final int[] getToIntArray() {
         return toint;
     } // getToIntArray()
-    
+
     public final int[] getToCharArrays() {
         return tochar;
     } // getToCharArray()
-    
+
     public String getDigits() {
         return new String(tochar, 0, tochar.length);
     } // getDigits()
-    
+
     public int getBase() {
         return base;
     } // getBase()
-    
+
     public double getMinDouble() {
         return min_double;
     } // getMinDouble()
-    
+
     public double getMaxDouble() {
         return max_double;
     } // getMaxDouble()
-    
+
     public char getMinusChar() {
         return minus_char;
     } // getMinusChar()
-    
+
     public char getPlusChar() {
         return plus_char;
     } // getPlusChar()
-    
+
     public char getPointChar() {
         return point_char;
     } // getPointChar()
-    
-    
+
+
 } // class NumberSystemHelper

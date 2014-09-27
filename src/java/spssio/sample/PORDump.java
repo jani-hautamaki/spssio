@@ -34,12 +34,12 @@ import spssio.por.PORValue;
 import spssio.por.PORSection;
 
 public class PORDump {
-    
+
     /**
      * Exit code for succesful execution.
      */
     public static final int EXIT_SUCCESS = 0;
-    
+
     /**
      * Exit code for failed execution.
      */
@@ -47,37 +47,37 @@ public class PORDump {
 
     // MAIN
     //======
-    
+
     public static void main(String[] args) {
-    
+
         if (args.length < 1) {
             usage();
             System.exit(EXIT_SUCCESS);
         }
-        
+
         String fname = args[0];
         System.out.printf("%s\n", fname);
-        
+
         PORReader porReader = new PORReader();
         PORFile por = null;
-        
+
         try {
             // Start timing
             long startTime = System.nanoTime();
-            
+
             // ============== PARSING ==============
             por = porReader.parse(fname);
             // =====================================
-            
+
             // Finish timing
             long endTime = System.nanoTime();
 
             // Calculate time spent
             long duration = endTime - startTime;
-            
+
             // Display the time spent
             System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
-            
+
         } catch(Exception ex) {
             // Display more detailed error message
             /*
@@ -89,37 +89,37 @@ public class PORDump {
             */
             // Dump the stack trace if debugging enabled
             ex.printStackTrace();
-            
+
             //System.out.printf("Attempting to display the por file anyway\n");
             //displayPORFile(savReader.getLatestSAVFile(), savReader);
-            
+
             System.exit(EXIT_FAILURE);
         } // try-catch
-        
+
         // Printing...
         displayPORFile(por);
-        
+
         System.exit(EXIT_SUCCESS);
     } // main()
-        
+
     public static void usage() {
     }
-    
+
     public static void displayPORFile(PORFile por) {
         System.out.printf("Header:\n");
         displayPORHeader(por.header);
-        
+
         System.out.printf("Various:\n");
         displayVarious(por);
-        
+
         displayVariables(por.variables);
-        
+
         //displayValueLabelMaps(por.labels);
-        
+
         displaySections(por.sections);
-        
+
     }
-    
+
     public static void displayPORHeader(PORHeader header) {
         // Splash strings not displayed for now.
         // Charset ignored for now.
@@ -128,7 +128,7 @@ public class PORDump {
         System.out.printf("  Date:                      %s\n", header.date);
         System.out.printf("  Time:                      %s\n", header.time);
     }
-    
+
     public static String maybeNull(String value) {
         StringBuilder sb = new StringBuilder(128);
         if (value == null) {
@@ -136,10 +136,10 @@ public class PORDump {
         } else {
             sb.append(String.format("\"%s\"", value));
         }
-        
+
         return sb.toString();
     }
-    
+
     public static void displayVarious(PORFile por) {
         // tag 1
         System.out.printf("  Software:                  %s\n", maybeNull(por.software));
@@ -154,8 +154,8 @@ public class PORDump {
         // tag 6
         System.out.printf("  Weight variable name:      %s\n", maybeNull(por.weightVariableName));
     }
-    
-    
+
+
     public static void displayVariables(Vector<PORVariable> variables) {
         int num = 0;
         for (PORVariable v : variables) {
@@ -164,7 +164,7 @@ public class PORDump {
             num++;
         }
     }
-    
+
     public static void displayPORVariable(PORVariable v) {
         System.out.printf("  Name:                      \"%s\"\n", v.name);
         System.out.printf("  Width:                     %d\n", v.width);
@@ -176,7 +176,7 @@ public class PORDump {
         }
         System.out.printf("  Label:                     %s\n", maybeNull(v.label));
     }
-    
+
     public static void displayValueLabelMaps(
         Vector<PORValueLabels> maps
     ) {
@@ -187,14 +187,14 @@ public class PORDump {
             num++;
         }
     }
-    
+
     public static void displayPORValueLabels(PORValueLabels vls) {
         System.out.printf("  Variables affected:\n");
         displayVariableList(vls.vars); // TODO
         System.out.printf("  Value-Label mappings:\n");
         displayVLMap(vls.mappings, vls.type); // TODO
     }
-    
+
     public static void displayVariableList(Vector<PORVariable> list) {
         int count = 0;
         for (PORVariable v : list) {
@@ -204,7 +204,7 @@ public class PORDump {
                 System.out.printf("    ");
             }
             System.out.printf("%-8s", v.name);
-            
+
             count++;
             if (count == 6) {
                 System.out.printf("\n");
@@ -215,13 +215,13 @@ public class PORDump {
             System.out.printf("\n");
         }
     }
-    
+
     public static void displayVLMap(Map<PORValue, String> map, int type) {
         int count = 0;
-        
+
         for (Map.Entry<PORValue, String> e : map.entrySet()) {
             count++;
-            
+
             PORValue value = e.getKey();
             String label =  e.getValue();
 
@@ -239,7 +239,7 @@ public class PORDump {
                     throw new RuntimeException(String.format(
                         "Value-Label map has uninterpreted values"));
             } // switch
-            
+
             System.out.printf("    %-8s    %s\n", valueString, label);
             */
         }
@@ -253,22 +253,22 @@ public class PORDump {
             num++;
         }
     }
-    
+
     public static Map<Integer, String> s_porSectionNames = null;
-    
+
     public static String getPORSectionName(PORSection section) {
         if (s_porSectionNames == null) {
             s_porSectionNames = newPORSectionNamesMap();
         }
-        
+
         String rval = s_porSectionNames.get(section.tag);
-        
+
         return rval;
     }
-    
+
     public static Map<Integer, String> newPORSectionNamesMap() {
         Map<Integer, String> map = new HashMap<Integer, String>();
-        
+
 
         map.put(PORSection.TAG_SOFTWARE, "Software");
         map.put(PORSection.TAG_AUTHOR, "Author");
@@ -285,9 +285,9 @@ public class PORDump {
         map.put(PORSection.TAG_VALUE_LABELS, "Value-Label map");
         map.put(PORSection.TAG_DOCUMENTS_RECORD, "Documents"); // TODO: TAG_DOCUMENTS
         map.put(PORSection.TAG_DATA_MATRIX, "Data matrix");
-        
+
         return map;
     }
-    
-    
+
+
 } // class PORDump

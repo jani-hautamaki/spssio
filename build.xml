@@ -6,15 +6,15 @@
 
         Java classes for reading and writing 
         SPSS/PSPP Portable and System files
-  
+
         Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
-  
+
         Licensed under the terms of GNU General Public License v3.
-  
+
         You should have received a copy of the GNU General Public License v3
         along with this program as the file LICENSE.txt; if not, please see
         http://www.gnu.org/licenses/gpl-3.0.html
-  
+
 **********************************{end:header}******************************-->
 
 <project name="spssio" default="build" basedir=".">
@@ -81,7 +81,7 @@
 
   <!-- Redistributable package -->
   <property name="zip.file"                   value="${base.name}-${version}.zip" />
-  
+
   <property name="nightlyzip.file"            value="${base.name}-${DSTAMP}.zip" />
 
   <!-- Embed build details to this java source file (in sources.dir) -->
@@ -90,7 +90,7 @@
   <!-- =================================================================== -->
   <!-- Automatic inclusion of all .jar files in the lib.dir                -->
   <!-- =================================================================== -->
-  
+
   <!-- NOTE: These will have absolute paths -->
   <path id="classpath.lib">
     <fileset dir="${lib.dir}">
@@ -101,7 +101,7 @@
   <!-- =================================================================== -->
   <!-- Java compilation options                                            -->
   <!-- =================================================================== -->
-    
+
   <property name="compile.debug"       value="true" />
   <property name="compile.optimize"    value="true" />
   <property name="compile.target"      value="1.6" />
@@ -117,7 +117,7 @@
 
     <!-- Assert output dir existence -->
     <mkdir dir="${build.dir}" />
-    
+
     <!-- Execute javac -->
     <javac srcdir="${jsources.dir}"
            destdir="${build.dir}"
@@ -153,7 +153,7 @@
   <!-- =================================================================== -->
   <!-- Script files in "bin.dir"                                           -->
   <!-- =================================================================== -->
-  
+
   <!-- NOTE: These will have absolute paths -->
   <fileset id="templ.fileset" dir="${templ.dir}">
     <include name="*" />
@@ -170,7 +170,7 @@
   <pathconvert pathsep=" " property="templbash.list" refid="templbash.fileset">
     <mapper type="flatten" />
   </pathconvert>
-  
+
   <!-- =================================================================== -->
   <!-- Instantiate scripts from "temp.dir" into "bin.dir"                  -->
   <!-- =================================================================== -->
@@ -180,11 +180,11 @@
 
     <!-- Assert output dir existence -->
     <mkdir dir="${bin.dir}" />
-    
+
     <!-- Read-filter-write -->
     <copy todir="${bin.dir}" overwrite="true">
       <fileset refid="templ.fileset" />
-      
+
       <filterchain>
         <tokenfilter>
           <replacestring from="build.dir" to="${build.dir}" />
@@ -215,7 +215,7 @@
           description="Install bin scripts to the repository root">
     <copy todir="." overwrite="true">
       <fileset refid="templ.fileset" />
-      
+
       <filterchain>
         <tokenfilter>
           <replacestring from="../build.dir" to="${build.dir}" />
@@ -224,7 +224,7 @@
         </tokenfilter>
       </filterchain>
     </copy>
-    
+
     <exec executable="chmod" osfamily="unix">
       <arg line="a+x ${templbash.list}" />
     </exec>
@@ -239,7 +239,7 @@
 
     <!-- Assert output dir existence -->
     <mkdir dir="${dist.dir}" />
-    
+
     <!-- Directories -->
     <copy todir="${dist.dir}">
       <fileset dir=".">
@@ -249,7 +249,7 @@
         <include name="text/**/*" />
       </fileset>
     </copy>
-    
+
     <!-- Individual files -->
     <copy todir="${dist.dir}" overwrite="true">
       <fileset dir=".">
@@ -269,7 +269,7 @@
       </mappedresources>
     </zip>
   </target>
-  
+
   <!-- =================================================================== -->
   <!-- Create Javadoc documentation                                        -->
   <!-- =================================================================== -->
@@ -278,7 +278,7 @@
           description="compile javadocs">
     <!-- Assert output dir existence -->
     <mkdir dir="${javadoc.dir}" />
-  
+
     <!-- Compile javadocs -->
     <javadoc      sourcepath="${jsources.dir}"
                   defaultexcludes="yes"
@@ -291,7 +291,7 @@
       <classpath refid="classpath.lib"/>
     </javadoc>
   </target>
-  
+
   <!-- =================================================================== -->
   <!-- Clean all dynamically created directories                           -->
   <!-- =================================================================== -->

@@ -101,7 +101,7 @@ public class PORCharset
      * Writing a portable file can be done in the same manner.<p>
      *
      */
-    
+
     /**
      * "translation array index"-to-"Java char" table.<p>
      *
@@ -121,7 +121,7 @@ public class PORCharset
     public static final int[] DEFAULT_MAPPING = {
         // 0-60    Control characters. Not important enough to describe in full here. 
         // 61-63   Reserved. 
-        
+
         // 64-73   Digits `0' through `9'. 
         64,     '0',
         65,     '1',
@@ -133,7 +133,7 @@ public class PORCharset
         71,     '7',
         72,     '8',
         73,     '9',
-        
+
         // 74-99   Capital letters `A' through `Z'. 
         74,     'A',
         75,     'B',
@@ -161,7 +161,7 @@ public class PORCharset
         97,     'X',
         98,     'Y',
         99,     'Z',
-        
+
         // 100-125 Lowercase letters `a' through `z'. 
         100,    'a',
         101,    'b',
@@ -189,19 +189,19 @@ public class PORCharset
         123,    'x',
         124,    'y',
         125,    'z',
-        
+
         // 126     Space. 
         126,    ' ',
-        
+
         // 127-130 Symbols .<(+ 
         127,    '.',
         128,    '<',
         129,    '(',
         130,    '+',
-        
+
         // 131     Solid vertical pipe. 
         131,    -1,
-        
+
         // 132-142 Symbols &[]!$*);^-/ 
         132,    '&',
         133,    '[',
@@ -214,7 +214,7 @@ public class PORCharset
         140,    '^',
         141,    '-',
         142,    '/',
-        
+
         // 143     Broken vertical pipe. 
         // 144-150 Symbols ,%_>?`: 
         // 151     British pound symbol. 
@@ -232,7 +232,7 @@ public class PORCharset
         153,    '\'',
         154,    '=',
         155,    '\"',
-        
+
         // 156     Less than or equal symbol. 
         // 157     Empty box. 
         // 158     Plus or minus. 
@@ -267,7 +267,7 @@ public class PORCharset
         174,    -1,
         175,    -1,
         176,    -1,
-        
+
         // 177     Lower right corner box draw. 
         // 178     Upper right corner box draw. 
         // 179     Not equal symbol. 
@@ -282,81 +282,81 @@ public class PORCharset
         181,    -1,
         182,    -1,
         183,    -1,
-        
+
         // 184-186 Symbols `{}\'. 
         184,    '{',
         185,    '}',
         186,    '\\',
-        
+
         // 187     Cents symbol. 
         // 188     Centered dot, or bullet. 
         187,    -1,
         188,    -1,
-        
+
         // 189-255 Reserved. 
     }; // TABLE
-    
+
     // Some important constants
     //==========================
-    
+
     /** Full stop ('.'), at index 127. */
     public static final int FULL_STOP                            = 127;
-    
+
     /** Plus sign ('+'), at index 130. */
     public static final int PLUS_SIGN                            = 130;
-    
+
     /** Minus sign ('-'), at index 141. */
     public static final int MINUS_SIGN                           = 141;
-    
+
     /** Slash ('/'), at index 142. */
     public static final int SLASH                                = 142;
-    
+
     /** Asterisk ('*'), at index 137. */
     public static final int ASTERISK                             = 137;
-    
+
     /** Space bar, at index 126. */
     public static final int SPACE                                = 126;
-    
+
     /** Digit zero ('0'), at index 64. */
     public static final int DIGIT_0                              = 64;
-    
+
     /** Uppercase letter 'A', at index 74. */
     public static final int LETTER_UPPERCASE_A                   = 74;
-    
+
     /** Uppercase letter 'Z', at index 99. */
     public static final int LETTER_UPPERCASE_Z                   = 99;
 
     // CLASS VARIABLES
     //=================
 
-    
-    
+
+
     private static int[] g_default_charset = null;
     private static int[] g_identity_table = null;
-    
-    
+
+
     // CONSTRUCTORS
     //==============
-    
+
     /** Constructor intentionally disabled. */
     private PORCharset() {
     } // ctor
 
-    
+
     // CLASS METHODS
     //===============
 
     public static int indexToChar(int index) {
         // For convenience
         final int[] table = DEFAULT_MAPPING;
-        
+
         int c = -1;
-        
+
         // TODO: The following loop could improved with a bisect search.
-        
+
         // Number of entries (each entry occupies two array elements)
         int entries = table.length / 2;
-        
+
         for (int i = 0; i < entries; i++) {
             if (table[(i*2)+0] == index) {
                 // The table entry number "i" contains
@@ -366,15 +366,15 @@ public class PORCharset
                 break; // Stop search immediately
             }
         }
-        
+
         if (c == -1) {
             // Re-interpret the index as a char
             c = index;
         }
-        
+
         return c;
     }
-    
+
     public static void assignDefaultTranslation(byte[] translation) {
         System.arraycopy(
             PORConstants.DEFAULT_TRANSLATION, 0, 
@@ -382,7 +382,7 @@ public class PORCharset
             PORConstants.TRANSLATION_LENGTH
         );
     }
-    
+
     /**
      * Computes an identity table (can be used either as
      * a decoding or an encoding table).
@@ -394,12 +394,12 @@ public class PORCharset
         if (table.length != 256) {
             throw new RuntimeException("table.length != 256");
         }
-        
+
         for (int i = 0; i < table.length; i++) {
             table[i] = i;
         }
     }
-    
+
     /**
      * Computes a decoding table for the given translation
      *
@@ -411,46 +411,46 @@ public class PORCharset
         if ((decodingTable == null) || (translation == null)) {
             throw new IllegalArgumentException();
         }
-        
+
         if (translation.length != 256) {
             throw new RuntimeException("translation.length != 256");
         }
         if (decodingTable.length != 256) {
             throw new RuntimeException("decodingTable.length != 256");
         }
-        
+
         // Clear decoding table
         for (int inByte = 0; inByte < decodingTable.length; inByte++) {
             decodingTable[inByte] = -1;
         }
-        
+
         // In the translation table the unused entries are 
         // marked with zero. Therefore, the byte value used to 
         // indiciate zero must be picked up.
         int zero = translation[DIGIT_0];
-        
+
         // The entry for zero in the decoding table gets skipped
         // in the following loop. Hence, it must be set manually.
         decodingTable[zero] = '0';
-        
+
         for (int index = 0; index < translation.length; index++) {
             // The input byte is character index
             int inByte = ((int) translation[index]) & 0xff;
             // The output byte is the character in Java's internal encoding.
             int outByte = indexToChar(index);
-            
+
             // Zero as the input indicates that the character index
             // should be decoded using the default value.
             if (inByte == zero) {
                 continue;
             }
-            
+
             // Make "inByte" to be decoded as "outByte"
             decodingTable[inByte] = outByte;
-            
+
         } // for
-        
-        
+
+
         // Unspecified entries assume their default output value
         for (int inByte = 0; inByte < decodingTable.length; inByte++) {
             int c = decodingTable[inByte];
@@ -461,10 +461,10 @@ public class PORCharset
             }
         }
     }
-    
 
 
-    
+
+
     public static final int[] getDefaultCharset() {
         if (g_default_charset == null) {
             g_default_charset = new int[256];
@@ -472,7 +472,7 @@ public class PORCharset
         }
         return g_default_charset;
     } // getDefaultCharset()
-    
+
     public static final int[] getIdentityTable() {
         if (g_identity_table == null) {
             g_identity_table = new int[256];
@@ -482,7 +482,7 @@ public class PORCharset
         }
         return g_identity_table;
     } // getIdentityTable()
-    
+
     /**
      * Computes the default charset into the specified array.
      * In this terminology, charset means a 256-element array, whose
@@ -496,41 +496,41 @@ public class PORCharset
             throw new IllegalArgumentException(
                 "Input array is null");
         }
-        
+
         if (table.length != 256) {
             throw new IllegalArgumentException(
                 "Input array\'s length differs from 256 elements");
         }
-        
+
         // Set all entries to an invalid value
         for (int i = 0; i < table.length; i++) {
             table[i] = -1;
         } // for
-        
+
         // Calc the length of TRANS table
         int len = DEFAULT_MAPPING.length / 2;
-        
+
         for (int i = 0; i < len; i++) {
             int offset = i*2;
             int index = DEFAULT_MAPPING[offset+0];
             int value = DEFAULT_MAPPING[offset+1];
-            
+
             // if the value is -1, then skip this
             if (value == -1) {
                 continue;
             } // if: skip
-            
+
             // Otherwise, assert that the entry hasn't been mapped already.
             if (table[index] >= 0) {
                 throw new RuntimeException(String.format(
                     "PORCharset.computeDefaultCharset(): table[%d] >= 0 (internal error). ",
                     index));
             }
-            
+
             // Set mapping to the entry
             table[index] = value;
         } // for
-        
+
     } // computeDefaultCharset()
 
     /**
@@ -547,11 +547,11 @@ public class PORCharset
             throw new IllegalArgumentException(
                 "ComputeDecodingTable(): incorrect array length (internal error)");
         } // if
-        
+
 
         // Get the default charset. This is used as reference.
         final int[] default_charset = getDefaultCharset();
-        
+
         // Set all entries to invalid value
         for (int i = 0; i < dectab.length; i++) {
             dectab[i] = -1;
@@ -560,7 +560,7 @@ public class PORCharset
         // In portable files, unused entries are marked with the zero.
         // Therefore, the code for zero must be picked
         int inzero = charset[DIGIT_0];
-        
+
         // The entry for zero in the decoding table gets skipped
         // in the following loop. It mut be set manually instead:
         dectab[inzero] = '0';
@@ -569,10 +569,10 @@ public class PORCharset
             // When a byte charset[code] is read from a portable file,
             // it should be interpreted as a character default_charset[code]
             // (which is the UTF-8 character for code SPSS symbol code "code").
-            
+
             int inbyte = charset[code];
             int outchar = default_charset[code];
-            
+
             if (inbyte == inzero) {
                 // the input table entry has been marked with zero,
                 // so skip this entry.
@@ -580,9 +580,9 @@ public class PORCharset
                 dectab[code] = code;
                 continue;
             }
-            
+
             // TODO: outchar can be -1. It is probably okay?
-            
+
             // Otherwise, set the corresponding output char
             dectab[inbyte] = outchar;
         } // for
@@ -603,11 +603,11 @@ public class PORCharset
             throw new IllegalArgumentException(
                 "ComputeEncodingTable(): incorrect array length (internal error)");
         } // if
-        
+
 
         // Get the default charset. This is used as reference.
         final int[] default_charset = getDefaultCharset();
-        
+
         // Set all entries to invalid value
         for (int i = 0; i < enctab.length; i++) {
             enctab[i] = -1;
@@ -616,7 +616,7 @@ public class PORCharset
         // In portable files, unused entries are marked with the zero.
         // Therefore, the code for zero must be picked
         int outzero = charset[DIGIT_0];
-        
+
         // The entry for zero in the decoding table gets skipped
         // in the following loop. It mut be set manually instead:
         enctab[outzero] = '0';
@@ -625,13 +625,13 @@ public class PORCharset
             // When a byte charset[code] is read from a portable file,
             // it should be interpreted as a character default_charset[code]
             // (which is the UTF-8 character for code SPSS symbol code "code").
-            
+
             int outbyte = charset[code];
             int inchar = default_charset[code];
-            
+
             // TODO:
             // Validate the outbyte value (by verifying it is < 0x100)
-            
+
             if (outbyte == outzero) {
                 // the input table entry has been marked with zero,
                 // so skip this entry.

@@ -20,55 +20,55 @@ package spssio.sav;
 
 public class SAVExtensionRecord
 {
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Sub tag code
      */
     public int subtag;
-    
+
     /**
      * Data element size in bytes
      */
     public int elementSize;
-    
+
     /**
      * Number of data elements, each "elementSize" bytes long.
      */
     public int numberOfElements;
-    
+
     /**
      * Byte array for the raw data
      * TODO: Use SequentialByteArray for easier access?
      */
     public byte[] data;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     public SAVExtensionRecord() {
         subtag = -1; // hopefully invalid. TODO
         elementSize = 0;
         numberOfElements = 0;
         data = null;
     }
-    
+
     public SAVExtensionRecord(SAVExtensionRecord other) {
         this();
         copy(other);
     }
-    
+
     // OTHER METHODS
     //===============
-    
+
     public void copy(SAVExtensionRecord other) {
         subtag = other.subtag;
         elementSize = other.elementSize;
         numberOfElements = other.numberOfElements;
         data = other.data;
     }
-    
+
 }
 

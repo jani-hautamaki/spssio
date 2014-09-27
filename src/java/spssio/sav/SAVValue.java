@@ -25,49 +25,49 @@ public class SAVValue
 {
     // CONSTANTS
     //===========
-    
+
     /** The cell has unassigned type. */
     public static final int TYPE_UNASSIGNED     = -1;
-    
+
     /** The cell has numeric type. */
     public static final int TYPE_NUMERIC        =  0;
-    
+
     /** The cell has textual type. */
     public static final int TYPE_STRING         =  1;
-    
+
     /** The cell has raw type. */
     public static final int TYPE_RAW            =  2;
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * Determines the type of the cell:
      */
     public int type;
-    
+
     /**
      * The literal contents of the cell, or {@code null} if the cell is empty.
      * If the type is numeric, then this is the numeric value represented as
      * a string, and the string is identical to the one that was found from or will
      * be written to the Portable file.
      */
-     
+
     public String valueString;
-    
+
     public Double valueDouble;
-    
+
     public byte[] valueRaw;
 
     // CONSTRUCTORS
     //==============
-    
+
     /**
      * Creates an empty cell with unassigned type.
      */
     public SAVValue() {
         type = TYPE_UNASSIGNED;
-        
+
         valueString = null;
         valueDouble = null;
         valueRaw = null;
@@ -78,7 +78,7 @@ public class SAVValue
      */
     public SAVValue(byte[] value) {
         type = TYPE_RAW;
-        
+
         valueString = null;
         valueDouble = null;
         valueRaw = value;
@@ -86,62 +86,62 @@ public class SAVValue
 
     // OTHER METHODS
     //===============
-    
+
     // TODO:
     // Type mutation is unallowed!
-    
+
     public void setString(String value) {
         if (type != TYPE_UNASSIGNED) {
             throw new RuntimeException("Mutation not allowed");
         }
-        
+
         valueString = value;
         valueDouble = null;
         valueRaw = null;
-        
+
         type = TYPE_STRING;
     }
-    
+
     public void setDouble(Double value) {
         if (type != TYPE_UNASSIGNED) {
             throw new RuntimeException("Mutation not allowed");
         }
-        
+
         valueString = null;
         valueDouble = value;
         valueRaw = null;
-        
+
         type = TYPE_NUMERIC;
     }
-    
+
     public void setRaw(byte[] value) {
         if (type != TYPE_UNASSIGNED) {
             throw new RuntimeException("Mutation not allowed");
         }
-        
+
         valueString = null;
         valueDouble = null;
         valueRaw = Arrays.copyOf(value, value.length);
     }
-    
-    
+
+
     public Double getDouble() {
         return valueDouble;
     }
-    
+
     public String getString() {
         return valueString;
     }
-    
+
     public byte[] getRaw() {
         return valueRaw;
     }
-    
+
     public int getType() {
         return type;
     }
-    
-    
+
+
     public boolean isNumeric() {
         return type == TYPE_NUMERIC;
     }
@@ -153,27 +153,27 @@ public class SAVValue
     public boolean isRaw() {
         return type == TYPE_RAW;
     }
-    
+
     public boolean isUnassigned() {
         return type == TYPE_UNASSIGNED;
     }
-    
-    
+
+
     public String toString() {
         String rval = null;
         switch(type) {
             case TYPE_UNASSIGNED:
                 rval = new String();
                 break;
-            
+
             case TYPE_NUMERIC:
                 rval = Double.toString(valueDouble);
                 break;
-            
+
             case TYPE_STRING:
                 rval = valueString;
                 break;
-            
+
             case TYPE_RAW:
                 rval = String.format(
                     "%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -187,5 +187,5 @@ public class SAVValue
         }
         return rval;
     }
-    
+
 } // class PORValue

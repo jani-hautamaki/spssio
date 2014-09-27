@@ -46,39 +46,39 @@ public class PORMissingValue
 {
     // CONSTANTS
     //===========
-    
+
     /** An unassigned type */
     public static final int TYPE_UNASSIGNED             = -1;
-    
+
     /** A discrete value. */
     public static final int TYPE_DISCRETE_VALUE         = (int) '8';
-    
+
     /** An open interval unclosed from the high end, {@code [x, +inf]}. */
     public static final int TYPE_RANGE_OPEN_LO          = (int) '9';
-    
+
     /** An open interval unclosed from the low end, {@code [-inf, y]}. */
     public static final int TYPE_RANGE_OPEN_HI          = (int) 'A';
-    
+
     /** A closed interval, {@code [x, y]}. */
     public static final int TYPE_RANGE_CLOSED           = (int) 'B';
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * The type of the missing value specification.
      */
     public int type;
-    
+
     /**
      * The values related to the missing value specification
      */
     public PORValue[] values;
     // TBC: use singular instead of plural?
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     /** 
      * Creates an uninitialized missing value specification
      */
@@ -86,44 +86,44 @@ public class PORMissingValue
         type = TYPE_UNASSIGNED;
         values = null;
     } // ctor
-    
+
     /** 
      * Creates a missing value specification with a specified type,
      * and with empty array.
      */
     public PORMissingValue(int type) {
-        
+
         int size = 0;
-        
+
         switch(type) {
             case TYPE_DISCRETE_VALUE:
                 size = 1;
                 break;
-            
+
             case TYPE_RANGE_OPEN_LO:
                 size = 1;
                 break;
-            
+
             case TYPE_RANGE_OPEN_HI:
                 size = 1;
                 break;
-            
+
             case TYPE_RANGE_CLOSED:
                 size = 2;
                 break;
-            
+
             default:
                 throw new IllegalArgumentException(String.format(
                     "invalid type: \'%c\' (%d)", (char) type, type));
         } // switch
-        
+
         // Create an array for PORValue object references. 
         // These are initialized to null I think..
         this.values = new PORValue[size];
-        
+
         // Assign the type
         this.type = type;
     } // PORMissingValue()
-    
-    
+
+
 } // class PORMissingValue

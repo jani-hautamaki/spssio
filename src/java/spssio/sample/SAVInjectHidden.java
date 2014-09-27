@@ -36,15 +36,15 @@ import spssio.sav.output.SAVWriter;
 
 
 public class SAVInjectHidden {
-    
+
     // CONSTANTS
     //===========
-    
+
     /**
      * Exit code for succesful execution.
      */
     public static final int EXIT_SUCCESS = 0;
-    
+
     /**
      * Exit code for failed execution.
      */
@@ -52,28 +52,28 @@ public class SAVInjectHidden {
 
     // HELPER CLASSES
     //================
-    
+
     public static class SAVExtraWriter
         extends SAVWriter
     {
-        
+
         // MEMBER VARIABLES
         //==================
-        
+
         private InputStream istream;
         private byte[] buffer;
-        
+
         // CONSTRUCTORS
         //==============
-        
+
         public SAVExtraWriter() {
             istream = null;
             buffer = new byte[16]; // 16 bytes is enough
         }
-        
+
         // OTHER METHODS
         //===============
-        
+
         @Override
         public void writeAlignedStringPadding(
             String string, 
@@ -82,14 +82,14 @@ public class SAVInjectHidden {
             boolean ok = true;
             try {
                 int result = istream.read(buffer, 0, paddingLength);
-                
+
                 if (result != paddingLength) {
                     ok = false;
                 }
             } catch(IOException ex) {
                 throw new RuntimeException(ex);
             }
-            
+
             if (ok == true) {
                 writeBytes(buffer, 0, paddingLength);
                 //super.writeAlignedStringPadding(string, paddingLength);
@@ -97,26 +97,26 @@ public class SAVInjectHidden {
                 super.writeAlignedStringPadding(string, paddingLength);
             }
         }
-        
+
         public void setInputStream(InputStream istream) {
             this.istream = istream;
         }
     }
-    
+
     // MAIN
     //======
-    
+
     public static void main(String[] args) {
         if (args.length < 3) {
             usage();
             System.exit(EXIT_SUCCESS);
         }
-        
+
         SAVFile sav = null;
         String fname = null;
 
         SAVReader savReader = new SAVReader();
-        
+
         String sourceFilename = args[0];
         String dataFilename = args[1];
         String targetFilename = args[2];
@@ -124,19 +124,19 @@ public class SAVInjectHidden {
 
         // Start timing
         long startTime = System.nanoTime();
-        
+
         try {
-            
+
             // READING
             System.out.printf("Merging %s & %s -> %s\n",
                 sourceFilename, dataFilename, targetFilename);
 
-            
+
             // ============== PARSING ==============
             sav = savReader.parse(sourceFilename);
             // =====================================
 
-            
+
         } catch(Exception ex) {
             // Display more detailed error message
             System.out.printf("%s: at %08x: %s\n", 
@@ -144,33 +144,33 @@ public class SAVInjectHidden {
                 savReader.tell(),
                 ex.getMessage()
             );
-            
+
             // Dump the stack trace if debugging enabled
             ex.printStackTrace();
-            
+
             System.exit(EXIT_FAILURE);
         } // try-catch
-        
+
         try {
             // Create a fname object
             File f = new File(dataFilename);
-        
+
             // May throw FileNotFound
             FileInputStream fis 
                 = new FileInputStream(f);
-            
+
             BufferedInputStream istream
                 = new BufferedInputStream(fis);
 
             // Prepare extra writer
             SAVExtraWriter savExtraWriter = new SAVExtraWriter();
-            
+
             savExtraWriter.setInputStream(istream);
-            
+
             // Output the sections directly,
             // to guarantee otherwise verbatim copy
             savExtraWriter.outputSections(sav, targetFilename);
-            
+
             // Close source data file
             istream.close();
 
@@ -178,19 +178,19 @@ public class SAVInjectHidden {
             ex.printStackTrace();
             System.exit(EXIT_FAILURE);
         }
-        
+
         // Finish timing and calculate duration
         long endTime = System.nanoTime();
         long duration = endTime - startTime;
-        
+
         // Display the time spent
         System.out.printf("Spent %.2f seconds\n", duration/1.0e9);
-        
+
     } // main()
-    
+
     // OTHER METHODS
     //===============
-    
+
     public static void usage() {
         System.out.printf("SAVInjectHidden (C) 2014 Jani Hautamaki <jani.hautamaki@hotmail.com>\n");
         System.out.printf("\n");
@@ -199,5 +199,5 @@ public class SAVInjectHidden {
         System.out.printf("     SAVInjectHidden <input_sav> <input_raw> <output_sav>\n");
         System.out.printf("\n");
     }
-    
+
 }

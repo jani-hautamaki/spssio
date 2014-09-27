@@ -21,24 +21,24 @@ package spssio.por;
 // spssio utils
 
 public interface PORMatrix {
-    
+
     public int getX();
-    
+
     public int getY();
-    
+
     public int sizeX();
-    
+
     public int sizeY();
-    
+
     public int sizeBytes();
 
     public int[] getColumnLayout();
-    
+
     /**
      * Visits all data cells in the matrix in row-major order.
      *
      * @param visitor The visitor.
      */
     public void accept(PORMatrixVisitor visitor);
-    
+
 } // PORMatrix

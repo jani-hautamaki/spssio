@@ -29,10 +29,10 @@ import spssio.util.DataEndianness;
 
 public class SAVBaseWriter
 {
-    
+
     // CONSTANTS
     //===========
-    
+
     /**
      * Default encoding used.<p>
      *
@@ -41,18 +41,18 @@ public class SAVBaseWriter
      *
      */
     public static final String DEFAULT_ENCODING = "ISO-8859-1";
-    
+
     /**
      * Default size used for the BufferedOutputStream encapsulation
      */
     public static final int DEFAULT_BUFFER_SIZE = 0x10000; // 64 kbs
-    
+
     /**
      * Controls the size of an internal byte buffer used 
      * for serializing numbers.
      */
     public static final int BYTES_BUFFER_SIZE = 16;
-    
+
     // MEMBER VARIABLES
     //==================
 
@@ -67,22 +67,22 @@ public class SAVBaseWriter
      * Output byte stream to which the serialization is sent
      */
     private BufferedOutputStream ostream;
-    
+
     /**
      * Endianness of integer values
      */
     private DataEndianness integerEndianness;
-    
+
     /**
      * Endianness of floating point values
      */
     private DataEndianness floatingEndianness;
-    
+
     /**
      *  Character encoding.
      */
     private String stringEncoding;
-    
+
     /**
      * Internal buffer used ONLY for serializing numbers.
      * Strings do not need a separate buffer, because
@@ -90,10 +90,10 @@ public class SAVBaseWriter
      * every time
      */
     private byte[] bytes;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     public SAVBaseWriter() {
         ostream = null;
         integerEndianness = new DataEndianness();
@@ -104,29 +104,29 @@ public class SAVBaseWriter
 
         // Set default endiannesses
         setEndianness(DataEndianness.LITTLE_ENDIAN);
-        
+
     }
-    
+
     // CONFIGURATION METHODS
     //=======================
-    
+
     public void bind(OutputStream ostream) {
         // throws if ostreamBufferSize <= 0
         this.ostream = new BufferedOutputStream(ostream, ostreamBufferSize);
     }
-    
+
     public void flush() 
         throws IOException
     {
         ostream.flush();
     }
-    
+
     public void close() 
         throws IOException
     {
         ostream.close();
     }
-    
+
     public void unbind() {
         if (this.ostream != null) {
             try {
@@ -137,20 +137,20 @@ public class SAVBaseWriter
         }
         this.ostream = null;
     }
-    
+
     public void setEndianness(int endianness) {
         setIntegerEndianness(endianness);
         setFloatingEndianness(endianness);
     }
-    
+
     public void setIntegerEndianness(int endianness) {
         integerEndianness.set(endianness);
     }
-    
+
     public void setFloatingEndianness(int endianness) {
         floatingEndianness.set(endianness);
     }
-    
+
     public int getIntegerEndianness() {
         return integerEndianness.get();
     }
@@ -162,14 +162,14 @@ public class SAVBaseWriter
     public void setStringEncoding(String charsetName) {
         stringEncoding = charsetName;
     }
-    
+
     public String getStringEncoding() {
         return stringEncoding;
     }
-    
+
     // OTHER METHODS
     //===============
-    
+
     /**
      * Used to grant access to the underlying OutputSteram
      */
@@ -198,24 +198,24 @@ public class SAVBaseWriter
         // For instance if aligment is 2^4, 
         // that is, 000 1000, it will be 0000 0111 after this.
         alignment--;
-        
+
         // Take a bitwise complement of the alignment. 
         // For instance, if the alignment is now 0000 0111, 
         // after this it will be 1111 1000. The bitwise complement is then 
         // used as a bitmask in an AND-operation which essentially performs 
         //an integer division using {@code alignment} as the divider.
         int mask = ~alignment;
-        
+
         // Calculates (ceil((length+offset) / alignment) * alignment) - offset
         int alignedLength = ((length+alignment+offset) & mask) - offset;
-        
+
         return alignedLength;
     }
-    
-    
+
+
     // WRITING METHODS
     //=================
-    
+
     public void write1(int byteValue) {
         try {
             ostream.write(byteValue);
@@ -223,8 +223,8 @@ public class SAVBaseWriter
             throw new RuntimeException(ex);
         } // try-catch
     }
-    
-    
+
+
     public void writeBytes(byte[] data, int offset, int len) {
         try {
             ostream.write(data, offset, len);
@@ -232,7 +232,7 @@ public class SAVBaseWriter
             throw new RuntimeException(ex);
         }
     }
-    
+
     public void writeBytesRepeat(byte value, int length) {
         if (length > 0) {
             try {
@@ -244,7 +244,7 @@ public class SAVBaseWriter
             } // try-catch
         } // if
     }
-    
+
     public void writeInt(int value) {
         // Data
         // Serialize integer into bytes according to endianness
@@ -252,12 +252,12 @@ public class SAVBaseWriter
         integerEndianness.integerToBytes(bytes, 0, value);
         writeBytes(bytes, 0, 4);
     }
-    
+
     public void writeDouble(double value) {
         floatingEndianness.doubleToBytes(bytes, 0, value);
         writeBytes(bytes, 0, 8);
     }
-    
+
     public void writeAlignedString(
         int widthOfLength,
         String string, 
@@ -281,30 +281,30 @@ public class SAVBaseWriter
             throw new IllegalArgumentException(String.format(
                 "widthOfLength must be either 1 or 4"));
         }
-        
+
         // Output the bytes of the actual string
         writeBytes(encoded, 0, encoded.length);
-        
+
         // Output the padding, if any
         writeAlignedStringPadding(string, paddingLength);
     }
-    
+
     public void writeAlignedStringPadding(String string, int paddingLength) {
         // Default behaviour is to output whitespaces for padding 
         writeBytesRepeat((byte) 0x20, paddingLength);
     }
-    
+
     /**
      * @param paddedLength Number of bytes the encoded string should occupy.
      */
     public void writePaddedString(String string, int paddedLength) {
         byte[] encoded = encodeString(string);
-        
+
         int paddingLength = paddedLength - encoded.length;
-        
+
         // Output the bytes of the actual string
         writeBytes(encoded, 0, encoded.length);
-        
+
         // Output the padding, if any
         writeBytesRepeat((byte) 0x20, paddingLength);
     }

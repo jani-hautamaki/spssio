@@ -41,24 +41,24 @@ import spssio.util.SequentialByteArray;
 public class PORRawMatrix
     implements PORMatrix
 {
-    
+
     // MEMBER VARIABLES
     //==================
-    
+
     /**
      * The backend storage format is a sequential byte array.
      */
     private SequentialByteArray array;
-    
+
     /**
      * The parser which is used to translate the byte stream
      * into a stream of events.
      */
     private PORMatrixParser parser;
-    
+
     // CONSTRUCTORS
     //==============
-    
+
     public PORRawMatrix(
         SequentialByteArray array,
         PORMatrixParser parser
@@ -70,50 +70,50 @@ public class PORRawMatrix
         this.array = array;
         this.parser = parser;
     } // ctor
-    
+
     // OTHER METHODS
     //===============
-    
+
     public SequentialByteArray getRawArray() {
         return array;
     }
-    
+
     public int getTextColumn0() {
         return parser.getTextColumn0();
     }
-    
+
     public int getTextRowLength() {
         return parser.getTextRowLength();
     }
-    
+
     // PORMatrix INTERFACE
     //=====================
-    
+
     public int sizeX() {
         return parser.getSizeX();
     }
-    
+
     public int sizeY() {
         return parser.getSizeY();
     }
-    
+
     public int getX() {
         return parser.getX();
     }
-    
+
     public int getY() {
         return parser.getY();
     }
-    
+
     public int sizeBytes() {
         return array.size();
     }
-    
+
     public int[] getColumnLayout() {
         return parser.getDataColumnTypes();
     }
-    
-    
+
+
     /**
      * Visits all data cells in the matrix in row-major order.
      *
@@ -122,28 +122,28 @@ public class PORRawMatrix
     public void accept(PORMatrixVisitor visitor) {
         // Seek to the beginning of the array
         array.seek(0);
-        
+
         // Restart parser
         parser.restart();
-        
+
         // Set visitor
         parser.setVisitor(visitor);
-        
+
         // Signal beginning of the matrix
         parser.startMatrix();
-        
+
         // Parse the whole matrix
         int c;
         while ((c = array.read()) != -1) {
             parser.consume(c);
         } // while
-        
+
         // Signal ending of the matrix
         parser.endMatrix();
-        
+
         // Unset visitor
         parser.setVisitor(null);
     } // visit()
-    
-    
+
+
 } // PORMatrixRaw
