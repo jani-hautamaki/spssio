@@ -123,7 +123,7 @@ import java.util.List;  // to_sections()
  *
  */
 public class PORWriter
-    extends POROutputWriter
+    extends PORBaseWriter
 {
 
     // MEMBER VARIABLES
@@ -280,6 +280,9 @@ public class PORWriter
         // Connect base writer to the created stream,
         // and reset location information
         bind(fis);
+
+        // Reset translation. TODO: should this be put into bind()?!?
+        setTranslation(null);
 
         // Open file, setup base writer
         for (PORSection section : por.sections) {
@@ -477,7 +480,8 @@ public class PORWriter
         // Write the 256-byte character set
         outputTranslation(translation);
 
-        // TODO: Set encoding
+        // Start using the translation table.
+        setTranslation(translation);
 
         // Write the 8-byte signature
         outputFormatSignature(signature);
@@ -506,8 +510,17 @@ public class PORWriter
 
         for (int i = 0; i < 5; i++) {
             String s = splash[i];
-            if (s.length() != 40) throw new IllegalArgumentException();
-            write(s);
+
+            // Encode the splash string with the current charset.
+            // TODO: The splash strings should be specified as byte arrays
+            // (to avoid using same encoding for all).
+            byte[] encoded = encodeString(s);
+
+            // Verify that the encoded length is equal to 40 bytes.
+            if (encoded.length != 40) throw new IllegalArgumentException();
+
+            // Write out the fixed 40-byte splash string
+            writeBytes(encoded, 0, encoded.length);
         } // for: each splash string
     }
 
@@ -519,36 +532,21 @@ public class PORWriter
     public void outputTranslation(byte[] translation)
         throws IOException
     {
-        // If unspecified, use default charset
-        // TODO: Don't do this...
+
+        // TODO: Get rid of this
         if (translation == null) {
-            PORCharset.assignDefaultTranslation(translation);
+            translation = new byte[256];
+            PORCharset.computeDefaultTranslation(translation);
         }
 
-        // Verify the length of the charset
-        if (translation.length != 256) {
+        // Verify the length of the charset.
+        // TODO: Use constant for the length.
+        if ((translation == null) || (translation.length != 256)) {
             throw new IllegalArgumentException();
         }
 
-        // Pick the value of zero for unmapped entries
-        byte zero = translation[PORCharset.DIGIT_0];
-
-        for (int i = 0; i < 256; i++) {
-
-            int c = ((int) (translation[i])) & 0xff;
-
-            if (c == -1) {
-                // If the char is unmapped, output zero.
-                write(zero);
-            } else {
-                // Otherwise, write the char
-                // (value is ANDed with 0xff inside write() method)
-                write(c);
-            }
-        } // for: each char
-
-        // Set encoding table.
-        //setEncoding(charset);
+        // Serialize the translation table as such.
+        writeBytes(translation, 0, translation.length);
     }
 
     public void outputFormatSignature(String signature)
@@ -559,10 +557,20 @@ public class PORWriter
             signature = PORConstants.FORMAT_SIGNATURE;
         }
 
+        // Verify that the length is 8 chars.
         if (signature.length() != 8) throw new IllegalArgumentException();
 
         // NOTE: This is NOT string, it is simply 8 bytes.
-        write(signature);
+
+        // Encode the string with the current charset
+        byte encoded[] = encodeString(signature);
+
+        // Verify that the length is 8 bytes.
+        // If that is the case, each char is represented with a single byte.
+        if (encoded.length != 8) throw new IllegalArgumentException();
+
+        // Write out the encoded 8-byte string
+        writeBytes(encoded, 0, encoded.length);
     }
 
     public void outputFormatVersion(int version)
@@ -605,10 +613,10 @@ public class PORWriter
         // expected lengths are.
 
         // Output 8-byte date
-        outputString(date);
+        writeString(date);
 
         // Output 6-byte time
-        outputString(time);
+        writeString(time);
     }
 
     //=======================================================================
@@ -628,7 +636,7 @@ public class PORWriter
 
         // Tag code
         outputTag(PORSection.TAG_AUTHOR);
-        outputString(author);
+        writeString(author);
     }
 
     /*
@@ -644,7 +652,7 @@ public class PORWriter
 
         // Tag code
         outputTag(PORSection.TAG_SOFTWARE);
-        outputString(software);
+        writeString(software);
     }
 
     /*
@@ -659,7 +667,7 @@ public class PORWriter
         }
 
         outputTag(PORSection.TAG_TITLE);
-        outputString(title);
+        writeString(title);
     }
 
     /*
@@ -675,7 +683,7 @@ public class PORWriter
         }
 
         outputTag(PORSection.TAG_VARIABLE_COUNT);
-        outputInt(varcount);
+        writeInt(varcount);
     }
 
     /*
@@ -690,7 +698,7 @@ public class PORWriter
         }
 
         outputTag(PORSection.TAG_PRECISION);
-        outputInt(precision);
+        writeInt(precision);
     }
 
     /*
@@ -705,7 +713,7 @@ public class PORWriter
         }
 
         outputTag(PORSection.TAG_WEIGHT_VARIABLE);
-        outputString(weight_var_name);
+        writeString(weight_var_name);
     }
 
     /*
@@ -728,18 +736,18 @@ public class PORWriter
         outputTag(PORSection.TAG_VARIABLE_RECORD);
 
         // width and name
-        outputInt(pvar.width);
-        outputString(pvar.name);
+        writeInt(pvar.width);
+        writeString(pvar.name);
 
         // output format: type, width, decimals
-        outputInt(pvar.printfmt.type);
-        outputInt(pvar.printfmt.width);
-        outputInt(pvar.printfmt.decimals);
+        writeInt(pvar.printfmt.type);
+        writeInt(pvar.printfmt.width);
+        writeInt(pvar.printfmt.decimals);
 
         // input format: type, width, decimals
-        outputInt(pvar.writefmt.type);
-        outputInt(pvar.writefmt.width);
-        outputInt(pvar.writefmt.decimals);
+        writeInt(pvar.writefmt.type);
+        writeInt(pvar.writefmt.width);
+        writeInt(pvar.writefmt.decimals);
     }
 
     /*
@@ -771,18 +779,18 @@ public class PORWriter
         outputTag(PORSection.TAG_VARIABLE_RECORD);
 
         // width and name
-        outputInt(width);
-        outputString(name);
+        writeInt(width);
+        writeString(name);
 
         // output format: type, width, decimals
-        outputInt(printtype);
-        outputInt(printwidth);
-        outputInt(printdecimals);
+        writeInt(printtype);
+        writeInt(printwidth);
+        writeInt(printdecimals);
 
         // input format: type, width, decimals
-        outputInt(writetype);
-        outputInt(writewidth);
-        outputInt(writedecimals);
+        writeInt(writetype);
+        writeInt(writewidth);
+        writeInt(writedecimals);
     }
 
     // Missing value: discrete
@@ -813,7 +821,7 @@ public class PORWriter
         outputTag(PORSection.TAG_MISSING_DISCRETE);
 
         // Value
-        outputDouble(value);
+        writeDouble(value);
     }
 
     /*
@@ -827,7 +835,7 @@ public class PORWriter
         outputTag(PORSection.TAG_MISSING_DISCRETE);
 
         // Value
-        outputString(value);
+        writeString(value);
     }
 
     // Missing value: range open LO
@@ -858,7 +866,7 @@ public class PORWriter
         outputTag(PORSection.TAG_MISSING_OPEN_LO);
 
         // Value
-        outputDouble(value);
+        writeDouble(value);
     }
 
     // Missing value: range open HI
@@ -889,7 +897,7 @@ public class PORWriter
         outputTag(PORSection.TAG_MISSING_OPEN_HI);
 
         // Value
-        outputDouble(value);
+        writeDouble(value);
     }
 
     // Missing value: range open closed
@@ -921,8 +929,8 @@ public class PORWriter
         outputTag(PORSection.TAG_MISSING_RANGE);
 
         // Values
-        outputDouble(min);
-        outputDouble(max);
+        writeDouble(min);
+        writeDouble(max);
     }
 
     // Variable label
@@ -943,7 +951,7 @@ public class PORWriter
         outputTag(PORSection.TAG_VARIABLE_LABEL);
 
         // Variable label
-        outputString(varlabel);
+        writeString(varlabel);
     }
 
     // Value labels
@@ -961,7 +969,7 @@ public class PORWriter
         // <variable_count>
         // NOTE: size() can't return negative value
         int size = vallabels.vars.size();
-        outputInt(size);
+        writeInt(size);
 
         // <list_of_varnames>
         int valtype = PORValue.TYPE_UNASSIGNED;
@@ -991,20 +999,20 @@ public class PORWriter
             } // if-else
 
             // Write variable name
-            outputString(cur_var.name);
+            writeString(cur_var.name);
         } // for: each variable
 
 
         // <number_of_mappings> (aka label_count)
         // NOTE: size() cannot return negative value
-        outputInt(vallabels.mappings.size());
+        writeInt(vallabels.mappings.size());
 
         // [<value> <label>]+
         for (Map.Entry<PORValue, String> entry
             : vallabels.mappings.entrySet())
         {
             outputPORValue(entry.getKey());
-            outputString(entry.getValue());
+            writeString(entry.getValue());
         } // for: entry set
 
     } // outputValueLabelsRecord()
@@ -1023,18 +1031,18 @@ public class PORWriter
         outputTag(PORSection.TAG_VALUE_LABELS);
 
         // Number of variables
-        outputInt(varNames.size());
+        writeInt(varNames.size());
 
         // Output variable names
         for (String name : varNames) {
-            outputString(name);
+            writeString(name);
         }
 
         // Number of value-label pairs
-        outputInt(map.size());
+        writeInt(map.size());
         for (Map.Entry<Double, String> entry : map.entrySet()) {
-            outputDouble(entry.getKey());
-            outputString(entry.getValue());
+            writeDouble(entry.getKey());
+            writeString(entry.getValue());
         }
     }
 
@@ -1069,15 +1077,15 @@ public class PORWriter
         outputTag(PORSection.TAG_VALUE_LABELS);
 
         // Output the number of variables
-        outputInt(varNames.size());
+        writeInt(varNames.size());
 
         // Output the variable names
         for (String name : varNames) {
-            outputString(name);
+            writeString(name);
         }
 
         // Output the number of value-label pairs
-        outputInt(map.size() / 2);
+        writeInt(map.size() / 2);
 
         int phase = 0;
         Class<?> valclass = null;
@@ -1105,11 +1113,11 @@ public class PORWriter
                 } // if-else: valclass set?
 
                 if (obj instanceof Integer) {
-                    outputInt((Integer) obj);
+                    writeInt((Integer) obj);
                 } else if (obj instanceof Double) {
-                    outputDouble((Double) obj);
+                    writeDouble((Double) obj);
                 } else if (obj instanceof String) {
-                    outputString((String) obj);
+                    writeString((String) obj);
                 } else {
                     throw new RuntimeException(String.format(
                         "Object in value-label map array has unexpected class: %s",
@@ -1119,7 +1127,7 @@ public class PORWriter
                 phase = 1;
             } else {
                 // Output label
-                outputString((String) obj);
+                writeString((String) obj);
 
                 phase = 0;
             } // if-else
@@ -1137,11 +1145,11 @@ public class PORWriter
         outputTag(PORSection.TAG_DOCUMENTS_RECORD);
 
         // Number of lines
-        outputInt(documents.size());
+        writeInt(documents.size());
 
         // Output variable names
         for (String line : documents) {
-            outputString(line);
+            writeString(line);
         }
     }
 
@@ -1318,12 +1326,12 @@ public class PORWriter
     {
         switch(pvalue.type) {
             case PORValue.TYPE_STRING:
-                outputString(pvalue.value);
+                writeString(pvalue.value);
                 break;
             case PORValue.TYPE_NUMERIC:
                 // Take the current precision settings into account
                 // while serializing this number.
-                outputNumberAfterReformat(pvalue.value);
+                writeReformattedNumber(pvalue.value);
                 break;
             default:
                 throw new RuntimeException();

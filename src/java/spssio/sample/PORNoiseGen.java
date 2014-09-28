@@ -286,7 +286,7 @@ public class PORNoiseGen {
                 } // if: over sysmiss sigma limit
 
                 if (sysmiss == false) {
-                    writer.outputDouble(randval*opt.stddev+opt.mean);
+                    writer.writeDouble(randval*opt.stddev+opt.mean);
                 } else {
                     writer.outputSysmiss();
                 }

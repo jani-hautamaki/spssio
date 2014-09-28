@@ -80,13 +80,13 @@ public class PORDump {
 
         } catch(Exception ex) {
             // Display more detailed error message
-            /*
-            System.out.printf("%s: at %08x: %s\n",
+            System.out.printf("%s:%d: Column %d: %s\n",
                 fname,
-                savReader.tell(),
+                porReader.getRow(),
+                porReader.getColumn(),
                 ex.getMessage()
             );
-            */
+
             // Dump the stack trace if debugging enabled
             ex.printStackTrace();
 
@@ -96,7 +96,7 @@ public class PORDump {
             System.exit(EXIT_FAILURE);
         } // try-catch
 
-        // Printing...
+        // Display the contents of the Portable file.
         displayPORFile(por);
 
         System.exit(EXIT_SUCCESS);
@@ -106,7 +106,6 @@ public class PORDump {
     }
 
     public static void displayPORFile(PORFile por) {
-        System.out.printf("Header:\n");
         displayPORHeader(por.header);
 
         System.out.printf("Various:\n");
@@ -121,12 +120,67 @@ public class PORDump {
     }
 
     public static void displayPORHeader(PORHeader header) {
-        // Splash strings not displayed for now.
-        // Charset ignored for now.
+        displaySplashStrings(header.splash);
+
+        displayTranslation(header.translation);
+
+        System.out.printf("Header:\n");
         System.out.printf("  Signature:                 %s\n", header.signature);
         System.out.printf("  Version:                   %c\n", header.version);
         System.out.printf("  Date:                      %s\n", header.date);
         System.out.printf("  Time:                      %s\n", header.time);
+
+    }
+
+    public static void displaySplashStrings(byte[] splash) {
+        System.out.printf("Splash strings (bytes outside 0x20-0x7F are escaped):\n");
+        for (int i = 0; i < 5; i++) {
+            int base = i * 40;
+            System.out.printf("  \"");
+            int screenOffset = 3;
+
+            for (int offset = 0; offset < 40; offset++) {
+                // By default the length of a char in the screen is 1 char
+                int screenWidth = 1;
+                // unsigned conversion byte->int
+                int membyte = ((int) splash[base+offset]) & 0xff;
+                if ((membyte >= 020) && (membyte <= 0x7F)) {
+                    System.out.printf("%c", membyte);
+                } else {
+                    //System.out.printf("?");
+                    System.out.printf("\\u%04x", membyte);
+                    screenWidth = 6; // <backslash>'u'<digit x4>
+                }
+
+                screenOffset += screenWidth;
+                if (screenOffset > 45) {
+                    System.out.printf("\n   "); // continuation line
+                    screenOffset = 2;
+                }
+            }
+            System.out.printf("\"\n");
+        }
+    }
+
+    public static void displayTranslation(byte[] translation) {
+        System.out.printf("Translation table (bytes outside 0x20-0x7F are escaped):\n");
+
+        System.out.printf("  ");
+        for (int i = 0; i < translation.length; i++) {
+            if ((i > 0) && ((i % 32) == 0)) {
+                System.out.printf("\n");
+                System.out.printf("  ");
+            }
+            // Unsigned byte->int conversion
+            int diskbyte = ((int) translation[i]) & 0xff;
+
+            if ((diskbyte >= 020) && (diskbyte <= 0x7F)) {
+                System.out.printf("%c", diskbyte);
+            } else {
+                System.out.printf("\\u%04x", diskbyte);
+            }
+        }
+        System.out.printf("\n");
     }
 
     public static String maybeNull(String value) {

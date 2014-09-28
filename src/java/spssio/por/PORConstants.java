@@ -46,6 +46,12 @@ public class PORConstants
      */
     public static final int MAX_DATA_ELEMENT_LENGTH = 1024;
 
+    /**
+     * Maximum length of a string (bytes).
+     */
+    public static final int MAX_STRING_LENGTH       = 255;
+
+
 
     // THESE ARE TODO (Note: they dont have "final" qualifier)
 
@@ -53,6 +59,7 @@ public class PORConstants
      * Software maximum length.
      */
     public static int MAX_SOFTWARE_LENGTH           = 255;
+
 
     /**
      * Author maximum length.

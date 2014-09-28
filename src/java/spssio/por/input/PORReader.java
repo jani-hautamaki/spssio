@@ -30,7 +30,6 @@ import java.io.File; // for size
 
 // spssio portable
 import spssio.por.PORFile;
-import spssio.por.PORCharset;
 import spssio.por.PORValue;
 import spssio.por.PORVariable;
 import spssio.por.PORMissingValue;
@@ -186,7 +185,7 @@ public class PORReader
         por = new PORFile();
 
         // Start by clearing any previous translation
-        clearTranslation();
+        setTranslation(null);
 
         // Read the 200-byte header
         parseSplash();

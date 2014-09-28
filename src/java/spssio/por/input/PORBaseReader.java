@@ -15,10 +15,7 @@
 //
 //********************************{end:header}*******************************//
 
-
-
 package spssio.por.input;
-
 
 // core java
 import java.io.BufferedInputStream;
@@ -102,7 +99,8 @@ public class PORBaseReader {
     /**
      * Whether to allow strings with longer length than
      * maxStringLength. If allowed, longer strings are
-     * truncated to maxStringLength.
+     * truncated to maxStringLength. Otherwise,
+     * an exception is thrown.
      */
     private boolean allowLongerStrings;
 
@@ -188,7 +186,7 @@ public class PORBaseReader {
         decodingTable = new int[256]; // TBC: use a constant instead?
 
         // Clear translation
-        clearTranslation();
+        setTranslation(null);
 
     }
 
@@ -271,12 +269,12 @@ public class PORBaseReader {
         stringBuffer = new byte[maxStringLength];
     }
 
-    public void clearTranslation() {
-        PORCharset.computeIdentityTable(decodingTable);
-    }
-
     public void setTranslation(byte[] translation) {
-        PORCharset.computeDecodingTable(decodingTable, translation);
+        if (translation != null) {
+            PORCharset.computeDecodingTable(decodingTable, translation);
+        } else {
+            PORCharset.computeIdentityCodec(decodingTable);
+        }
     }
 
     // ERROR MANAGEMENT
@@ -359,7 +357,7 @@ public class PORBaseReader {
             errorLineTooLong(lineLength);
         }
 
-        // Apply decoding
+        // Apply decoding; convert diskbyte to membyte.
         rval = decodingTable[rval];
 
         return rval;
