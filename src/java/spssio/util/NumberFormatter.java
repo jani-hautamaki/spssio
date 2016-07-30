@@ -1,11 +1,11 @@
 //*******************************{begin:header}******************************//
-//                 spssio - http://code.google.com/p/spssio/                 //
+//             spssio - https://github.com/jani-hautamaki/spssio             //
 //***************************************************************************//
 //
 //      Java classes for reading and writing
 //      SPSS/PSPP Portable and System files
 //
-//      Copyright (C) 2013-2014 Jani Hautamaki <jani.hautamaki@hotmail.com>
+//      Copyright (C) 2013-2016 Jani Hautamaki <jani.hautamaki@hotmail.com>
 //
 //      Licensed under the terms of GNU General Public License v3.
 //
@@ -14,6 +14,7 @@
 //      http://www.gnu.org/licenses/gpl-3.0.html
 //
 //********************************{end:header}*******************************//
+
 
 
 package spssio.util;

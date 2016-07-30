@@ -1,6 +1,0 @@
-# use glob syntax:
-syntax: glob
-
-build/*
-javadoc/*
-bin/*
