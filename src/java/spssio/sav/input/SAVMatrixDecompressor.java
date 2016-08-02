@@ -147,8 +147,6 @@ public class SAVMatrixDecompressor {
      */
     private SAVMatrixParser dataReceiver;
 
-
-
     // CONSTRUCTORS
     //==============
 
@@ -176,11 +174,31 @@ public class SAVMatrixDecompressor {
         setBias(100.0);
     }
 
+    /**
+     * Copy constructor
+     */
+    public SAVMatrixDecompressor(SAVMatrixDecompressor other) {
+        this();
+
+        // Copy bias
+        setBias(other.getBias());
+
+        // Copy endianness
+        setEndianness(other.getEndianness());
+
+        // Copy sysmiss (in raw format)
+        setSysmissRaw(other.getSysmissRaw());
+    }
+
     // CONFIGURATION
     //===============
 
     public void setBias(double bias) {
         this.bias = bias;
+    }
+
+    public double getBias() {
+        return bias;
     }
 
     public void setEndianness(int endianness) {
@@ -197,6 +215,10 @@ public class SAVMatrixDecompressor {
         updateSysmissBytes();
     }
 
+    public int getEndianness() {
+        return endianness;
+    }
+
     public void setSysmiss(double sysmiss) {
         this.sysmiss = sysmiss;
         this.sysmissRaw = Double.doubleToLongBits(this.sysmiss);
@@ -204,11 +226,19 @@ public class SAVMatrixDecompressor {
         updateSysmissBytes();
     }
 
+    public double getSysmiss() {
+        return sysmiss;
+    }
+
     public void setSysmissRaw(long sysmissRaw) {
         this.sysmissRaw = sysmissRaw;
         this.sysmiss = Double.longBitsToDouble(this.sysmissRaw);
 
         updateSysmissBytes();
+    }
+
+    public long getSysmissRaw() {
+        return sysmissRaw;
     }
 
     public void setDataReceiver(SAVMatrixParser dataReceiver) {

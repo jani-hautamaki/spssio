@@ -131,6 +131,32 @@ public class SAVFile {
         return count;
     }
 
+    public SAVVariable[] getVariables() {
+        SAVVariable[] variablesArray
+            = new SAVVariable[calculateNumberOfVariables()];
+        int count = 0;
+        for (SAVVariable v : variables) {
+            if (v.width < 0) {
+                continue;
+            }
+            variablesArray[count++] = v;
+        }
+        return variablesArray;
+    }
+
+    public int[] getVariableWidths() {
+        int[] widthsArray
+            = new int[calculateNumberOfVariables()];
+        int count = 0;
+        for (SAVVariable v : variables) {
+            if (v.width < 0) {
+                continue;
+            }
+            widthsArray[count++] = v.width;
+        }
+        return widthsArray;
+    }
+
     public int[] getColumnWidths() {
         // Number of variables (including padding variables)
         int size = variables.size();

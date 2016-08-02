@@ -105,6 +105,30 @@ public class SAVMatrixParser {
         endianness = DataEndianness.LITTLE_ENDIAN;
     }
 
+    /**
+     * Copy constructor
+     */
+    public SAVMatrixParser(SAVMatrixParser other) {
+        this();
+
+        // Copy endianness settings
+        setEndianness(other.getEndianness());
+
+        // Copy Sysmiss settings
+        setSysmissRaw(other.getSysmissRaw());
+
+        // Create a string buffer with equal length
+        if (other.stringBuffer != null) {
+            stringBuffer = new byte[other.stringBuffer.length];
+        }
+
+        // Copy encoding settings
+        setEncoding(other.getEncoding());
+
+        // Copy column widths
+        setColumnWidths(other.getColumnWidths());
+    }
+
     // CONFIGURATION METHODS
     //=======================
 
@@ -188,6 +212,10 @@ public class SAVMatrixParser {
         } catch(UnsupportedCharsetException ex) {
             throw new IllegalArgumentException(ex);
         } // try-catch
+    }
+
+    public String getEncoding() {
+        return encoding.name();
     }
 
     public void setColumnWidths(int[] widths) {
