@@ -21,7 +21,8 @@ package spssio.por;
 
 // spssio
 import spssio.por.input.PORMatrixParser;
-import spssio.util.SequentialByteArray;
+import spssio.util.DynamicByteArray;
+import spssio.util.ByteCursor;
 
 
 /**
@@ -49,7 +50,7 @@ public class PORRawMatrix
     /**
      * The backend storage format is a sequential byte array.
      */
-    private SequentialByteArray array;
+    private DynamicByteArray array;
 
     /**
      * The parser which is used to translate the byte stream
@@ -61,7 +62,7 @@ public class PORRawMatrix
     //==============
 
     public PORRawMatrix(
-        SequentialByteArray array,
+        DynamicByteArray array,
         PORMatrixParser parser
     ) {
         if ((array == null) || (parser == null)) {
@@ -75,7 +76,7 @@ public class PORRawMatrix
     // OTHER METHODS
     //===============
 
-    public SequentialByteArray getRawArray() {
+    public DynamicByteArray getRawArray() {
         return array;
     }
 
@@ -107,7 +108,7 @@ public class PORRawMatrix
     }
 
     public int sizeBytes() {
-        return array.size();
+        return array.getSize();
     }
 
     public int[] getColumnLayout() {
@@ -121,8 +122,8 @@ public class PORRawMatrix
      * @param visitor The visitor.
      */
     public void accept(PORMatrixVisitor visitor) {
-        // Seek to the beginning of the array
-        array.seek(0);
+        // Create a new cursor at the beginning of the byte array.
+        ByteCursor cursor = new ByteCursor(array, 0);
 
         // Restart parser
         parser.restart();
@@ -135,7 +136,7 @@ public class PORRawMatrix
 
         // Parse the whole matrix
         int c;
-        while ((c = array.read()) != -1) {
+        while ((c = cursor.read()) != -1) {
             parser.consume(c);
         } // while
 

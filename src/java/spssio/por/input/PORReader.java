@@ -47,7 +47,8 @@ import spssio.common.SPSSFormat;
 // spssio utils
 import spssio.util.NumberSystem;
 import spssio.util.NumberParser;
-import spssio.util.SequentialByteArray;
+import spssio.util.DynamicByteArray;
+import spssio.util.ByteCursor;
 
 /*
  *
@@ -625,19 +626,21 @@ public class PORReader
     protected void parseDataMatrixRecord() {
         //System.out.printf("File position: %d / %d\n", fpos, fsize);
 
-        // Create the backend data container
-        SequentialByteArray array = new SequentialByteArray();
+        // Calculate the number of bytes left to read.
+        int size = (int) (fileSize-getOffset());
+
+        // Create the backend data containe with single,
+        // fixed-size block.
+        DynamicByteArray array = new DynamicByteArray(size);
+
         // Create a parser, and reuse the NumberParser of this object.
         PORMatrixParser matrixParser = new PORMatrixParser(numberParser);
 
         // Put these into a newly-created matrix
         por.data = new PORRawMatrix(array, matrixParser);
 
-        // Calculate the number of bytes left to read.
-        int size = (int) (fileSize-getOffset());
-
-        // Allocate the calculated amount of memory.
-        array.allocate(size);
+        // Create also a cursor for writing the array
+        ByteCursor cursor = new ByteCursor(array, 0);
 
         // Setup the column data types
         int[] coltype = new int[por.variables.size()];
@@ -656,7 +659,7 @@ public class PORReader
             while ((c = read()) != -1) {
 
                 // Write to the array
-                array.write(c);
+                cursor.write(c);
 
                 // Send to the parser
                 matrixParser.consume(c);
@@ -671,8 +674,8 @@ public class PORReader
             error_io("BufferedInputStream.read()", ex);
         } // try-catch
 
-        array.flush();
-        array.limitSize(array.pos());
+        cursor.flush();
+        //array.setSize(array.pos());
 
         por.sections.add(PORSection.newDataMatrix(por.data));
     } // parse_data_matrix()

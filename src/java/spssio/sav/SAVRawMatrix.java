@@ -22,8 +22,8 @@ package spssio.sav;
 // spssio
 import spssio.sav.input.SAVMatrixParser;
 import spssio.sav.input.SAVMatrixDecompressor;
-import spssio.util.SequentialByteArray;
-
+import spssio.util.DynamicByteArray;
+import spssio.util.ByteCursor;
 
 public class SAVRawMatrix
     implements SAVMatrix
@@ -47,7 +47,7 @@ public class SAVRawMatrix
     /**
      * The sequential byte array holding all the data.
      */
-    private SequentialByteArray array;
+    private DynamicByteArray array;
 
     /**
      * Used to cache the calculated size in X dimension.
@@ -58,7 +58,7 @@ public class SAVRawMatrix
     //==============
 
     public SAVRawMatrix(
-        SequentialByteArray array,
+        DynamicByteArray array,
         SAVMatrixParser parser,
         SAVMatrixDecompressor decompressor
     ) {
@@ -118,8 +118,8 @@ public class SAVRawMatrix
         // Set the content handler to the parser
         parser.setContentHandler(contentHandler);
 
-        // Rewind the array head, and reset the parser
-        array.seek(0);
+        // Create a cursor for the data
+        ByteCursor cursor = new ByteCursor(array, 0);
 
         if (decompressor != null) {
             // Data is compressed
@@ -128,8 +128,7 @@ public class SAVRawMatrix
             int bytesRead = -1;
             int errno = 0;
 
-            while ((bytesRead = array.read(data, 0, 8)) != -1) {
-
+            while ((bytesRead = cursor.read(data, 0, 8)) != -1) {
                 // Assert that 8 bytes were read
                 if (bytesRead != 8) {
                     throw new RuntimeException(String.format(

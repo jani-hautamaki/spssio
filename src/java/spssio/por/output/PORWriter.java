@@ -35,7 +35,8 @@ import java.util.Date;
 // spssio
 import spssio.util.NumberSystem;
 import spssio.util.NumberFormatter;
-import spssio.util.SequentialByteArray;
+import spssio.util.DynamicByteArray;
+import spssio.util.ByteCursor;
 import spssio.por.PORCharset;
 import spssio.por.PORFile;
 import spssio.por.PORHeader;
@@ -1225,7 +1226,7 @@ public class PORWriter
         outputTag(PORSection.TAG_DATA_MATRIX);
 
         // Retrieve the raw SequentialByteArray object
-        SequentialByteArray data = rawMatrix.getRawArray();
+        DynamicByteArray data = rawMatrix.getRawArray();
 
         // This is a bit dirty hack for finding out the end-marker 'Z'.
         // Anyway, if the lines are at most 80 chars wide, then
@@ -1233,16 +1234,19 @@ public class PORWriter
         // than the source data matrix (number of lines full of end-markers
         // can't increase gradually).
 
-        int endoffset = data.size();
-        endoffset -= 2*80; // count back 2 lines
-        if (endoffset < 0) endoffset = 0; // saturate
+        int endOffset = data.getSize();
+        endOffset -= 2*80; // count back 2 lines
+        if (endOffset < 0) endOffset = 0; // saturate
+
+        // Create a cursor
+        ByteCursor cursor = new ByteCursor(data, 0);
 
         // seek and determine the end
-        data.seek(endoffset);
-        endoffset = -1;
+        cursor.setOffset(endOffset);
+        endOffset = -1;
         int c;
         int lastc = 0;
-        while ((c = data.read()) != -1) {
+        while ((c = cursor.read()) != -1) {
             if ((c == '\n') || (c == '\r')) {
                 // Ignore EOL chars.
                 continue;
@@ -1252,33 +1256,33 @@ public class PORWriter
                 if (lastc != PORConstants.EOF_MARKER) { // 'Z'
                     // New 'Z'.
                     // Record current position
-                    endoffset = data.pos();
+                    endOffset = cursor.getOffset();
                 } else {
                     // Consequetive 'Z'.
                 }
             } else {
                 // Lose the position
-                endoffset = -1;
+                endOffset = -1;
             }
 
             lastc = c;
         } // while
 
-        if (endoffset == -1) {
+        if (endOffset == -1) {
             // default to end-of-data
-            endoffset = data.size();
+            endOffset = data.getSize();
         } else {
             // Exclude the EOF_MARKER itself
-            endoffset--;
+            endOffset--;
         }
 
         // seek to the beginning
-        data.seek(0);
+        cursor.setOffset(0);
         int data_col = rawMatrix.getTextColumn0();
         int data_row_length = rawMatrix.getTextRowLength();
 
-        for (int i = 0; i < endoffset; i++) {
-            c = data.read();
+        for (int i = 0; i < endOffset; i++) {
+            c = cursor.read();
             if (c == '\n') {
 
                 if (data_col < data_row_length) {

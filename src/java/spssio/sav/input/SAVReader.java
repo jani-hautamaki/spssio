@@ -44,7 +44,8 @@ import spssio.sav.SAVValue;
 import spssio.sav.SAVExtensionRecord;
 import spssio.sav.SAVExtNumberConfig;
 import spssio.sav.SAVExtSystemConfig;
-import spssio.util.SequentialByteArray;
+import spssio.util.DynamicByteArray;
+import spssio.util.ByteCursor;
 import spssio.util.DataEndianness;
 
 
@@ -658,20 +659,21 @@ public class SAVReader
 
     protected void parseSAVDataMatrix2() {
         SAVMatrixParser matrixParser = null;
-
-        SequentialByteArray array = null;
-
         SAVMatrixDecompressor decompressor = null;
 
-        int matrixSize = length()-tell(); // in bytes
+        // Compute the matrix data size in bytes
+        int matrixSize = length()-tell();
 
+        // Sanity check for the data size.
         if ((matrixSize % 8) != 0) {
             throw new RuntimeException(String.format(
                 "The data matrix size mod 8 is non-zero (%d)", matrixSize % 8));
         }
 
-        array = new SequentialByteArray();
-        array.allocate(matrixSize);
+        // Create a fixed-size byte array
+        DynamicByteArray array = new DynamicByteArray(matrixSize);
+        // Also create a cursor at the beginning for writing
+        ByteCursor cursor = new ByteCursor(array, 0);
 
         // Create and configure the parser, which is needed in any case.
         matrixParser = new SAVMatrixParser();
@@ -737,7 +739,7 @@ public class SAVReader
 
                 // Write the data into the array immediately
                 int bytesWritten;
-                bytesWritten = array.write(data, 0, bytesRead);
+                bytesWritten = cursor.write(data, 0, bytesRead);
                 if (bytesWritten != bytesRead) {
                     throw new RuntimeException(String.format(
                         "Buffer size miscalculated: was able to write only %d bytes out of %d",
@@ -768,7 +770,7 @@ public class SAVReader
             } // while
 
             // flush array
-            array.flush();
+            cursor.flush();
 
             // Send eof
             errno = decompressor.consume(null);
