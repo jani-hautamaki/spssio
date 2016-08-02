@@ -85,11 +85,26 @@ public class SAVValue
         valueRaw = value;
     } // ctor
 
+    /**
+     * Creates a cell with string value
+     */
+    public static SAVValue newStringValue(String value) {
+        SAVValue savValue = new SAVValue();
+        savValue.setString(value);
+        return savValue;
+    }
+
+     /**
+     * Creates a cell with numeric value
+     */
+    public static SAVValue newDoubleValue(Double value) {
+        SAVValue savValue = new SAVValue();
+        savValue.setDouble(value);
+        return savValue;
+    }
+
     // OTHER METHODS
     //===============
-
-    // TODO:
-    // Type mutation is unallowed!
 
     public void setString(String value) {
         if (type != TYPE_UNASSIGNED) {
@@ -164,11 +179,11 @@ public class SAVValue
         String rval = null;
         switch(type) {
             case TYPE_UNASSIGNED:
-                rval = new String();
+                rval = "";
                 break;
 
             case TYPE_NUMERIC:
-                rval = Double.toString(valueDouble);
+                rval = valueDouble != null ? Double.toString(valueDouble) : "";
                 break;
 
             case TYPE_STRING:
