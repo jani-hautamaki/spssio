@@ -173,4 +173,16 @@ public class SAVRawMatrix
         parser.setContentHandler(null);
     }
 
+    //@Override
+    public SAVMatrixIterator newIterator() {
+        SAVMatrixParser otherParser = new SAVMatrixParser(parser);
+        SAVMatrixDecompressor otherDecompressor
+            = new SAVMatrixDecompressor(decompressor);
+        // Link decompressor to the parser
+        otherDecompressor.setDataReceiver(otherParser);
+        ByteCursor otherCursor = new ByteCursor(array, 0);
+        return new SAVMatrixIterator(
+            otherParser, otherDecompressor, otherCursor);
+    }
+
 } // SAVMatrix
