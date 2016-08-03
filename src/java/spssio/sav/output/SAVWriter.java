@@ -216,7 +216,7 @@ public class SAVWriter
 
         writeInt(header.variableCount);
 
-        writeInt(header.compressed);
+        writeInt(header.compression);
 
         writeInt(header.weightVariableIndex);
 
@@ -444,7 +444,7 @@ public class SAVWriter
         int[] columnWidths = sav.getColumnWidths();
 
 
-        if (sav.header.compressed != 0) {
+        if (sav.header.compression != 0) {
             // Insert Compressor to the serialization chain
             SAVMatrixCompressor compressor = new SAVMatrixCompressor();
 

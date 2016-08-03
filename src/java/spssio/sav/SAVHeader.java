@@ -67,7 +67,7 @@ public class SAVHeader {
      * Otherwise, the data is uncompressed and this is set to 0.
      *
      */
-    public int compressed;
+    public int compression;
 
     /**
      * If one of the variables is used as a weighting variable,
@@ -122,7 +122,7 @@ public class SAVHeader {
         software = null;
         layout = 0;
         variableCount = 0;
-        compressed = 0;
+        compression = 0;
         weightVariableIndex = -1;
         numberOfCases = -1;
         bias = 0;
@@ -210,11 +210,11 @@ public class SAVHeader {
     }
 
     public int getCompression() {
-        return compressed;
+        return compression;
     }
 
-    public void setCompression(int compressed) {
-        this.compressed = compressed;
+    public void setCompression(int compression) {
+        this.compression = compression;
     }
 
     public double getBias() {

@@ -252,7 +252,7 @@ public class SAVReader
         header.variableCount = readInt();
 
         // Parse compression flag
-        header.compressed = readInt();
+        header.compression = readInt();
 
         // Parse index of the weight variable, if any
         header.weightVariableIndex = readInt();
