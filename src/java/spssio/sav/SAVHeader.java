@@ -63,6 +63,8 @@ public class SAVHeader {
 
     /**
      * Set to 1 if the data in the file is compressed.
+     * Set to 2 if the data in the file is ZLIB compressed.
+     * Otherwise, the data is uncompressed and this is set to 0.
      *
      */
     public int compressed;
@@ -145,7 +147,7 @@ public class SAVHeader {
         header.weightVariableIndex = -1;
 
         // Initially the data will be compressed
-        header.setCompressed(1);
+        header.setCompression(1);
         header.setBias(SAVConstants.DEFAULT_COMPRESSION_BIAS);
 
         // Initialize date and time to now
@@ -207,11 +209,11 @@ public class SAVHeader {
         this.variableCount = variableCount;
     }
 
-    public int getCompressed() {
+    public int getCompression() {
         return compressed;
     }
 
-    public void setCompressed(int compressed) {
+    public void setCompression(int compressed) {
         this.compressed = compressed;
     }
 

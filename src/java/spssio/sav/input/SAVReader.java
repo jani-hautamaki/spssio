@@ -718,7 +718,7 @@ public class SAVReader
         // Set matrix parser as the data receiver
         decompressor.setDataReceiver(matrixParser);
 
-        int compression = sav.header.getCompressed(); // For convenience
+        int compression = sav.header.getCompression(); // For convenience
         if (compression == 0) {
             // Data is uncompressed. Enable passthrough
             decompressor.setPassthrough(true);
