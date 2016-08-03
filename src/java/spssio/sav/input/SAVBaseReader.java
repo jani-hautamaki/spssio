@@ -15,18 +15,19 @@
 //
 //********************************{end:header}*******************************//
 
-
-
 package spssio.sav.input;
 
 // core java
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 
 // spssio
+import spssio.sav.SAVConstants;
 import spssio.util.DataEndianness;
+import spssio.util.Utf8Helper;
 
 public class SAVBaseReader {
 
@@ -40,9 +41,9 @@ public class SAVBaseReader {
     public static final int DEFAULT_BUFFER_SIZE = 0x4000; // 16 KBs
 
     /**
-     * Default encoding used
+     * Canonical name for UTF8 encoding in java.nio.charset.
      */
-    public static final String DEFAULT_ENCODING = "ISO-8859-1";
+    public static final String UTF8_CANONICAL_NAME = "UTF-8";
 
     // MEMBER VARIABLES
     //==================
@@ -57,7 +58,12 @@ public class SAVBaseReader {
      * Configuration variable which determines the encoding used
      * for strings.
      */
-    private String stringEncoding;
+    private Charset encoding;
+
+    /**
+     * Indicates whether the curent encoding is utf-8.
+     */
+    private boolean encodingIsUtf8;
 
     /**
      * Endianness for integers
@@ -91,23 +97,40 @@ public class SAVBaseReader {
      */
     private byte[] numberBuffer;
 
+    /**
+     * Whether to allow smart utf-8 encoding promotion.
+     */
+    private boolean enableSmartUtf8;
+
+    /**
+     * Set to true, when the smart utf-8 detection has been
+     * enabled, and the scanner finds a byte sequence, that
+     * cannot occur in valid utf-8.
+     */
+    private boolean containsInvalidUtf8;
 
     // CONSTRUCTORS
     //==============
 
     public SAVBaseReader() {
         bufferSize = DEFAULT_BUFFER_SIZE;
-        stringEncoding = DEFAULT_ENCODING;
+        encoding = null;
         istream = null;
         integerEndianness = new DataEndianness();
         floatingEndianness = new DataEndianness();
         fpos = 0;
         fsize = -1;
+        enableSmartUtf8 = true;
+        encodingIsUtf8 = false;
+        containsInvalidUtf8 = false;
 
         numberBuffer = new byte[8];
 
         // Set default endianness
-        setEndianness(DataEndianness.LITTLE_ENDIAN);
+        setEndianness(SAVConstants.DEFAULT_ENDIANNESS);
+
+        // Set default encoding
+        setEncoding(SAVConstants.DEFAULT_STRING_ENCODING);
 
     } // ctor
 
@@ -120,6 +143,8 @@ public class SAVBaseReader {
         // Assume initial position and unknown file size.
         fpos = 0;
         fsize = -1;
+        // Reset state variables
+        containsInvalidUtf8 = false;
     }
 
     /**
@@ -149,6 +174,8 @@ public class SAVBaseReader {
         this.istream = new BufferedInputStream(is, bufferSize);
         this.fpos = offset;
         this.fsize = size;
+        // Reset other state variables
+        containsInvalidUtf8 = false;
     }
 
     public void unbind() {
@@ -178,7 +205,39 @@ public class SAVBaseReader {
 
     }
 
+    public void setEncoding(String charsetName) {
+        try {
+            encoding = Charset.forName(charsetName);
+        } catch(UnsupportedCharsetException ex) {
+            throw new IllegalArgumentException(ex);
+        } // try-catch
 
+        // "UTF-8" is the canonical name for UTF-8 encoding
+        // in the package "java.nio.charset".
+        encodingIsUtf8 = encoding.name().equals(UTF8_CANONICAL_NAME);
+    }
+
+    /**
+     * Returns the canonical name of the encoding charset.
+     */
+    public String getEncoding() {
+        if (encoding == null) {
+            return null;
+        }
+        return encoding.name();
+    }
+
+    public void setSmartUtf8(boolean enableSmartUtf8) {
+        this.enableSmartUtf8 = enableSmartUtf8;
+    }
+
+    public boolean getSmartUtf8() {
+        return enableSmartUtf8;
+    }
+
+    public boolean foundInvalidUtf8() {
+        return containsInvalidUtf8;
+    }
 
     // OTHER METHODS
     //===============
@@ -199,11 +258,19 @@ public class SAVBaseReader {
     }
 
     public String decodeString(byte[] encoded, int offset, int length) {
-        try {
-            return new String(encoded, offset, length, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            throw new RuntimeException(ex);
+        if (enableSmartUtf8 && !encodingIsUtf8 && !containsInvalidUtf8) {
+            int mbChars = Utf8Helper
+                .countMultibyteChars(encoded, offset, length);
+            // There is one or more valid multi-byte characters present.
+            // Switch to UTF-8 automatically.
+            if (mbChars > 0) {
+                setEncoding(UTF8_CANONICAL_NAME);
+            } else if (mbChars < 0) {
+                // Disable further attempts.
+                containsInvalidUtf8 = true;
+            }
         }
+        return new String(encoded, offset, length, encoding);
     }
 
     /**
@@ -243,13 +310,7 @@ public class SAVBaseReader {
             length--;
         }
 
-        try {
-            rval = new String(encoded, 0, length, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-
-        return rval;
+        return decodeString(encoded, 0, length);
     }
 
     /**
@@ -404,21 +465,8 @@ public class SAVBaseReader {
         byte[] encoded = new byte[length];
         readBytes(encoded, 0, length);
 
-        // TODO:
-        // Use bytesToStringUnpad()
-
-        // Unpadding...
-        while ((length > 0) && (encoded[length-1] == ' ')) {
-            length--;
-        }
-
-        try {
-            rval = new String(encoded, 0, length, stringEncoding);
-        } catch(UnsupportedEncodingException ex) {
-            error_encoding(stringEncoding);
-        }
-
-        return rval;
+        // Unpad and return
+        return bytesToStringUnpad(encoded);
     }
 
     public String readAlignedString(
@@ -487,11 +535,5 @@ public class SAVBaseReader {
         throw new RuntimeException(String.format(
             "%s failed: unexpected end-of-file", method));
     } // error_eof()
-
-    protected static void error_encoding(String charsetName) {
-        throw new RuntimeException(String.format(
-            "Unsupported encoding specified for strings: %s", charsetName));
-    }
-
 
 } // class SAVBaseReader
