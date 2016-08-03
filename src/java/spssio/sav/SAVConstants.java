@@ -33,7 +33,6 @@ import spssio.util.DataEndianness;
  */
 public class SAVConstants {
 
-
     // CONSTANTS
     //===========
 
@@ -42,6 +41,12 @@ public class SAVConstants {
 
     public static final String
         SOFTWARE_PREFIX                                 = "@(#) SPSS DATA FILE";
+
+    public static final int
+        SYSTEM_ENDIANNESS_BIG_ENDIAN                    = 1;
+
+    public static final int
+        SYSTEM_ENDIANNESS_LITTLE_ENDIAN                 = 2;
 
     // DEFAULTS
     //==========
@@ -71,7 +76,8 @@ public class SAVConstants {
     public static final int
         DEFAULT_ENDIANNESS                              = DataEndianness.LITTLE_ENDIAN;
 
-
+    public static final int
+        DEFAULT_SYSTEM_ENDIANNESS                       = SYSTEM_ENDIANNESS_LITTLE_ENDIAN;
 
     public static final double
         DEFAULT_COMPRESSION_BIAS                        = 100.0;

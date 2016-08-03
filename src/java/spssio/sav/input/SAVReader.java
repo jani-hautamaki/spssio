@@ -252,7 +252,7 @@ public class SAVReader
         header.variableCount = readInt();
 
         // Parse compression flag
-        header.compressed = readInt();
+        header.compression = readInt();
 
         // Parse index of the weight variable, if any
         header.weightVariableIndex = readInt();
@@ -500,7 +500,7 @@ public class SAVReader
                     //System.out.printf("%f    %s\n", valueNew.getDouble(), vlabel);
                     break;
                 case SAVValue.TYPE_STRING:
-                    // Utilizes stringEncoding
+                    // Utilizes the configured encoding
                     valueNew.setString(bytesToStringUnpad(bytes));
                     //System.out.printf("%8s    %s\n", valueNew.getString(), vlabel);
                     break;
@@ -628,41 +628,50 @@ public class SAVReader
     private void parseExtSystemConfig() {
         expectExtensionSize(4, 8);
 
-        SAVExtSystemConfig ext = new SAVExtSystemConfig();
-        ext.copy(lastExt);
-        lastExt = ext;
+        // Create a new extension record object
+        sav.systemConfig = new SAVExtSystemConfig();
 
-        ext.versionMajor = readInt();
-        ext.versionMinor = readInt();
-        ext.versionRevision = readInt();
-        ext.machineCode = readInt();
-        ext.fpFormat = readInt();
-        ext.compression =  readInt();
-        ext.systemEndianness = readInt();
-        ext.stringCodepage = readInt();
+        // For convenience
+        SAVExtSystemConfig systemConfig = sav.systemConfig;
+
+        // Swap lastExt with the newly created systemConfig
+        systemConfig.copy(lastExt);
+        lastExt = systemConfig;
+
+        // Parse the extension record
+        systemConfig.versionMajor = readInt();
+        systemConfig.versionMinor = readInt();
+        systemConfig.versionRevision = readInt();
+        systemConfig.machineCode = readInt();
+        systemConfig.fpFormat = readInt();
+        systemConfig.compression =  readInt();
+        systemConfig.systemEndianness = readInt();
+        systemConfig.stringCodepage = readInt();
 
     }
 
     private void parseExtNumberConfig() {
         expectExtensionSize(8, 3);
 
-        SAVExtNumberConfig ext = new SAVExtNumberConfig();
-        ext.copy(lastExt);
-        lastExt = ext;
+        // Create a new extension record object
+        sav.numberConfig = new SAVExtNumberConfig();
 
-        ext.sysmissValue = readDouble();
-        ext.highestValue = readDouble();
-        ext.lowestValue = readDouble();
+        // For convenience
+        SAVExtNumberConfig numberConfig = sav.numberConfig;
 
+        // Swap lastExt with the newly created systemConfig
+        numberConfig.copy(lastExt);
+        lastExt = numberConfig;
+
+        // Parse the extension record
+        numberConfig.sysmissValue = readDouble();
+        numberConfig.highestValue = readDouble();
+        numberConfig.lowestValue = readDouble();
     }
 
-
     protected void parseSAVDataMatrix2() {
-        SAVMatrixParser matrixParser = null;
-        SAVMatrixDecompressor decompressor = null;
-
         // Compute the matrix data size in bytes
-        int matrixSize = length()-tell();
+        int matrixSize = length() - tell();
 
         // Sanity check for the data size.
         if ((matrixSize % 8) != 0) {
@@ -676,21 +685,19 @@ public class SAVReader
         ByteCursor cursor = new ByteCursor(array, 0);
 
         // Create and configure the parser, which is needed in any case.
-        matrixParser = new SAVMatrixParser();
+        SAVMatrixParser matrixParser = new SAVMatrixParser();
 
-        // Set encoding; may throw if unsupported
-        // TODO: Use a config variable
-        matrixParser.setEncoding("Cp1252");
+        // Use the configuration values are the reader.
+        matrixParser.setEncoding(getEncoding());
+        matrixParser.setEndianness(getFloatingEndianness());
 
-        // Fallback to use default value; system dependent
-        matrixParser.setSysmiss(-Double.MAX_VALUE);
+        // Returns the SYSMISS value from SAV extension record,
+        // or the default value, if no extension record available.
+        matrixParser.setSysmiss(sav.getSysmissValue());
 
         // Allocate the string buffer, and at the same time,
         // set the limit for the maximum string length
-        matrixParser.reallocStringBuffer(32*1024); // 32 KBs
-
-        // Set endianness (system default)
-        matrixParser.setEndianness(DataEndianness.LITTLE_ENDIAN);
+        matrixParser.reallocStringBuffer(32*1024); // 32 kilobytes
 
         // Set column widths
         int nvars = sav.variables.size();
@@ -700,94 +707,103 @@ public class SAVReader
         }
         matrixParser.setColumnWidths(widths);
 
-        if (sav.header.compressed != 0) {
+        // Create and configure decompressor
 
-            // Use the decompressor
-            decompressor = new SAVMatrixDecompressor();
+        SAVMatrixDecompressor decompressor = new SAVMatrixDecompressor();
+        // Configure according to parser configuration
+        decompressor.setEndianness(matrixParser.getEndianness());
+        decompressor.setSysmiss(matrixParser.getSysmiss());
+        // Configure bias according to the SAV header record.
+        decompressor.setBias(sav.header.getBias());
+        // Set matrix parser as the data receiver
+        decompressor.setDataReceiver(matrixParser);
 
-            // Configure it...
-
-            // Set matrix parser
-            decompressor.setDataReceiver(matrixParser);
-
-            boolean quit = false;
-            byte[] data = new byte[8];
-            int bytesRead = -1;
-            int errno;
-
-            while (!quit) {
-
-                // may throw
-                try {
-                    bytesRead = read(data, 0, 8);
-                } catch(IOException ex) {
-                    error_io("read(data, 0, 8)", ex);
-                }
-
-                if (bytesRead == -1) {
-                    // at eof, stop
-                    quit = true;
-                    continue;
-                }
-
-                // Otherwise verify that 8 bytes was read
-                if (bytesRead != 8) {
-                    throw new RuntimeException(String.format(
-                        "Unaligned number of data bytes in the matrix. Read %d bytes while expected 8",
-                        bytesRead));
-                }
-
-                // Write the data into the array immediately
-                int bytesWritten;
-                bytesWritten = cursor.write(data, 0, bytesRead);
-                if (bytesWritten != bytesRead) {
-                    throw new RuntimeException(String.format(
-                        "Buffer size miscalculated: was able to write only %d bytes out of %d",
-                        bytesWritten, bytesRead));
-                }
-
-                // The array got 8 bytes. Send them to the decompressor.
-                errno = decompressor.consume(data);
-
-                if (errno > SAVMatrixDecompressor.E_OK) {
-                    // Has finished with an error state
-                    // TODO: Cannot use here a constant variable related
-                    // to a specific class, because this method will not
-                    // know whether it is calling SAVMatrixParser
-                    // or SAVMatrixDecompressor....
-                    // UNLESS! The symbolic constant is defined
-                    // in the base class and the derived classes
-                    // are designed by requirements of the base class,
-                    // which states that these values should be used
-                    // to indicate ...
-
-                    quit = true;
-                    continue;
-                }
-
-                // Short-circuit exit if in error
-
-            } // while
-
-            // flush array
-            cursor.flush();
-
-            // Send eof
-            errno = decompressor.consume(null);
-
-            // TODO:
-            // Error handling of the decompressor...
-
-            // errno should now be the same as decompressor.errno()
-            /*
-            System.out.printf("[debug] Decompression finished\n");
-            System.out.printf("[debug] File offset after the loop: %d/%d\n",
-                tell(), length());
-            System.out.printf("[debug] errno: %d\n", decompressor.errno());
-            System.out.printf("[debug] strerror: %s\n", decompressor.strerror());
-            */
-
+        int compression = sav.header.getCompression(); // For convenience
+        if (compression == 0) {
+            // Data is uncompressed. Enable passthrough
+            decompressor.setPassthrough(true);
+        } else if (compression == 1) {
+            // Using compression.
+        } else {
+            throw new RuntimeException(String.format(
+                "Unsupported compression code: %d", compression));
         }
+
+        boolean quit = false;
+        byte[] data = new byte[8];
+        int bytesRead = -1;
+        int errno;
+
+        while (!quit) {
+
+            // may throw
+            try {
+                bytesRead = read(data, 0, 8);
+            } catch(IOException ex) {
+                error_io("read(data, 0, 8)", ex);
+            }
+
+            if (bytesRead == -1) {
+                // at eof, stop
+                quit = true;
+                continue;
+            }
+
+            // Otherwise verify that 8 bytes was read
+            if (bytesRead != 8) {
+                throw new RuntimeException(String.format(
+                    "Unaligned number of data bytes in the matrix. "
+                    +"Read %d bytes while expected 8",
+                    bytesRead));
+            }
+
+            // Write the data into the array immediately
+            int bytesWritten;
+            bytesWritten = cursor.write(data, 0, bytesRead);
+            if (bytesWritten != bytesRead) {
+                throw new RuntimeException(String.format(
+                    "Buffer size miscalculated: was able to "
+                    +"write only %d bytes out of %d",
+                    bytesWritten, bytesRead));
+            }
+
+            // The array got 8 bytes. Send them to the decompressor.
+            errno = decompressor.consume(data);
+
+            if (errno > SAVMatrixDecompressor.E_OK) {
+                // Has finished with an error state
+                // TODO: Cannot use here a constant variable related
+                // to a specific class, because this method will not
+                // know whether it is calling SAVMatrixParser
+                // or SAVMatrixDecompressor....
+                // UNLESS! The symbolic constant is defined
+                // in the base class and the derived classes
+                // are designed by requirements of the base class,
+                // which states that these values should be used
+                // to indicate ...
+
+                quit = true;
+                continue;
+            }
+        } // while
+
+        // flush array
+        cursor.flush();
+
+        // Send eof
+        errno = decompressor.consume(null);
+
+        // TODO:
+        // Error handling of the decompressor...
+
+        // errno should now be the same as decompressor.errno()
+        /*
+        System.out.printf("[debug] Decompression finished\n");
+        System.out.printf("[debug] File offset after the loop: %d/%d\n",
+            tell(), length());
+        System.out.printf("[debug] errno: %d\n", decompressor.errno());
+        System.out.printf("[debug] strerror: %s\n", decompressor.strerror());
+        */
 
         // Create RawMatrix
         SAVMatrix dataMatrix
@@ -845,208 +861,6 @@ public class SAVReader
             System.out.printf("cell string: x=%d value=<%s>\n", x, value);
         }
     }
-
-
-    protected void parseSAVDataMatrix() {
-
-        if (sav.header.compressed == 0) {
-            throw new RuntimeException("File is not compressed; not implemented yet");
-        }
-
-        boolean quit = false;
-        int i;
-        byte[] cmd = new byte[8];
-        byte[] cfrag = new byte[8];
-        int fraglen = 0;
-        //boolean
-
-        int xpos = 0;
-        int ypos = 0;
-
-        int maxStringLength = 0x100;
-        byte[] stringData = new byte[maxStringLength];
-        int stringLength = 0;
-
-        SAVVariable currentVariable = null;
-        int latestWidth = 0;
-        boolean expectWidth = true;
-        int xposPrev = -1;
-
-        /*
-        System.out.printf("Total file size: %x hex\n",
-            length());
-        System.out.printf("File offset: %d/%d\n",
-            tell(), length());
-        System.out.printf("Bytes left: %x hex\n", length()-tell());
-
-        System.out.printf("Reading data matrix...\n");
-        */
-
-
-        while (!quit) {
-            // readBytes(cmd, 0, 8);
-
-            int cbyte = -1;
-            try {
-                //System.out.printf("%5s   ", String.format("(%d)", ypos));
-                for (i = 0; i < 8; i++) {
-                    cbyte = read();
-                    //System.out.printf("%d#%-3d  ", i+1, cbyte);
-                    cmd[i] = (byte) cbyte;
-                    if (cbyte == -1) {
-                        if (i == 0) {
-                            // Possible
-                            quit = true;
-                            break;
-                        } else {
-                            // Unexpected
-                            System.out.printf("\n");
-                            error_eof("parseSAVDataMatrix()");
-                        }
-
-                    }
-                }
-                //System.out.printf("\n");
-            } catch(IOException ex) {
-                error_io("parseSAVDataMatrix()", ex);
-            } // try-catch
-
-
-            if (quit) {
-                continue;
-            }
-
-
-            for (i = 0; i < 8; i++) {
-                cbyte = ((int) cmd[i]) & 0xff;
-
-
-                if (xposPrev != xpos) {
-                    // Refresh current variable
-                    currentVariable = sav.variables.elementAt(xpos);
-                    /*
-                    System.out.printf("Reading variable [%s], width: %d, stringLength: %d, lw: %d\n",
-                        currentVariable.name, currentVariable.width, stringLength, latestWidth);
-                    */
-
-                    if (currentVariable.width >= 0) {
-                        if (expectWidth == false) {
-                            throw new RuntimeException(String.format(
-                                "Expected a virtual variable next"));
-                        }
-                        latestWidth = currentVariable.width;
-                        // Reset string length
-                        expectWidth = false;
-                    } else {
-                        if (expectWidth == true) {
-                            throw new RuntimeException(String.format(
-                                "Expected a non-virtual variable next"));
-                        }
-                    }
-                    xposPrev = xpos;
-                }
-
-                // Default
-                expectWidth = true;
-
-                if (cbyte == 0) {
-                    // NOP
-                }
-                else if (cbyte < 252) {
-                    // Single compressed numeric variable
-
-                    if (latestWidth != 0) {
-                        // Mismatching data type
-                        throw new RuntimeException(String.format(
-                            "Row %d: on column %d expected a string, but found a number",
-                            ypos, xpos));
-                    }
-
-                    xpos++;
-                }
-                else if (cbyte == 252) {
-                    System.out.printf("<eof> code 252\n");
-                    quit = true;
-                }
-                else if (cbyte == 253) {
-                    // Uncompressed 8-byte numeric or string variable.
-                    readBytes(cfrag, 0, 8);
-
-                    if (latestWidth == 0) {
-                        // Numeric variable
-                    } else {
-                        // String variable
-                        stringLength += 8;
-                    }
-
-                    xpos++;
-                }
-                else if (cbyte == 254) {
-                    // 8-byte string variable that is all space.
-                    stringLength += 8;
-                    xpos++;
-                }
-                else if (cbyte == 255) {
-                    // Numeric variable having SYSMISS value
-                    if (latestWidth != 0) {
-                        // Mismatching data type
-                        throw new RuntimeException(String.format(
-                            "Row %d: on column %d expected a string, but found a number (SYSMISS)",
-                            ypos, xpos));
-                    }
-
-                    xpos++;
-                    // SYSMISS cannot be assigned to string variables.
-                    // Search the web for more on that matter.
-
-                    // The functionality COULD be encoded in such
-                    // a way that this would cause the current variable
-                    // to be skipped.
-                }
-
-
-                if (latestWidth > 0) {
-                    if (stringLength >= latestWidth) {
-                        // latest non-virtual string variable finished
-                        //System.out.printf("Finished string: %d/%d\n", stringLength, latestWidth);
-                        stringLength = 0;
-                        // Expect new width
-                        expectWidth = true;
-                    } else {
-                        expectWidth = false;
-                    }
-                }
-
-                if (xpos == sav.variables.size()) {
-                    // row finished
-                    ypos++;
-                    xpos=0;
-                    // TODO: When parsing variables
-                    // assert that the first variable is non-virtual.
-                }
-            } // for: each cmd byte
-        }
-        /*
-        System.out.printf("...Done!\n");
-
-        System.out.printf("Number of Rows: %d\n", ypos);
-        */
-    }
-
-    protected void emitNumber(double value) {
-    }
-
-    protected void emitSysmiss() {
-    }
-
-    protected void emitString(String value) {
-    }
-
-
-    protected void emitStringData(byte[] data) {
-        // if data is null, interpret as 8-byte space
-    }
-
 
     // TEST CODE
     //===========

@@ -273,33 +273,66 @@ public class SAVFile {
     //==============
 
     public double getHighestValue() {
-        if (numberConfig != null) {
-            return numberConfig.getHighestValue();
+        if (numberConfig == null) {
+            return SAVConstants.DEFAULT_HIGHEST_VALUE;
         }
-        return SAVConstants.DEFAULT_HIGHEST_VALUE;
+        return numberConfig.getHighestValue();
     }
 
     public double getLowestValue() {
-        if (numberConfig != null) {
-            return numberConfig.getLowestValue();
+        if (numberConfig == null) {
+            return SAVConstants.DEFAULT_LOWEST_VALUE;
         }
-        return SAVConstants.DEFAULT_LOWEST_VALUE;
+        return numberConfig.getLowestValue();
     }
 
     public double getSysmissValue() {
-        if (numberConfig != null) {
-            return numberConfig.getSysmissValue();
+        if (numberConfig == null) {
+            return SAVConstants.DEFAULT_SYSMISS_VALUE;
         }
-        return SAVConstants.DEFAULT_SYSMISS_VALUE;
+        return numberConfig.getSysmissValue();
     }
 
-    // ENCODING CONFIG
-    //=================
+    // SYSTEM CONFIG
+    //===============
+
+    /**
+     * 1 (Big-Endian), 2 (Little-Endian)
+     */
+    public int getSystemEndianness() {
+        if (systemConfig == null) {
+            return SAVConstants.DEFAULT_SYSTEM_ENDIANNESS;
+        }
+        return systemConfig.systemEndianness;
+    }
 
     public String getStringEncoding() {
-        return SAVConstants.DEFAULT_STRING_ENCODING;
+        if (systemConfig == null) {
+            return SAVConstants.DEFAULT_STRING_ENCODING;
+        }
+
+        // For convenience;
+        int codepage = systemConfig.stringCodepage;
+
+        switch(codepage) {
+            case 1252:
+                return "Cp1252";
+            case 65001:
+                return "UTF-8";
+            default:
+                break;
+        }
+
+        // Cannot be determined with certainty.
+        return null;
     }
 
+    public int getStringCodepage() {
+        if (systemConfig == null) {
+            return -1;
+        }
+        return systemConfig.stringCodepage;
+    }
 
     // HEADER ACCESS
     //===============

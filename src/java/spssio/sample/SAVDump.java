@@ -148,7 +148,7 @@ public class SAVDump {
         System.out.printf("  Software:                  \"%s\"\n",   header.software);
         System.out.printf("  Layout:                    %d\n",       header.layout);
         System.out.printf("  Number of variables:       %d\n",       header.variableCount);
-        System.out.printf("  Compression:               %d\n",       header.compressed);
+        System.out.printf("  Compression:               %d\n",       header.compression);
         System.out.printf("  Weight variable index:     %d\n",       header.weightVariableIndex);
         System.out.printf("  Number of cases:           %d\n",       header.numberOfCases);
         System.out.printf("  Compression bias:          %f\n",       header.bias);
