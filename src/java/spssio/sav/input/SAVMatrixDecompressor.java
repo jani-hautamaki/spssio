@@ -106,6 +106,11 @@ public class SAVMatrixDecompressor {
     //============================
 
     /**
+     * Set to true when the decompression is disabled.
+     */
+    private boolean passthrough;
+
+    /**
      * Configured compression bias
      */
     private double bias;
@@ -155,6 +160,9 @@ public class SAVMatrixDecompressor {
         control = new byte[8];
         buffer = new byte[8];
 
+        // By default decompression is enabled
+        passthrough = false;
+
         // No receiver by default
         dataReceiver = null;
 
@@ -163,15 +171,15 @@ public class SAVMatrixDecompressor {
 
         // Set endianness, but do not update the sysmissBytes yet,
         // because the buffer and the value are not ready yet.
-        this.endianness = DataEndianness.LITTLE_ENDIAN;
+        this.endianness = SAVConstants.DEFAULT_ENDIANNESS;
 
         whitespacesBytes = new byte[8];
         sysmissBytes = new byte[8];
 
         updateWhitespacesBytes();
-        setSysmiss(-Double.MAX_VALUE);
+        setSysmiss(SAVConstants.DEFAULT_SYSMISS_VALUE);
 
-        setBias(100.0);
+        setBias(SAVConstants.DEFAULT_COMPRESSION_BIAS);
     }
 
     /**
@@ -188,6 +196,9 @@ public class SAVMatrixDecompressor {
 
         // Copy sysmiss (in raw format)
         setSysmissRaw(other.getSysmissRaw());
+
+        // Copy passthrough
+        setPassthrough(other.getPassthrough());
     }
 
     // CONFIGURATION
@@ -243,6 +254,14 @@ public class SAVMatrixDecompressor {
 
     public void setDataReceiver(SAVMatrixParser dataReceiver) {
         this.dataReceiver = dataReceiver;
+    }
+
+    public void setPassthrough(boolean passthrough) {
+        this.passthrough = passthrough;
+    }
+
+    public boolean getPassthrough() {
+        return passthrough;
     }
 
     // OTHER METHODS
@@ -401,6 +420,18 @@ public class SAVMatrixDecompressor {
             throw new RuntimeException(String.format(
                 "Unexpected data array length: %d (should be 8, this is as strong indication of a programming error)",
                 data.length));
+        }
+
+        // Short-circuit to emitRaw if passthrough is enabled
+        if (passthrough) {
+            emitRaw(data);
+            if (data == null) {
+                // EOF met.
+                state = S_ACCEPT;
+                errno = E_OK;
+                strerror = null;
+            }
+            return errno;
         }
 
         do {
