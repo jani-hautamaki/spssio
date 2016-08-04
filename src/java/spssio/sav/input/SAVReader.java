@@ -729,12 +729,11 @@ public class SAVReader
                 "Unsupported compression code: %d", compression));
         }
 
-        boolean quit = false;
         byte[] data = new byte[8];
         int bytesRead = -1;
         int errno;
 
-        while (!quit) {
+        while (true) {
 
             // may throw
             try {
@@ -744,9 +743,10 @@ public class SAVReader
             }
 
             if (bytesRead == -1) {
-                // at eof, stop
-                quit = true;
-                continue;
+                // At the end-of-file.
+                // Send the EOF marker to decompressor, and quit.
+                errno = decompressor.consume(null);
+                break;
             }
 
             // Otherwise verify that 8 bytes was read
@@ -770,29 +770,33 @@ public class SAVReader
             // The array got 8 bytes. Send them to the decompressor.
             errno = decompressor.consume(data);
 
+            // Check the decompressor's status
             if (errno > SAVMatrixDecompressor.E_OK) {
-                // Has finished with an error state
-                // TODO: Cannot use here a constant variable related
-                // to a specific class, because this method will not
-                // know whether it is calling SAVMatrixParser
-                // or SAVMatrixDecompressor....
-                // UNLESS! The symbolic constant is defined
-                // in the base class and the derived classes
-                // are designed by requirements of the base class,
-                // which states that these values should be used
-                // to indicate ...
-
-                quit = true;
-                continue;
+                // Decompressor has finished with an error.
+                break;
+            }
+            // Check also the parser's status
+            int parserErrno = matrixParser.errno();
+            if (matrixParser.hasError()) {
+                // Parser has finished with an error.
+                break;
             }
         } // while
 
         // flush array
         cursor.flush();
 
-        // Send eof
-        errno = decompressor.consume(null);
-
+        if (matrixParser.hasError()) {
+            throw new RuntimeException(String.format(
+                "Data matrix parsing finished with an error code: %d",
+                matrixParser.errno()));
+        }
+        if (errno > SAVMatrixDecompressor.E_OK) {
+            throw new RuntimeException(String.format(
+                "Decompressor finished with an error code: %d (%s)",
+                decompressor.errno(),
+                decompressor.strerror()));
+        }
         // TODO:
         // Error handling of the decompressor...
 

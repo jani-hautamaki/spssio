@@ -339,36 +339,24 @@ public class SAVMatrixDecompressor {
         // Send to the parser
         if (dataReceiver != null) {
             // Send raw data to the data receiver
-
-            int recvErrno = dataReceiver.consume(data);
-
-            // TODO: Error checking
+            dataReceiver.consume(data);
         }
     }
 
     private void emitNumber(double value) {
-        // Convert to bytes
+        // Convert to bytes prior to emitting
         long raw = Double.doubleToLongBits(value);
         serializeRawDouble(raw);
         emitRaw(buffer);
     }
 
     private void emitSysmiss() {
-        /*
-        serializeRawDouble(sysmissRaw);
-        emitRaw(buffer);
-        */
         emitRaw(sysmissBytes);
     }
 
     private void emitWhitespaces() {
-        /*
-        serializeWhitespaces();
-        emitRaw(buffer);
-        */
         emitRaw(whitespacesBytes);
     }
-
 
     public void reset() {
         // Reset state
@@ -426,7 +414,7 @@ public class SAVMatrixDecompressor {
         if (passthrough) {
             emitRaw(data);
             if (data == null) {
-                // EOF met.
+                // EOF
                 state = S_ACCEPT;
                 errno = E_OK;
                 strerror = null;
@@ -536,8 +524,6 @@ public class SAVMatrixDecompressor {
                     errno = E_FORMAT;
                     strerror = String.format("Control byte indicated to expect EOF, but got more data instead");
                 } // if-else
-                // No further data expected.
-                // TODO: Error if lands here?
                 break;
 
             case S_ACCEPT:

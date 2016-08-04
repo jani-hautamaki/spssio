@@ -30,6 +30,56 @@ import spssio.util.DataEndianness;
 
 public class SAVMatrixParser {
 
+    // ERROR CODES
+    //=============
+
+    /** The parsing is unfinished, more input is expected. */
+    public static final int E_UNFINISHED = -1;
+
+    /** Parse was succesfully finished, no errors occurred. */
+    public static final int E_OK = 0;
+
+    /** Unexpeced end-of-file. */
+    public static final int E_EOF = 1;
+
+    /** Column has an invalid width (< -1). */
+    public static final int E_WIDTH = 2;
+
+    // INTERNAL STATES
+    //=================
+
+    private static final int S_ERROR = -1;
+    private static final int S_ACCEPT = 0;
+    private static final int S_START = 1;
+    private static final int S_BEGIN_MATRIX = 2;
+    private static final int S_BEGIN_ROW = 3;
+    private static final int S_CELL = 4;
+    private static final int S_CELL_NUMERIC = 5;
+    private static final int S_CELL_STRING = 6;
+    private static final int S_NEXT = 7;
+    private static final int S_END_ROW = 8;
+    private static final int S_NEXT_ROW_OR_EOF = 9;
+    private static final int S_END_MATRIX = 10;
+
+    // MEMBER VARIABLES FOR DFA
+    //==========================
+
+    /**
+     * Incidates whether the current cycle is a null-transition,
+     * that is, non-consuming.
+     */
+    private boolean eps;
+
+    /**
+     * Current state
+     */
+    private int state;
+
+    /**
+     * Errro code
+     */
+    private int errno;
+
     // MEMBER VARIABLES
     //==================
 
@@ -88,6 +138,9 @@ public class SAVMatrixParser {
     //==============
 
     public SAVMatrixParser() {
+        state = S_START;
+        errno = E_UNFINISHED;
+
         index = 0;
         currentColumn = 0;
         columnWidths = null;
@@ -247,103 +300,172 @@ public class SAVMatrixParser {
         index = 0;
         currentColumn = 0;
         stringBytes = 0;
+        state = S_START;
+        errno = E_UNFINISHED;
     }
 
+    public int errno() {
+        return errno;
+    }
+
+    public boolean hasError() {
+        return errno > E_OK;
+    }
 
     // Expects a 8-byte array each time.
     //
     public int consume(byte[] data) {
+        do {
+            eps = false;
+            cycle(data);
+        } while (eps == true);
+        return errno;
+    }
 
-        if (data == null) {
+    private void cycle(byte[] data) {
+        int colWidth = columnWidths[index];
+        switch(state) {
+            case S_START:
+                if (data != null) {
+                    state = S_BEGIN_MATRIX;
+                    eps = true;
+                } else {
+                    state = S_ERROR;
+                    errno = E_EOF;
+                } // if-else
+                break;
 
-            // EOF received
+            case S_BEGIN_MATRIX:
+                emitMatrixBegin();
+                state = S_BEGIN_ROW;
+                eps = true;
+                break;
 
-            if (index == 0) {
-                // Accept
-                return 1;
-            } else {
-                // EOF at an unexpected position
+            case S_BEGIN_ROW:
+                emitRowBegin();
+                state = S_CELL;
+                eps = true;
+                break;
+
+            case S_CELL:
+                if (data == null) {
+                    // Unexpected end-of-file.
+                    state = S_ERROR;
+                    errno = E_EOF;
+                } else if (colWidth == 0) {
+                    // Numeric variable, single cell
+                    state = S_CELL_NUMERIC;
+                    eps = true;
+                } else if (colWidth > 0) {
+                    // String variable, single cell or leading cell
+                    state = S_CELL_STRING;
+                    eps = true;
+                } else if (colWidth == -1) {
+                    // String variable, continuation cell
+                    state = S_CELL_STRING;
+                    eps = true;
+                } else {
+                    //throw new RuntimeException("Impossible");
+                    state = S_ERROR;
+                    errno = E_WIDTH;
+                } // if-else
+                break;
+
+            case S_CELL_NUMERIC:
+                // This is a numeric column.
+                // Decode data into a dobule and emit
+                // either a number or a sysmiss.
+                consumeNumberData(data);
+
+                state = S_NEXT;
+                eps = true;
+                break;
+
+            case S_CELL_STRING:
+                // Single-cell, leading cell or continuation cell.
+
+                // In any case, copy data into the string variable buffer.
+                appendStringBuffer(data);
+
+                // In case of the leading or single cell, this can be
+                // (i) short string, at most 8 bytes wide,
+                // (ii) long string, at most 255 bytes wide, or
+                // (iii) very long string, up to at least 1 MB.
+
+                // Examine whether this was the last cell
+                // of the string variable. If so, then emit the string.
+                int nextColWidth = 0; // Default to a non-continuation cell
+                if (index+1 < columnWidths.length) {
+                   // Not the last, so take the next cell's actual width.
+                    nextColWidth = columnWidths[index+1];
+                }
+
+                if (nextColWidth >= 0) {
+                   // Either at the end of the row,
+                   // or the next cell is non-continuation cell.
+
+                   // Emit the string, unless the next cell is still
+                   // part of a very long string, in which case
+                   // the current string buffer is unpadded only.
+                   consumeStringBuffer();
+                } else {
+                   // Next cell is a continuation cell for a string.
+                   // Keep accumulating
+                }
+                state = S_NEXT;
+                eps = true;
+                break;
+
+            case S_NEXT:
+                // Increase the index
+                index++;
+                if (index == columnWidths.length) {
+                    // At the end of a row. Roll-over
+                    index = 0;
+                    // Emit also an row ending event.
+                    state = S_END_ROW;
+                    eps = true;
+                } else {
+                    // Not the last cell, so expect another.
+                    state = S_CELL;
+                }
+                break;
+
+            case S_END_ROW:
+                emitRowEnd();
+                state = S_NEXT_ROW_OR_EOF;
+                break;
+
+            case S_NEXT_ROW_OR_EOF:
+                if (data != null) {
+                    state = S_BEGIN_ROW;
+                    eps = true;
+                } else {
+                    // EOF, end matrix and accept.
+                    state = S_END_MATRIX;
+                    eps = true;
+                }
+                break;
+
+            case S_END_MATRIX:
+                // End matrix and accept.
+                emitMatrixEnd();
+                state = S_ACCEPT;
+                errno = E_OK;
+                break;
+
+            case S_ACCEPT:
+                // Stay here.
+                break;
+
+            case S_ERROR:
+                // Stay here.
+                break;
+
+            default:
                 throw new RuntimeException(String.format(
-                    "EOF encountered when at column %d / %d",
-                    index, columnWidths.length));
-            }
-        }
-
-        // If index == 0, begin a new row
-        if (index == 0) {
-            emitRowBegin();
-        }
-
-        int curWidth = columnWidths[index];
-        if (curWidth >= 0) {
-            // Reset the column
-            currentColumn = index;
-        }
-
-        // Next column
-        int nextIndex = index+1;
-
-        if (nextIndex == columnWidths.length) {
-            // This data packet was last for the current row.
-            // Reset index to the beginning of the next row.
-            nextIndex = 0;
-        }
-
-        int nextWidth = columnWidths[nextIndex];
-
-        if (curWidth == 0) {
-            // Numeric variable.
-            consumeNumberData(data);
-            // emitNumber()
-        } else if (curWidth > 0) {
-            // Copy data into the string variable buffer
-
-            appendStringBuffer(data);
-
-            // Determine whether this was the last column
-            // of a string variable.
-            // If that is the case, then consume the string buffer
-            // and emit the variable.
-
-            // String variable, non-virtual
-            if (nextWidth >= 0) {
-                // Short string variable
-                // These cannot be sent as a pass-through,
-                // because they need unpadding.
-                // consumeStringData()
-
-                consumeStringBuffer();
-
-            } else { // nextVar.width < 0
-                // Long string variable BEGINS.
-                // Start accumulation
-            }
-        } else { // curVar.width < 0
-            // Copy data into the string variable buffer
-
-            appendStringBuffer(data);
-
-            // String variable, virtual
-            if (nextWidth >= 0) {
-                // Long string variable ENDS
-                // Finish accumulation and emit data
-
-                consumeStringBuffer();
-
-            } else { // nextVar.width >= 0
-                // Long string variable MIDDLE
-                // Continue accumulation
-            }
-        } // if-else: curVar.width
-
-        // If at the last column, emit row end
-        if (nextIndex == 0) {
-            emitRowEnd();
-        }
-
-        index = nextIndex;
-
-        return 0;
+                    "Unhandled state: %d (programming error)", state));
+        } // switch
     }
 
     private long deserializeRawDouble(byte[] data) {
