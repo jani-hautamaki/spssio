@@ -775,39 +775,23 @@ public class SAVReader
                 // Decompressor has finished with an error.
                 break;
             }
-            // Check also the parser's status
-            int parserErrno = matrixParser.errno();
-            if (matrixParser.hasError()) {
-                // Parser has finished with an error.
-                break;
-            }
         } // while
 
         // flush array
         cursor.flush();
 
-        if (matrixParser.hasError()) {
-            throw new RuntimeException(String.format(
-                "Data matrix parsing finished with an error code: %d",
-                matrixParser.errno()));
-        }
         if (errno > SAVMatrixDecompressor.E_OK) {
-            throw new RuntimeException(String.format(
-                "Decompressor finished with an error code: %d (%s)",
-                decompressor.errno(),
-                decompressor.strerror()));
+            if (errno == SAVMatrixDecompressor.E_OTHER) {
+                throw new RuntimeException(String.format(
+                    "Data matrix parsing finished with an error code: %d",
+                    matrixParser.errno()));
+            } else {
+                throw new RuntimeException(String.format(
+                    "Decompressor finished with an error code: %d (%s)",
+                    decompressor.errno(),
+                    decompressor.strerror()));
+            }
         }
-        // TODO:
-        // Error handling of the decompressor...
-
-        // errno should now be the same as decompressor.errno()
-        /*
-        System.out.printf("[debug] Decompression finished\n");
-        System.out.printf("[debug] File offset after the loop: %d/%d\n",
-            tell(), length());
-        System.out.printf("[debug] errno: %d\n", decompressor.errno());
-        System.out.printf("[debug] strerror: %s\n", decompressor.strerror());
-        */
 
         // Create RawMatrix
         SAVMatrix dataMatrix
