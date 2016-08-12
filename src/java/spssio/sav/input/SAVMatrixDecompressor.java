@@ -37,8 +37,14 @@ public class SAVMatrixDecompressor {
     /** Decompression was finished succesfully, no errors occurred. */
     public static final int E_OK                       = 0;
 
+    /** Unexpected end-of-file. */
+    public static final int E_EOF                      = 1;
+
     /** The data has invalid format */
-    public static final int E_FORMAT                   = 1;
+    public static final int E_FORMAT                   = 2;
+
+    /** Other node within the chain finished with an error. */
+    public static final int E_OTHER                    = Integer.MAX_VALUE;
 
     // STATES
     //========
@@ -339,7 +345,18 @@ public class SAVMatrixDecompressor {
         // Send to the parser
         if (dataReceiver != null) {
             // Send raw data to the data receiver
-            dataReceiver.consume(data);
+            int otherErrno = dataReceiver.consume(data);
+
+            if (otherErrno > E_OK) {
+               // Chained output stream (the data receiver) has finished
+               // with an error state. The error is bubbled up in the stream,
+               // by setting this output stream into an error state,
+               // which indicates the failure of the subsequent stream.
+               // Consequently, further state transition attempts
+               // are ignored, and the error state set here is retained.
+               error(E_OTHER, "Other data receiver/sink within "
+                   +"the chain finished with an error.");
+            }
         }
     }
 
@@ -363,7 +380,7 @@ public class SAVMatrixDecompressor {
         state = S_START;
         eps = false;
 
-        // Reset error state
+        // Reset error code
         errno = E_UNFINISHED;
         strerror = "Decompression is unfinished; more input is expected";
 
@@ -385,19 +402,20 @@ public class SAVMatrixDecompressor {
         return strerror;
     }
 
-    /*
-    private void error(int errno, String fmt, Object... args) {
-        this.state = S_ERROR;
-        this.errno = errno;
-        this.strerror = String.format(fmt, args);
+    public Object getFailedObject() {
+        Object obj = null;
+        if (errno > E_OK) {
+            if (errno == E_OTHER) {
+                obj = dataReceiver;
+            } else {
+                obj = this;
+            }
+        } else {
+            // No error
+        }
+        return obj;
     }
 
-    private void accept() {
-        this.state = S_ACCEPT;
-        this.errno = E_OK;
-        this.strerror = null;
-    }
-    */
 
     // Expects an 8-byte array each time
     public int consume(byte[] data) {
@@ -415,9 +433,7 @@ public class SAVMatrixDecompressor {
             emitRaw(data);
             if (data == null) {
                 // EOF
-                state = S_ACCEPT;
-                errno = E_OK;
-                strerror = null;
+                nextState(S_ACCEPT, false);
             }
             return errno;
         }
@@ -431,12 +447,43 @@ public class SAVMatrixDecompressor {
         return errno;
     }
 
+    private boolean error(int errno, String fmt, Object... args) {
+        if ((state == S_ERROR) || (state == S_ACCEPT)) {
+            // Cannot hide previous error with a new one.
+            // Transitioning from a finishing state is not allowed either.
+            return false;
+        }
+
+        state = S_ERROR;
+        this.errno = errno;
+        strerror = String.format(fmt, args);
+
+        return true;
+    }
+
+    private boolean nextState(int nextState, boolean isNullTransition) {
+        if ((state == S_ERROR) || (state == S_ACCEPT)) {
+           // Cannot transit from finishing state.
+           return false;
+        }
+
+        // State transition allowed.
+        state = nextState;
+        eps = isNullTransition;
+        // If transitioning to accepting state, clear error
+        if (state == S_ACCEPT) {
+            errno = E_OK;
+            strerror = null;
+        }
+
+        return true;
+    }
+
     private void cycle(byte[] data) {
         switch(state) {
             case S_START:
                 if (data != null) {
-                    state = S_EXPECT_CBYTE_DATA;
-                    eps = true;
+                    nextState(S_EXPECT_CBYTE_DATA, true);
                 } else {
                     // immediate eof
                 }
@@ -447,32 +494,28 @@ public class SAVMatrixDecompressor {
                     // Copy data to control
                     System.arraycopy(data, 0, control, 0, 8);
                     cbyteIndex = 0;
-                    state = S_NEXT_CBYTE;
-                    eps = true;
+                    nextState(S_NEXT_CBYTE, true);
                 } else {
                     // EOF is accepted at this state,
                     // but use the "expect" state to finish.
-                    state = S_EXPECT_EOF;
-                    eps = true;
+                    nextState(S_EXPECT_EOF, true);
                 }
                 break;
 
             case S_EXPECT_RAW_DATA:
                 if (data != null) {
-                    state = S_EMIT_RAW_DATA;
-                    eps = true;
+                    nextState(S_EMIT_RAW_DATA, true);
                 } else {
                     // Unexpected eof
-                    state = S_ERROR;
-                    errno = E_FORMAT;
-                    strerror = String.format("Control byte indicated to expect raw data, but got EOF instead");
+                    error(E_FORMAT, "Control byte indicated to "
+                        +"expect raw data, but got EOF instead");
                 }
                 break;
 
             case S_NEXT_CBYTE:
                 if (cbyteIndex == 8) {
                     // Move on to read next control bytes
-                    state = S_EXPECT_CBYTE_DATA;
+                    nextState(S_EXPECT_CBYTE_DATA, false);
                 } else {
                     // Otherwise look up the next control byte
                     cbyte = ((int) control[cbyteIndex]) & 0xff;
@@ -488,41 +531,34 @@ public class SAVMatrixDecompressor {
             case S_EMIT_RAW_DATA:
                 // Pass-through for the data
                 emitRaw(data);
-                state = S_NEXT_CBYTE;
-                eps = true;
+                nextState(S_NEXT_CBYTE, true);
                 break;
 
             case S_EMIT_SYSMISS:
                 emitSysmiss();
-                state = S_NEXT_CBYTE;
-                eps = true;
+                nextState(S_NEXT_CBYTE, true);
                 break;
 
             case S_EMIT_BIASED_NUMBER:
                 // Convert to double, and unbias
                 emitNumber((double)(cbyte) - bias);
-                state = S_NEXT_CBYTE;
-                eps = true;
+                nextState(S_NEXT_CBYTE, true);
                 break;
 
             case S_EMIT_WHITESPACES:
                 emitWhitespaces();
-                state = S_NEXT_CBYTE;
-                eps = true;
+                nextState(S_NEXT_CBYTE, true);
                 break;
 
             case S_EXPECT_EOF:
                 if (data == null) {
                     // EOF as expected. Emit and accept.
                     emitRaw(null);
-                    state = S_ACCEPT;
-                    errno = E_OK;
-                    strerror = null;
+                    nextState(S_ACCEPT, false);
                 } else {
                     // Unexpected data
-                    state = S_ERROR;
-                    errno = E_FORMAT;
-                    strerror = String.format("Control byte indicated to expect EOF, but got more data instead");
+                    error(E_FORMAT, "Control byte indicated to "
+                        +"expect EOF, but got more data instead");
                 } // if-else
                 break;
 
@@ -544,36 +580,32 @@ public class SAVMatrixDecompressor {
         switch(cbyte) {
             case SAVConstants.CBYTE_NOP:             // 0 (0x00)
                 // NOP operation
-                state = S_NEXT_CBYTE;
-                eps = true;
+                nextState(S_NEXT_CBYTE, true);
                 break;
 
             case SAVConstants.CBYTE_EOF:             // 252 (0xFC)
                 // End of file
-                state = S_EXPECT_EOF;
+                nextState(S_EXPECT_EOF, false);
                 break;
 
             case SAVConstants.CBYTE_RAW_DATA:        // 253 (0xFD)
                 // string or double: raw data
-                state = S_EXPECT_RAW_DATA;
+                nextState(S_EXPECT_RAW_DATA, false);
                 break;
 
             case SAVConstants.CBYTE_WHITESPACES:     // 254 (0xFE)
                 // string: 8x whitespace
-                state = S_EMIT_WHITESPACES;
-                eps = true;
+                nextState(S_EMIT_WHITESPACES, true);
                 break;
 
             case SAVConstants.CBYTE_SYSMISS:         // 255 (0xFF)
                 // double: sysmiss
-                state = S_EMIT_SYSMISS;
-                eps = true;
+                nextState(S_EMIT_SYSMISS, true);
                 break;
 
             default:
                 // double: code-bias
-                state = S_EMIT_BIASED_NUMBER;
-                eps = true;
+                nextState(S_EMIT_BIASED_NUMBER, true);
                 break;
         } // switch()
     } // handleControlByte()
